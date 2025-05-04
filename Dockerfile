@@ -1,4 +1,33 @@
-FROM ubuntu:latest
-LABEL authors="alex_pyslar"
+# Build stage
+FROM golang:1.24-alpine AS builder
 
-ENTRYPOINT ["top", "-b"]
+WORKDIR /app
+
+# Copy go mod and sum files
+COPY go.mod go.sum ./
+
+# Download dependencies
+RUN go mod download
+
+# Copy source code
+COPY . .
+
+# Build the application
+RUN CGO_ENABLED=0 GOOS=linux go build -o orbitron ./cmd/orbitron
+
+# Final stage
+FROM alpine:latest
+
+WORKDIR /app
+
+# Copy the binary from builder
+COPY --from=builder /app/orbitron .
+
+# Copy configuration files
+COPY config/ ./configs/
+
+# Expose port
+EXPOSE 8080
+
+# Run the application
+CMD ["./orbitron"]
