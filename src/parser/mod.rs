@@ -1,7 +1,9 @@
-use crate::ast::*;
+pub mod ast;
+pub use ast::*;
+
 use crate::lexer::Token;
 
-// ── Parser ─────────────────────────────────────────────────────────────────
+// ── Parser ──────────────────────────────────────────────────────────────────
 
 pub struct Parser {
     tokens: Vec<Token>,
@@ -23,10 +25,6 @@ impl Parser {
         self.tokens.get(self.pos + 1).unwrap_or(&Token::Eof)
     }
 
-    fn peek_at(&self, offset: usize) -> &Token {
-        self.tokens.get(self.pos + offset).unwrap_or(&Token::Eof)
-    }
-
     fn advance(&mut self) -> Token {
         let t = self.tokens.get(self.pos).cloned().unwrap_or(Token::Eof);
         if self.pos < self.tokens.len() { self.pos += 1; }
@@ -42,13 +40,22 @@ impl Parser {
     fn expect(&mut self, tok: &Token) -> Result<(), String> {
         let got = self.advance();
         if &got == tok { Ok(()) }
-        else { Err(format!("Expected {:?}, got {:?}", tok, got)) }
+        else { Err(format!("Ожидалось {:?}, получено {:?}", tok, got)) }
     }
 
     fn expect_ident(&mut self) -> Result<String, String> {
         match self.advance() {
             Token::Ident(s) => Ok(s),
-            t => Err(format!("Expected identifier, got {:?}", t)),
+            t => Err(format!("Ожидался идентификатор, получено {:?}", t)),
+        }
+    }
+
+    /// Like `expect_ident` but also accepts keyword `new` as a method name.
+    fn expect_method_name(&mut self) -> Result<String, String> {
+        match self.advance() {
+            Token::Ident(s) => Ok(s),
+            Token::New      => Ok("new".to_string()),
+            t => Err(format!("Ожидалось имя метода, получено {:?}", t)),
         }
     }
 
@@ -64,32 +71,27 @@ impl Parser {
 
     fn parse_top_level(&mut self) -> Result<Stmt, String> {
         match self.peek() {
-            Token::Fn     => self.parse_fn_decl(),
-            Token::Main   => self.parse_main_decl(),
+            Token::Func   => self.parse_fn_decl(),
             Token::Struct => self.parse_struct_decl(),
             Token::Impl   => self.parse_impl_decl(),
+            Token::Class  => self.parse_class_decl(),
             t => Err(format!(
-                "Expected 'fn', 'main', 'struct', or 'impl' at top level, got {:?}",
+                "Ожидалось 'func', 'struct', 'impl' или 'class' на верхнем уровне, получено {:?}",
                 t.clone()
             )),
         }
     }
 
     fn parse_fn_decl(&mut self) -> Result<Stmt, String> {
-        self.advance(); // 'fn'
+        self.advance(); // 'func'
         let name = self.expect_ident()?;
         self.expect(&Token::LParen)?;
         let params = self.parse_param_list()?;
         self.expect(&Token::RParen)?;
+        // optional return-type annotation : type
         if self.eat(&Token::Colon) { self.skip_type_annotation()?; }
         let body = self.parse_block_stmts()?;
         Ok(Stmt::FnDecl { name, params, body })
-    }
-
-    fn parse_main_decl(&mut self) -> Result<Stmt, String> {
-        self.advance(); // 'main'
-        let body = self.parse_block_stmts()?;
-        Ok(Stmt::FnDecl { name: "main".into(), params: vec![], body })
     }
 
     fn parse_param_list(&mut self) -> Result<Vec<String>, String> {
@@ -104,10 +106,12 @@ impl Parser {
         Ok(params)
     }
 
+    /// Skip over a type name token (int / float / identifier).
+    /// Type annotations are parsed but not enforced at codegen level.
     fn skip_type_annotation(&mut self) -> Result<(), String> {
         match self.peek().clone() {
             Token::Ident(_) => { self.advance(); Ok(()) }
-            t => Err(format!("Expected type name, got {:?}", t)),
+            t => Err(format!("Ожидалось имя типа, получено {:?}", t)),
         }
     }
 
@@ -139,7 +143,7 @@ impl Parser {
                     other   => Ok(FieldType::Named(other.to_string())),
                 }
             }
-            t => Err(format!("Expected field type (int/float), got {:?}", t)),
+            t => Err(format!("Ожидался тип поля (int/float/имя), получено {:?}", t)),
         }
     }
 
@@ -149,33 +153,77 @@ impl Parser {
         self.expect(&Token::LBrace)?;
         let mut methods = Vec::new();
         while !self.check(&Token::RBrace) && !self.check(&Token::Eof) {
-            methods.push(self.parse_method_decl()?);
+            let access = self.parse_access_modifier();
+            let mut m = self.parse_method_decl()?;
+            m.access = access;
+            methods.push(m);
         }
         self.expect(&Token::RBrace)?;
         Ok(Stmt::ImplDecl { struct_name, methods })
     }
 
-    fn parse_method_decl(&mut self) -> Result<MethodDecl, String> {
-        self.expect(&Token::Fn)?;
+    /// `class Name { [pub|private] field: type, ...  init(...) { }  pub func method(...) { ... } }`
+    fn parse_class_decl(&mut self) -> Result<Stmt, String> {
+        self.advance(); // 'class'
         let name = self.expect_ident()?;
+        self.expect(&Token::LBrace)?;
+
+        let mut fields  = Vec::new();
+        let mut methods = Vec::new();
+
+        while !self.check(&Token::RBrace) && !self.check(&Token::Eof) {
+            let access = self.parse_access_modifier();
+
+            if self.check(&Token::Func) || self.check(&Token::Init) {
+                // method or constructor declaration
+                let mut m = self.parse_method_decl()?;
+                m.access = access;
+                methods.push(m);
+            } else {
+                // field declaration:  name: type [,]
+                let fname = self.expect_ident()?;
+                self.expect(&Token::Colon)?;
+                let ftype = self.parse_field_type()?;
+                self.eat(&Token::Comma);
+                fields.push(FieldDecl { name: fname, ty: ftype, access });
+            }
+        }
+
+        self.expect(&Token::RBrace)?;
+        Ok(Stmt::ClassDecl { name, fields, methods })
+    }
+
+    /// Consume an optional `pub` or `private` keyword and return the access level.
+    fn parse_access_modifier(&mut self) -> Access {
+        if self.eat(&Token::Pub)          { Access::Public  }
+        else if self.eat(&Token::Private) { Access::Private }
+        else                              { Access::Public  }
+    }
+
+    fn parse_method_decl(&mut self) -> Result<MethodDecl, String> {
+        // Accept 'func' or 'init' (constructor shorthand without explicit self)
+        let is_init = self.check(&Token::Init);
+        if is_init {
+            self.advance(); // consume 'init'
+        } else {
+            self.expect(&Token::Func)?;
+        }
+
+        // For 'init', the internal method name is "new" (reuses constructor codegen)
+        let name = if is_init {
+            "new".to_string()
+        } else {
+            self.expect_method_name()?
+        };
+
         self.expect(&Token::LParen)?;
 
-        let mut has_self = false;
+        let mut has_self = is_init; // init always has implicit self
         let mut params   = Vec::new();
 
-        if !self.check(&Token::RParen) {
-            if self.check(&Token::SelfKw) {
-                self.advance(); // consume 'self'
-                has_self = true;
-                if self.eat(&Token::Comma) {
-                    params.push(self.expect_ident()?);
-                    if self.eat(&Token::Colon) { self.skip_type_annotation()?; }
-                    while self.eat(&Token::Comma) {
-                        params.push(self.expect_ident()?);
-                        if self.eat(&Token::Colon) { self.skip_type_annotation()?; }
-                    }
-                }
-            } else {
+        if is_init {
+            // init(params)  — self is implicit, don't expect Token::SelfKw
+            if !self.check(&Token::RParen) {
                 params.push(self.expect_ident()?);
                 if self.eat(&Token::Colon) { self.skip_type_annotation()?; }
                 while self.eat(&Token::Comma) {
@@ -183,13 +231,35 @@ impl Parser {
                     if self.eat(&Token::Colon) { self.skip_type_annotation()?; }
                 }
             }
+        } else {
+            // pub func method(self, ...)  or  pub func method(a, b)
+            if !self.check(&Token::RParen) {
+                if self.check(&Token::SelfKw) {
+                    self.advance(); // consume 'self'
+                    has_self = true;
+                    if self.eat(&Token::Comma) {
+                        params.push(self.expect_ident()?);
+                        if self.eat(&Token::Colon) { self.skip_type_annotation()?; }
+                        while self.eat(&Token::Comma) {
+                            params.push(self.expect_ident()?);
+                            if self.eat(&Token::Colon) { self.skip_type_annotation()?; }
+                        }
+                    }
+                } else {
+                    params.push(self.expect_ident()?);
+                    if self.eat(&Token::Colon) { self.skip_type_annotation()?; }
+                    while self.eat(&Token::Comma) {
+                        params.push(self.expect_ident()?);
+                        if self.eat(&Token::Colon) { self.skip_type_annotation()?; }
+                    }
+                }
+            }
         }
 
         self.expect(&Token::RParen)?;
-        // optional return-type annotation  : type
         if self.eat(&Token::Colon) { self.skip_type_annotation()?; }
         let body = self.parse_block_stmts()?;
-        Ok(MethodDecl { name, params, has_self, body })
+        Ok(MethodDecl { name, params, has_self, body, access: Access::Public })
     }
 
     // ── Block ──────────────────────────────────────────────────────────────
@@ -206,7 +276,7 @@ impl Parser {
 
     // ── Statements ─────────────────────────────────────────────────────────
 
-    /// Returns true when the current token sequence is  (ident | self) DOT ident ASSIGN
+    /// Returns true when the token sequence is  (ident | self) DOT ident ASSIGN
     fn is_field_assign_stmt(&self) -> bool {
         let first_ok = matches!(
             self.tokens.get(self.pos),
@@ -219,19 +289,19 @@ impl Parser {
     }
 
     fn parse_stmt(&mut self) -> Result<Stmt, String> {
-        // Field assign must be checked before the generic match arms.
         if self.is_field_assign_stmt() {
             return self.parse_field_assign_stmt();
         }
 
         match self.peek().clone() {
-            Token::Let      => self.parse_let(),
+            Token::Var      => self.parse_var(),
             Token::If       => self.parse_if(),
             Token::While    => self.parse_while(),
+            Token::Do       => self.parse_do_while(),
             Token::For      => self.parse_for(),
             Token::Loop     => self.parse_loop(),
             Token::Return   => self.parse_return(),
-            Token::Print    => self.parse_print(),
+            Token::Println  => self.parse_println(),
             Token::Match    => self.parse_match(),
             Token::Break    => {
                 self.advance();
@@ -247,7 +317,7 @@ impl Parser {
                 let body = self.parse_block_stmts()?;
                 Ok(Stmt::Block(body))
             }
-            // compound assignment:  ident += / -= / *= / /= expr ;
+            // compound assignment:  ident op= expr ;
             Token::Ident(_) if matches!(
                 self.peek2(),
                 Token::PlusAssign | Token::MinusAssign |
@@ -266,8 +336,9 @@ impl Parser {
         }
     }
 
-    fn parse_let(&mut self) -> Result<Stmt, String> {
-        self.advance(); // 'let'
+    /// `var name [: type] = expr;`
+    fn parse_var(&mut self) -> Result<Stmt, String> {
+        self.advance(); // 'var'
         let name = self.expect_ident()?;
         if self.eat(&Token::Colon) { self.skip_type_annotation()?; }
         self.expect(&Token::Assign)?;
@@ -292,7 +363,7 @@ impl Parser {
             Token::MinusAssign => BinOp::Sub,
             Token::StarAssign  => BinOp::Mul,
             Token::SlashAssign => BinOp::Div,
-            t => return Err(format!("Expected compound-assign operator, got {:?}", t)),
+            t => return Err(format!("Ожидался оператор присваивания, получено {:?}", t)),
         };
         let rhs = self.parse_expr()?;
         self.expect(&Token::Semicolon)?;
@@ -306,7 +377,7 @@ impl Parser {
         let obj_name = match self.advance() {
             Token::Ident(s) => s,
             Token::SelfKw   => "self".to_string(),
-            t => return Err(format!("Expected identifier or 'self', got {:?}", t)),
+            t => return Err(format!("Ожидался идентификатор или 'self', получено {:?}", t)),
         };
         self.expect(&Token::Dot)?;
         let field = self.expect_ident()?;
@@ -347,17 +418,56 @@ impl Parser {
         Ok(Stmt::While { cond, body: Box::new(Stmt::Block(body)) })
     }
 
+    /// `do { body } while (cond);`
+    fn parse_do_while(&mut self) -> Result<Stmt, String> {
+        self.advance(); // 'do'
+        let body = self.parse_block_stmts()?;
+        self.expect(&Token::While)?;
+        self.expect(&Token::LParen)?;
+        let cond = self.parse_expr()?;
+        self.expect(&Token::RParen)?;
+        self.expect(&Token::Semicolon)?;
+        Ok(Stmt::DoWhile { body: Box::new(Stmt::Block(body)), cond })
+    }
+
+    /// `for i in start..end { }` or `for i in start..=end { }`
+    /// Multiple ranges: `for i in 0..3, j in 0..5 { }` → nested loops
     fn parse_for(&mut self) -> Result<Stmt, String> {
         self.advance(); // 'for'
-        let var = self.expect_ident()?;
-        self.expect(&Token::Assign)?;
-        let from = self.parse_expr()?;
-        if !self.eat(&Token::To) {
-            return Err(format!("Expected 'to' in for loop, got {:?}", self.peek().clone()));
+
+        // Collect one or more range specs separated by commas
+        let mut ranges = vec![self.parse_range_spec()?];
+        while self.eat(&Token::Comma) {
+            ranges.push(self.parse_range_spec()?);
         }
+
+        let body_stmts = self.parse_block_stmts()?;
+
+        // Desugar from inside out: innermost range wraps the body
+        let innermost = Stmt::Block(body_stmts);
+        let result = ranges.into_iter().rev().fold(innermost, |inner, (var, from, to, inclusive)| {
+            Stmt::For { var, from, to, inclusive, body: Box::new(inner) }
+        });
+        Ok(result)
+    }
+
+    /// Parse one `ident in expr..expr` or `ident in expr..=expr`
+    fn parse_range_spec(&mut self) -> Result<(String, Expr, Expr, bool), String> {
+        let var  = self.expect_ident()?;
+        self.expect(&Token::In)?;
+        let from = self.parse_expr()?;
+        let inclusive = if self.eat(&Token::DotDotEq) {
+            true
+        } else if self.eat(&Token::DotDot) {
+            false
+        } else {
+            return Err(format!(
+                "Ожидался '..' или '..=' в цикле for, получено {:?}",
+                self.peek().clone()
+            ));
+        };
         let to = self.parse_expr()?;
-        let body = self.parse_block_stmts()?;
-        Ok(Stmt::For { var, from, to, body: Box::new(Stmt::Block(body)) })
+        Ok((var, from, to, inclusive))
     }
 
     fn parse_loop(&mut self) -> Result<Stmt, String> {
@@ -377,9 +487,12 @@ impl Parser {
         }
     }
 
-    fn parse_print(&mut self) -> Result<Stmt, String> {
-        self.advance(); // 'print'
+    /// `println(expr);`
+    fn parse_println(&mut self) -> Result<Stmt, String> {
+        self.advance(); // 'println'
+        self.expect(&Token::LParen)?;
         let e = self.parse_expr()?;
+        self.expect(&Token::RParen)?;
         self.expect(&Token::Semicolon)?;
         Ok(Stmt::Print(e))
     }
@@ -402,19 +515,18 @@ impl Parser {
                 self.advance();
                 MatchPat::Int(n)
             }
-            // negative integer literal:  -N
             Token::Minus => {
                 self.advance();
                 match self.advance() {
                     Token::Int(n) => MatchPat::Int(-n),
-                    t => return Err(format!("Expected integer after '-' in match arm, got {:?}", t)),
+                    t => return Err(format!("Ожидалось целое число после '-', получено {:?}", t)),
                 }
             }
             Token::Ident(s) if s == "_" => {
                 self.advance();
                 MatchPat::Wildcard
             }
-            t => return Err(format!("Expected match pattern (integer or _), got {:?}", t)),
+            t => return Err(format!("Ожидался образец match (целое или _), получено {:?}", t)),
         };
         self.expect(&Token::FatArrow)?;
         let body = self.parse_block_stmts()?;
@@ -431,7 +543,7 @@ impl Parser {
     //    mul_expr   :  * / %
     //    unary      :  - !
     //    postfix    :  expr.field / expr.method(args)
-    //    call_base  :  name(args) / new Name { ... }
+    //    call_base  :  name(args) / StructName { ... } / new ClassName(...)
     //    primary    :  literal | ident | self | (expr)
 
     pub fn parse_expr(&mut self) -> Result<Expr, String> { self.parse_or() }
@@ -539,14 +651,40 @@ impl Parser {
         Ok(expr)
     }
 
-    /// Parse a function call, struct literal, or primary.
+    /// Parse a function call, struct literal, constructor call, or primary.
+    ///
+    /// Syntax:
+    ///   new ClassName(args)       → ConstructorCall  (Java/C# style)
+    ///   StructName { field: expr } → StructLit        (Go style, no `new`)
+    ///   name(args)                → Call
+    ///   readInt()                 → Input  (built-in)
+    ///   readFloat()               → InputFloat (built-in)
     fn parse_call_base(&mut self) -> Result<Expr, String> {
-        // struct literal:  new StructName { field: expr, ... }
+        // `new ClassName(args)` — constructor call
         if self.eat(&Token::New) {
-            return self.parse_struct_lit();
+            let name = self.expect_ident()?;
+            self.expect(&Token::LParen)?;
+            let args = self.parse_arg_list()?;
+            self.expect(&Token::RParen)?;
+            return Ok(Expr::ConstructorCall { class: name, args });
         }
-        // function call:  ident(args)
+
         if let Token::Ident(name) = self.peek().clone() {
+            // `readInt()` → Expr::Input
+            if name == "readInt" && matches!(self.peek2(), Token::LParen) {
+                self.advance(); // 'readInt'
+                self.advance(); // '('
+                self.expect(&Token::RParen)?;
+                return Ok(Expr::Input);
+            }
+            // `readFloat()` → Expr::InputFloat
+            if name == "readFloat" && matches!(self.peek2(), Token::LParen) {
+                self.advance(); // 'readFloat'
+                self.advance(); // '('
+                self.expect(&Token::RParen)?;
+                return Ok(Expr::InputFloat);
+            }
+            // `name(args)` → Call
             if matches!(self.peek2(), Token::LParen) {
                 self.advance(); // ident
                 self.advance(); // (
@@ -554,12 +692,31 @@ impl Parser {
                 self.expect(&Token::RParen)?;
                 return Ok(Expr::Call { name, args });
             }
+            // `StructName { field: expr, ... }` → StructLit
+            // Only when { is followed by `ident:` (field pair) or `}` (empty struct),
+            // so that `match score { 1 => ... }` is NOT misread as a struct literal.
+            if matches!(self.peek2(), Token::LBrace) && self.looks_like_struct_lit() {
+                self.advance(); // ident
+                return self.parse_struct_lit_body(name);
+            }
         }
+
         self.parse_primary()
     }
 
-    fn parse_struct_lit(&mut self) -> Result<Expr, String> {
-        let name = self.expect_ident()?;
+    /// True when `tokens[pos+1]` is `{` and the char after it is `}` (empty struct)
+    /// or `ident :` (field-value pair). Prevents `match expr {` from being misread.
+    fn looks_like_struct_lit(&self) -> bool {
+        // pos   → Ident  (already confirmed by caller)
+        // pos+1 → LBrace (already confirmed by caller)
+        // pos+2 → first token inside the brace
+        // pos+3 → token after that
+        matches!(self.tokens.get(self.pos + 2), Some(Token::RBrace))
+            || (matches!(self.tokens.get(self.pos + 2), Some(Token::Ident(_)))
+                && matches!(self.tokens.get(self.pos + 3), Some(Token::Colon)))
+    }
+
+    fn parse_struct_lit_body(&mut self, name: String) -> Result<Expr, String> {
         self.expect(&Token::LBrace)?;
         let mut fields = Vec::new();
         while !self.check(&Token::RBrace) && !self.check(&Token::Eof) {
@@ -585,19 +742,19 @@ impl Parser {
 
     fn parse_primary(&mut self) -> Result<Expr, String> {
         match self.advance() {
-            Token::Int(n)    => Ok(Expr::Number(n)),
-            Token::Float(f)  => Ok(Expr::Float(f)),
-            Token::Str(s)    => Ok(Expr::Str(s)),
-            Token::True      => Ok(Expr::Number(1)),
-            Token::False     => Ok(Expr::Number(0)),
-            Token::Ident(n)  => Ok(Expr::Ident(n)),
-            Token::SelfKw    => Ok(Expr::Ident("self".into())),
-            Token::LParen    => {
+            Token::Int(n)   => Ok(Expr::Number(n)),
+            Token::Float(f) => Ok(Expr::Float(f)),
+            Token::Str(s)   => Ok(Expr::Str(s)),
+            Token::True     => Ok(Expr::Number(1)),
+            Token::False    => Ok(Expr::Number(0)),
+            Token::Ident(n) => Ok(Expr::Ident(n)),
+            Token::SelfKw   => Ok(Expr::Ident("self".into())),
+            Token::LParen   => {
                 let e = self.parse_expr()?;
                 self.expect(&Token::RParen)?;
                 Ok(e)
             }
-            t => Err(format!("Expected an expression, got {:?}", t)),
+            t => Err(format!("Ожидалось выражение, получено {:?}", t)),
         }
     }
 }

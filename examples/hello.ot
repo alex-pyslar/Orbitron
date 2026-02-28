@@ -1,0 +1,16 @@
+// hello.ot — Самая простая программа на языке Orbitron
+// Выводит приветствие и демонстрирует базовые переменные.
+
+func main() {
+    println("Привет, мир!");
+    println("Hello, World!");
+
+    var x = 42;
+    println(x);
+
+    var pi: float = 3.14159;
+    println(pi);
+
+    var summa = x + 8;
+    println(summa);
+}

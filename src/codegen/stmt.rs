@@ -1,0 +1,334 @@
+use crate::parser::ast::{Expr, MatchPat, Stmt};
+use super::{CodeGen, Val, Var, VarKind};
+
+impl<'ctx> CodeGen<'ctx> {
+    pub(super) fn gen_stmt(&mut self, stmt: &Stmt) {
+        match stmt {
+
+            // var name = expr;
+            Stmt::Let { name, expr } => {
+                let val = self.gen_expr(expr);
+                match val {
+                    Val::Int(i) => {
+                        let p = self.builder.build_alloca(self.i64_ty, name).unwrap();
+                        self.builder.build_store(p, i).unwrap();
+                        self.vars.insert(name.clone(), Var { ptr: p, kind: VarKind::Int });
+                    }
+                    Val::Float(f) => {
+                        let p = self.builder.build_alloca(self.f64_ty, name).unwrap();
+                        self.builder.build_store(p, f).unwrap();
+                        self.vars.insert(name.clone(), Var { ptr: p, kind: VarKind::Float });
+                    }
+                    Val::Struct(ptr, type_name) => {
+                        self.vars.insert(name.clone(), Var { ptr, kind: VarKind::Struct(type_name) });
+                    }
+                }
+            }
+
+            // name = expr;
+            Stmt::Assign { name, expr } => {
+                let var = self.vars.get(name)
+                    .cloned()
+                    .unwrap_or_else(|| panic!("Неопределённая переменная '{}'", name));
+                let val = self.gen_expr(expr);
+                match var.kind {
+                    VarKind::Float     => {
+                        self.builder.build_store(var.ptr, self.as_float(val)).unwrap();
+                    }
+                    VarKind::Int       => {
+                        self.builder.build_store(var.ptr, self.as_int(val)).unwrap();
+                    }
+                    VarKind::Struct(_) => {
+                        panic!("Переприсваивание struct через '=' не поддерживается");
+                    }
+                }
+            }
+
+            // obj.field = expr;
+            Stmt::FieldAssign { obj, field, val } => {
+                let obj_val = self.gen_expr(obj);
+                if let Val::Struct(ptr, ref type_name) = obj_val {
+                    let type_name = type_name.clone();
+                    let field_info = self.struct_fields.get(&type_name)
+                        .cloned()
+                        .unwrap_or_else(|| panic!("Неизвестная структура '{}'", type_name));
+                    let idx = field_info.iter().position(|(n, _)| n == field)
+                        .unwrap_or_else(|| panic!("Неизвестное поле '{}' в '{}'", field, type_name));
+                    let (_, is_float) = field_info[idx];
+                    let st = *self.struct_types.get(&type_name)
+                        .unwrap_or_else(|| panic!("Неизвестный тип структуры '{}'", type_name));
+                    let gep = self.builder
+                        .build_struct_gep(st, ptr, idx as u32, "fset")
+                        .unwrap();
+                    let v = self.gen_expr(val);
+                    if is_float {
+                        self.builder.build_store(gep, self.as_float(v)).unwrap();
+                    } else {
+                        self.builder.build_store(gep, self.as_int(v)).unwrap();
+                    }
+                } else {
+                    panic!("Присваивание поля на не-структурном значении");
+                }
+            }
+
+            Stmt::Expr(e) => { self.gen_expr(e); }
+
+            // println(expr);
+            Stmt::Print(e) => {
+                match e {
+                    Expr::Str(s) => self.print_str(s),
+                    _ => match self.gen_expr(e) {
+                        Val::Int(i)       => self.print_int(i),
+                        Val::Float(f)     => self.print_float(f),
+                        Val::Struct(_, n) => panic!("Нельзя вывести struct '{}' напрямую", n),
+                    }
+                }
+            }
+
+            // return expr;
+            Stmt::Return(e) => {
+                let val = self.gen_expr(e);
+                let ret = self.as_int(val);
+                self.builder.build_return(Some(&ret)).unwrap();
+            }
+
+            // { ... }
+            Stmt::Block(stmts) => {
+                let saved = self.vars.clone();
+                for s in stmts {
+                    if self.terminated() { break; }
+                    self.gen_stmt(s);
+                }
+                self.vars.retain(|k, _| saved.contains_key(k));
+                for (k, v) in &saved {
+                    self.vars.entry(k.clone()).or_insert_with(|| v.clone());
+                }
+            }
+
+            // if (cond) { then } [else { els }]
+            Stmt::If { cond, then, els } => {
+                let cond_i1  = self.bool_cond(cond);
+                let func     = self.cur_fn();
+                let then_bb  = self.ctx.append_basic_block(func, "if.then");
+                let else_bb  = self.ctx.append_basic_block(func, "if.else");
+                let merge_bb = self.ctx.append_basic_block(func, "if.merge");
+
+                self.builder.build_conditional_branch(cond_i1, then_bb, else_bb).unwrap();
+
+                self.builder.position_at_end(then_bb);
+                self.gen_stmt(then);
+                if !self.terminated() { self.builder.build_unconditional_branch(merge_bb).unwrap(); }
+
+                self.builder.position_at_end(else_bb);
+                if let Some(e) = els { self.gen_stmt(e); }
+                if !self.terminated() { self.builder.build_unconditional_branch(merge_bb).unwrap(); }
+
+                self.builder.position_at_end(merge_bb);
+            }
+
+            // while (cond) { body }
+            Stmt::While { cond, body } => {
+                let func    = self.cur_fn();
+                let hdr_bb  = self.ctx.append_basic_block(func, "while.hdr");
+                let body_bb = self.ctx.append_basic_block(func, "while.body");
+                let exit_bb = self.ctx.append_basic_block(func, "while.exit");
+
+                self.builder.build_unconditional_branch(hdr_bb).unwrap();
+
+                self.builder.position_at_end(hdr_bb);
+                let cond_i1 = self.bool_cond(cond);
+                self.builder.build_conditional_branch(cond_i1, body_bb, exit_bb).unwrap();
+
+                self.builder.position_at_end(body_bb);
+                self.loop_stack.push((exit_bb, hdr_bb));
+                self.gen_stmt(body);
+                self.loop_stack.pop();
+                if !self.terminated() { self.builder.build_unconditional_branch(hdr_bb).unwrap(); }
+
+                self.builder.position_at_end(exit_bb);
+            }
+
+            // do { body } while (cond);
+            Stmt::DoWhile { body, cond } => {
+                let func    = self.cur_fn();
+                let body_bb = self.ctx.append_basic_block(func, "dowhile.body");
+                let cond_bb = self.ctx.append_basic_block(func, "dowhile.cond");
+                let exit_bb = self.ctx.append_basic_block(func, "dowhile.exit");
+
+                // Unconditionally jump into body
+                self.builder.build_unconditional_branch(body_bb).unwrap();
+
+                // Generate body
+                self.builder.position_at_end(body_bb);
+                self.loop_stack.push((exit_bb, cond_bb));
+                self.gen_stmt(body);
+                self.loop_stack.pop();
+                if !self.terminated() { self.builder.build_unconditional_branch(cond_bb).unwrap(); }
+
+                // Evaluate condition after body
+                self.builder.position_at_end(cond_bb);
+                let cond_i1 = self.bool_cond(cond);
+                self.builder.build_conditional_branch(cond_i1, body_bb, exit_bb).unwrap();
+
+                self.builder.position_at_end(exit_bb);
+            }
+
+            // for i in from..to / from..=to { body }
+            Stmt::For { var, from, to, inclusive, body } => {
+                let start = { let v = self.gen_expr(from); self.as_int(v) };
+                let end   = { let v = self.gen_expr(to);   self.as_int(v) };
+
+                let func     = self.cur_fn();
+                let pre_bb   = self.builder.get_insert_block().unwrap();
+                let hdr_bb   = self.ctx.append_basic_block(func, "for.hdr");
+                let body_bb  = self.ctx.append_basic_block(func, "for.body");
+                let step_bb  = self.ctx.append_basic_block(func, "for.step");
+                let exit_bb  = self.ctx.append_basic_block(func, "for.exit");
+
+                let loop_alloca = self.builder.build_alloca(self.i64_ty, var).unwrap();
+
+                self.builder.build_unconditional_branch(hdr_bb).unwrap();
+
+                self.builder.position_at_end(hdr_bb);
+                let phi   = self.builder.build_phi(self.i64_ty, "for.i").unwrap();
+                phi.add_incoming(&[(&start, pre_bb)]);
+                let phi_v = phi.as_basic_value().into_int_value();
+
+                self.builder.build_store(loop_alloca, phi_v).unwrap();
+
+                // `..` → exclusive (SLT), `..=` → inclusive (SLE)
+                let pred = if *inclusive {
+                    inkwell::IntPredicate::SLE
+                } else {
+                    inkwell::IntPredicate::SLT
+                };
+                let cond_b = self.builder.build_int_compare(
+                    pred, phi_v, end, "for.cond",
+                ).unwrap();
+                self.builder.build_conditional_branch(cond_b, body_bb, exit_bb).unwrap();
+
+                self.builder.position_at_end(body_bb);
+                let prev = self.vars.insert(
+                    var.clone(),
+                    Var { ptr: loop_alloca, kind: VarKind::Int },
+                );
+                self.loop_stack.push((exit_bb, step_bb));
+                self.gen_stmt(body);
+                self.loop_stack.pop();
+                if !self.terminated() { self.builder.build_unconditional_branch(step_bb).unwrap(); }
+                match prev {
+                    Some(v) => { self.vars.insert(var.clone(), v); }
+                    None    => { self.vars.remove(var); }
+                }
+
+                self.builder.position_at_end(step_bb);
+                let inc = self.builder
+                    .build_int_add(phi_v, self.i64_ty.const_int(1, false), "for.inc")
+                    .unwrap();
+                phi.add_incoming(&[(&inc, step_bb)]);
+                self.builder.build_unconditional_branch(hdr_bb).unwrap();
+
+                self.builder.position_at_end(exit_bb);
+            }
+
+            // loop { body }
+            Stmt::Loop { body } => {
+                let func    = self.cur_fn();
+                let loop_bb = self.ctx.append_basic_block(func, "loop");
+                let exit_bb = self.ctx.append_basic_block(func, "loop.exit");
+
+                self.builder.build_unconditional_branch(loop_bb).unwrap();
+                self.builder.position_at_end(loop_bb);
+
+                self.loop_stack.push((exit_bb, loop_bb));
+                self.gen_stmt(body);
+                self.loop_stack.pop();
+
+                if !self.terminated() { self.builder.build_unconditional_branch(loop_bb).unwrap(); }
+                self.builder.position_at_end(exit_bb);
+            }
+
+            // break;
+            Stmt::Break => {
+                let (exit_bb, _) = *self.loop_stack.last()
+                    .expect("'break' вне цикла");
+                self.builder.build_unconditional_branch(exit_bb).unwrap();
+            }
+
+            // continue;
+            Stmt::Continue => {
+                let (_, cont_bb) = *self.loop_stack.last()
+                    .expect("'continue' вне цикла");
+                self.builder.build_unconditional_branch(cont_bb).unwrap();
+            }
+
+            // match expr { pat => { body }, ... }
+            Stmt::Match { expr, arms } => {
+                let val   = self.gen_expr(expr);
+                let v     = self.as_int(val);
+                let func  = self.cur_fn();
+                let merge_bb = self.ctx.append_basic_block(func, "match.end");
+
+                let arm_bbs: Vec<_> = (0..arms.len())
+                    .map(|i| self.ctx.append_basic_block(func, &format!("match.arm.{}", i)))
+                    .collect();
+                let check_bbs: Vec<_> = (1..arms.len())
+                    .map(|i| self.ctx.append_basic_block(func, &format!("match.chk.{}", i)))
+                    .collect();
+
+                let first_arm = arm_bbs[0];
+                if let Some(arm) = arms.first() {
+                    match &arm.pat {
+                        MatchPat::Int(n) => {
+                            let pat_v = self.i64_ty.const_int(*n as u64, true);
+                            let cmp   = self.builder.build_int_compare(
+                                inkwell::IntPredicate::EQ, v, pat_v, "mc",
+                            ).unwrap();
+                            let next = if check_bbs.is_empty() { merge_bb } else { check_bbs[0] };
+                            self.builder.build_conditional_branch(cmp, first_arm, next).unwrap();
+                        }
+                        MatchPat::Wildcard => {
+                            self.builder.build_unconditional_branch(first_arm).unwrap();
+                        }
+                    }
+                }
+
+                for (i, arm) in arms.iter().enumerate() {
+                    self.builder.position_at_end(arm_bbs[i]);
+                    for s in &arm.body {
+                        if self.terminated() { break; }
+                        self.gen_stmt(s);
+                    }
+                    if !self.terminated() { self.builder.build_unconditional_branch(merge_bb).unwrap(); }
+
+                    if i + 1 < arms.len() {
+                        self.builder.position_at_end(check_bbs[i]);
+                        let next_arm = arm_bbs[i + 1];
+                        let fall = if i + 1 < check_bbs.len() { check_bbs[i + 1] } else { merge_bb };
+                        match &arms[i + 1].pat {
+                            MatchPat::Int(n) => {
+                                let pat_v = self.i64_ty.const_int(*n as u64, true);
+                                let cmp   = self.builder.build_int_compare(
+                                    inkwell::IntPredicate::EQ, v, pat_v, "mc",
+                                ).unwrap();
+                                self.builder.build_conditional_branch(cmp, next_arm, fall).unwrap();
+                            }
+                            MatchPat::Wildcard => {
+                                self.builder.build_unconditional_branch(next_arm).unwrap();
+                            }
+                        }
+                    }
+                }
+
+                self.builder.position_at_end(merge_bb);
+            }
+
+            Stmt::FnDecl { .. } => {
+                panic!("Вложенные объявления функций не поддерживаются");
+            }
+            Stmt::StructDecl { .. } | Stmt::ImplDecl { .. } | Stmt::ClassDecl { .. } => {
+                panic!("struct/impl/class должны быть на верхнем уровне");
+            }
+        }
+    }
+}
