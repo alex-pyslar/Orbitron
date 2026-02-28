@@ -1,0 +1,485 @@
+// ============================================================
+//  test.ot  --  Orbitron language showcase
+//  Build : cargo build --release   (в WSL)
+//  Run   : ./orbitron-compiler test.ot && ./orbitron_program
+// ============================================================
+
+// ─────────────────────────────────────────────────────────────
+//  § 1  HELPER FUNCTIONS
+// ─────────────────────────────────────────────────────────────
+
+fn abs(x) {
+    if (x < 0) { return -x; }
+    return x;
+}
+
+fn max(a, b) {
+    if (a >= b) { return a; }
+    return b;
+}
+
+fn min(a, b) {
+    if (a <= b) { return a; }
+    return b;
+}
+
+// Clamp: зажать значение в диапазон [lo, hi]
+fn clamp(v, lo, hi) {
+    if (v < lo) { return lo; }
+    if (v > hi) { return hi; }
+    return v;
+}
+
+// Знак числа: -1 / 0 / 1
+fn sign(x) {
+    if (x > 0) { return 1; }
+    if (x < 0) { return -1; }
+    return 0;
+}
+
+fn factorial(n) {
+    if (n <= 1) { return 1; }
+    return n * factorial(n - 1);
+}
+
+fn fib(n) {
+    if (n <= 1) { return n; }
+    return fib(n - 1) + fib(n - 2);
+}
+
+fn pow(base, exp) {
+    let result = 1;
+    let i = 0;
+    while (i < exp) {
+        result *= base;
+        i += 1;
+    }
+    return result;
+}
+
+// НОД через алгоритм Евклида (while + переприсваивание)
+fn gcd(a, b) {
+    while (b != 0) {
+        let t = b;
+        b = a % b;
+        a = t;
+    }
+    return a;
+}
+
+fn is_even(n) {
+    return n % 2 == 0;
+}
+
+// ─────────────────────────────────────────────────────────────
+//  § 2  STRUCT Vec2  (2D-вектор)
+// ─────────────────────────────────────────────────────────────
+
+struct Vec2 {
+    x: int,
+    y: int,
+}
+
+impl Vec2 {
+    // Квадрат длины
+    fn len_sq(self) {
+        return self.x * self.x + self.y * self.y;
+    }
+
+    // Манхэттенское расстояние от нуля
+    fn manhattan(self) {
+        return abs(self.x) + abs(self.y);
+    }
+
+    // Скалярное произведение с (bx, by)
+    fn dot(self, bx, by) {
+        return self.x * bx + self.y * by;
+    }
+
+    // Сдвиг на (dx, dy)
+    fn translate(self, dx, dy) {
+        self.x = self.x + dx;
+        self.y = self.y + dy;
+    }
+
+    // Масштабирование
+    fn scale(self, f) {
+        self.x = self.x * f;
+        self.y = self.y * f;
+    }
+
+    // Отражение относительно нуля
+    fn negate(self) {
+        self.x = -self.x;
+        self.y = -self.y;
+    }
+}
+
+// ─────────────────────────────────────────────────────────────
+//  § 3  STRUCT Rect  (прямоугольник)
+// ─────────────────────────────────────────────────────────────
+
+struct Rect {
+    w: int,
+    h: int,
+}
+
+impl Rect {
+    fn area(self) {
+        return self.w * self.h;
+    }
+
+    fn perimeter(self) {
+        return 2 * (self.w + self.h);
+    }
+
+    fn is_square(self) {
+        return self.w == self.h;
+    }
+
+    // Квадрат диагонали
+    fn diagonal_sq(self) {
+        return self.w * self.w + self.h * self.h;
+    }
+
+    // Масштабировать оба измерения
+    fn grow(self, f) {
+        self.w = self.w * f;
+        self.h = self.h * f;
+    }
+}
+
+// ─────────────────────────────────────────────────────────────
+//  § 4  STRUCT Counter
+// ─────────────────────────────────────────────────────────────
+
+struct Counter {
+    val:  int,
+    step: int,
+}
+
+impl Counter {
+    fn tick(self) {
+        self.val = self.val + self.step;
+    }
+
+    // N тиков за один вызов
+    fn tick_n(self, n) {
+        let i = 0;
+        while (i < n) {
+            self.val = self.val + self.step;
+            i += 1;
+        }
+    }
+
+    fn reset(self) {
+        self.val = 0;
+    }
+
+    fn get(self) {
+        return self.val;
+    }
+
+    fn set_step(self, s) {
+        self.step = s;
+    }
+}
+
+// ─────────────────────────────────────────────────────────────
+//  § 5  STRUCT Account  (банковский счёт)
+// ─────────────────────────────────────────────────────────────
+
+struct Account {
+    balance:   int,
+    overdraft: int,   // максимальный минус
+}
+
+impl Account {
+    fn deposit(self, amount) {
+        self.balance = self.balance + amount;
+    }
+
+    fn withdraw(self, amount) {
+        let limit = self.balance + self.overdraft;
+        if (amount <= limit) {
+            self.balance = self.balance - amount;
+        }
+    }
+
+    fn get_balance(self) {
+        return self.balance;
+    }
+
+    // 1 если снятие возможно, иначе 0
+    fn can_withdraw(self, amount) {
+        let limit = self.balance + self.overdraft;
+        if (amount <= limit) { return 1; }
+        return 0;
+    }
+}
+
+// ═════════════════════════════════════════════════════════════
+//  main
+// ═════════════════════════════════════════════════════════════
+
+main {
+
+    // ── 1. Целые числа и арифметика ───────────────────────────
+    print "=== Integers ===";
+    let a = 20;
+    let b = 6;
+    print a + b;    // 26
+    print a - b;    // 14
+    print a * b;    // 120
+    print a / b;    // 3
+    print a % b;    // 2
+    print -a;       // -20  (унарный минус)
+
+    // ── 2. Вещественные числа ─────────────────────────────────
+    print "=== Floats ===";
+    let pi = 3.14159;
+    let r  = 5.0;
+    print pi * r * r;   // ~78.539
+    print r / 2.0;      // 2.5
+    let neg_f = -2.5;
+    print neg_f;        // -2.5
+
+    // ── 3. Булевы литералы и логика ───────────────────────────
+    print "=== Booleans & Logic ===";
+    let t = true;
+    let f = false;
+    print t;              // -1  (true = все биты 1)
+    print f;              // 0
+    print !t;             // 0
+    print !f;             // -1
+    print a > b;          // -1
+    print a == 20;        // -1
+    print a != b;         // -1
+    print a > 10 && b < 10;   // -1
+    print a > 100 || b < 10;  // -1
+
+    // ── 4. Составное присваивание ─────────────────────────────
+    print "=== Compound Assign ===";
+    let x = 10;
+    x += 5;   print x;   // 15
+    x -= 3;   print x;   // 12
+    x *= 2;   print x;   // 24
+    x /= 4;   print x;   // 6
+
+    // ── 5. Ветвление if / else if / else ─────────────────────
+    print "=== Branching ===";
+    let score = 75;
+    if (score >= 90) {
+        print 1;
+    } else if (score >= 75) {
+        print 2;   // <- 2
+    } else {
+        print 3;
+    }
+
+    // Вложенные if
+    let y = 42;
+    if (y > 0) {
+        if (y % 2 == 0) {
+            print 10;   // чётное положительное -> 10
+        } else {
+            print 11;
+        }
+    } else {
+        print 12;
+    }
+
+    // ── 6. while ──────────────────────────────────────────────
+    print "=== While ===";
+    let n = 1;
+    while (n <= 5) {
+        print n * n;   // 1 4 9 16 25
+        n += 1;
+    }
+
+    // ── 7. for ... to ─────────────────────────────────────────
+    print "=== For ===";
+    let sum = 0;
+    for i = 1 to 10 {
+        sum += i;
+    }
+    print sum;   // 55
+
+    for i = 1 to 5 {
+        print pow(2, i);   // 2 4 8 16 32
+    }
+
+    // ── 8. loop + break ───────────────────────────────────────
+    print "=== Loop / Break ===";
+    let cnt = 0;
+    loop {
+        if (cnt >= 5) { break; }
+        print cnt;   // 0 1 2 3 4
+        cnt += 1;
+    }
+
+    // ── 9. continue ───────────────────────────────────────────
+    print "=== Continue ===";
+    let j = 0;
+    while (j < 10) {
+        j += 1;
+        if (j % 2 == 0) { continue; }
+        print j;   // нечётные: 1 3 5 7 9
+    }
+
+    // ── 10. match ─────────────────────────────────────────────
+    print "=== Match ===";
+    let code = 2;
+    match code {
+        1 => { print 100; }
+        2 => { print 200; }   // <- 200
+        3 => { print 300; }
+        _ => { print 999; }
+    }
+
+    // match по вычисленному значению
+    let fac4 = factorial(4);   // 24
+    match fac4 {
+        6  => { print 6;  }
+        24 => { print 24; }   // <- 24
+        _  => { print 0;  }
+    }
+
+    // match внутри for-цикла
+    print "--- match in for ---";
+    for i = 0 to 3 {
+        match i {
+            0 => { print 1000; }
+            1 => { print 2000; }
+            2 => { print 3000; }
+            _ => { print 9999; }
+        }
+    }
+
+    // ── 11. Функции ───────────────────────────────────────────
+    print "=== Functions ===";
+    print factorial(7);          // 5040
+    print fib(10);               // 55
+    print pow(2, 10);            // 1024
+    print max(13, 42);           // 42
+    print min(13, 42);           // 13
+    print abs(-99);              // 99
+    print clamp(-5, 0, 10);      // 0
+    print clamp(15, 0, 10);      // 10
+    print clamp(7, 0, 10);       // 7
+    print sign(-42);             // -1
+    print sign(0);               // 0
+    print sign(7);               // 1
+    print gcd(48, 18);           // 6
+    print is_even(8);            // -1
+    print is_even(7);            // 0
+
+    // ── 12. Struct Vec2 ───────────────────────────────────────
+    print "=== Struct Vec2 ===";
+    let v = new Vec2 { x: 3, y: 4 };
+    print v.x;             // 3
+    print v.y;             // 4
+    print v.len_sq();      // 25
+    print v.manhattan();   // 7
+    print v.dot(1, 2);     // 11  (3*1 + 4*2)
+
+    v.translate(1, -1);
+    print v.x;   // 4
+    print v.y;   // 3
+
+    v.x = 10;
+    v.y = 0;
+    print v.len_sq();   // 100
+
+    v.scale(3);
+    print v.x;   // 30
+    print v.y;   // 0
+
+    v.negate();
+    print v.x;   // -30
+
+    // ── 13. Struct Rect ───────────────────────────────────────
+    print "=== Struct Rect ===";
+    let rect = new Rect { w: 6, h: 4 };
+    print rect.area();        // 24
+    print rect.perimeter();   // 20
+    print rect.is_square();   // 0
+    print rect.diagonal_sq(); // 52  (36+16)
+
+    rect.grow(2);
+    print rect.area();        // 96  (12*8)
+
+    let sq = new Rect { w: 5, h: 5 };
+    print sq.is_square();   // -1 (true)
+    print sq.area();        // 25
+
+    // ── 14. Struct Counter ────────────────────────────────────
+    print "=== Struct Counter ===";
+    let c = new Counter { val: 0, step: 3 };
+    c.tick();  print c.get();   // 3
+    c.tick();  print c.get();   // 6
+    c.tick();  print c.get();   // 9
+    c.reset(); print c.get();   // 0
+
+    c.tick_n(4);   // 4 тика = 12
+    print c.get(); // 12
+
+    c.set_step(10);
+    c.tick();
+    print c.get(); // 22
+
+    // Счётчик внутри for-цикла
+    let c2 = new Counter { val: 0, step: 1 };
+    for i = 1 to 5 {
+        c2.tick();
+    }
+    print c2.get();   // 5
+
+    // ── 15. Struct Account ────────────────────────────────────
+    print "=== Struct Account ===";
+    let acc = new Account { balance: 1000, overdraft: 200 };
+    print acc.get_balance();          // 1000
+
+    acc.deposit(500);
+    print acc.get_balance();          // 1500
+
+    acc.withdraw(300);
+    print acc.get_balance();          // 1200
+
+    print acc.can_withdraw(1400);     // 1  (1200+200=1400, ровно)
+    print acc.can_withdraw(1401);     // 0  (превышает лимит)
+
+    acc.withdraw(1400);               // снимаем всё с овердрафтом
+    print acc.get_balance();          // -200
+
+    // ── 16. Комбо: структуры + циклы + функции ───────────────
+    print "=== Combo ===";
+
+    // Сумма квадратов длин нескольких векторов через цикл
+    let v2 = new Vec2 { x: 0, y: 0 };
+    let total = 0;
+    for i = 1 to 4 {
+        v2.x = i;
+        v2.y = i;
+        total += v2.len_sq();   // i^2 + i^2 = 2*i^2
+    }
+    print total;   // 2*(1+4+9+16) = 60
+
+    // Накопить факториалы через Counter
+    let acc2 = new Counter { val: 0, step: 0 };
+    for k = 1 to 5 {
+        acc2.set_step(factorial(k));
+        acc2.tick();
+    }
+    print acc2.get();   // 1+2+6+24+120 = 153
+
+    // Сочетание match + функций
+    print "--- match + fn ---";
+    let g = gcd(factorial(5), pow(2, 7));   // gcd(120, 128) = 8
+    match g {
+        4  => { print 4;  }
+        8  => { print 8;  }   // <- 8
+        16 => { print 16; }
+        _  => { print 0;  }
+    }
+}
