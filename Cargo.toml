@@ -5,3 +5,5 @@ edition = "2021"
 
 [dependencies]
 inkwell = { git = "https://github.com/TheDan64/inkwell", branch = "master", features = ["llvm18-1-prefer-dynamic"] }
+toml    = "0.8"
+serde   = { version = "1", features = ["derive"] }

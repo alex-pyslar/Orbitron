@@ -1,10 +1,13 @@
 #![allow(dead_code)]
 
+pub use crate::lexer::token::InterpolPart;
+
 // ── Binary operators ─────────────────────────────────────────────────────────
 
 #[derive(Debug, Clone)]
 pub enum BinOp {
     Add, Sub, Mul, Div, Mod,
+    Pow,  // **  power operator (from Python)
     Gt, Lt, Ge, Le, Eq, Ne,
     And, Or,
 }
@@ -48,7 +51,8 @@ pub struct FieldDecl {
 #[derive(Debug, Clone)]
 pub enum MatchPat {
     Int(i64),
-    Wildcard, // _
+    Wildcard,                        // _
+    EnumVariant(String, String),     // EnumName.Variant  (from Rust / Swift)
 }
 
 // ── Match arm ─────────────────────────────────────────────────────────────────
@@ -77,9 +81,13 @@ pub enum Expr {
     Number(i64),
     Float(f64),
     Str(String),
+    /// $"Hello {name}!" — interpolated string  (from C# / Kotlin)
+    Interpolated(Vec<InterpolPart>),
     Ident(String),
     Binary(Box<Expr>, BinOp, Box<Expr>),
     Unary(UnaryOp, Box<Expr>),
+    /// cond ? then : els — ternary operator    (from C / Java)
+    Ternary { cond: Box<Expr>, then: Box<Expr>, els: Box<Expr> },
     /// name(args)  — regular function call
     Call { name: String, args: Vec<Expr> },
     /// obj.field
@@ -90,6 +98,10 @@ pub enum Expr {
     StructLit { name: String, fields: Vec<(String, Expr)> },
     /// new ClassName(args)  — constructor call
     ConstructorCall { class: String, args: Vec<Expr> },
+    /// [expr, ...]  — array literal        (from Python / JS)
+    ArrayLit(Vec<Expr>),
+    /// expr[idx]   — array/index access   (from Python / JS)
+    Index { arr: Box<Expr>, idx: Box<Expr> },
     /// readInt()  — reads one i64 from stdin via scanf
     Input,
     /// readFloat()  — reads one f64 from stdin via scanf
@@ -102,10 +114,14 @@ pub enum Expr {
 pub enum Stmt {
     /// var name = expr;
     Let { name: String, expr: Expr },
+    /// const NAME = expr;             (from Rust / C++)
+    Const { name: String, expr: Expr },
     /// name = expr;
     Assign { name: String, expr: Expr },
     /// obj.field = expr;
     FieldAssign { obj: Expr, field: String, val: Expr },
+    /// arr[idx] = val;                (from Python / JS)
+    IndexAssign { arr: Box<Expr>, idx: Box<Expr>, val: Expr },
     /// bare expression statement
     Expr(Expr),
     /// println(expr);
@@ -170,4 +186,15 @@ pub enum Stmt {
         fields:  Vec<FieldDecl>,
         methods: Vec<MethodDecl>,
     },
+    /// enum Name { Variant, ... }     (from Rust / Swift)
+    EnumDecl {
+        name:     String,
+        variants: Vec<String>,
+    },
+    /// defer stmt;                    (from Go) — executes at function exit
+    /// Accepts expression-statements and println() calls.
+    Defer(Box<Stmt>),
+    /// import "module";               — multi-file import
+    /// Resolved by resolver before codegen; ignored by codegen.
+    Import { path: String },
 }

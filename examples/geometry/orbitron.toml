@@ -1,0 +1,7 @@
+[project]
+name = "geometry"
+version = "0.1.0"
+
+[build]
+main   = "src/main.ot"
+output = "bin/geometry"

@@ -1,3 +1,10 @@
+/// Part of a `$"..."` interpolated string.
+#[derive(Debug, Clone, PartialEq)]
+pub enum InterpolPart {
+    Lit(String),  // literal text segment
+    Var(String),  // `{ident}` hole — variable name to inline
+}
+
 /// All tokens produced by the Orbitron lexer.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Token {
@@ -5,20 +12,25 @@ pub enum Token {
     Int(i64),
     Float(f64),
     Str(String),
+    /// $"Hello, {name}!" — interpolated string literal
+    InterpolStr(Vec<InterpolPart>),
 
     // ── Keywords ──────────────────────────────────────────────────────────
-    Var,      // var   — variable declaration
-    Func,     // func  — function declaration
+    Var,       // var   — variable declaration
+    Const,     // const — immutable constant  (from Rust / C++)
+    Func,      // func  — function declaration
     Return,
     If,
     Else,
+    Unless,    // unless — inverted if         (from Ruby)
     While,
-    Do,       // do    — do-while loop
+    Do,        // do    — do-while loop
     For,
-    In,       // in    — for i in range
+    In,        // in    — for i in range
     Loop,
+    Repeat,    // repeat N { } — repeat loop  (from Lua / Pascal)
     Match,
-    Println,  // println(expr) — print with newline
+    Println,   // println(expr) — print with newline
     True,
     False,
     Break,
@@ -27,15 +39,19 @@ pub enum Token {
     Struct,
     Impl,
     Class,
-    SelfKw,   // self
-    New,      // new   — constructor call
-    Init,     // init  — class constructor block
+    SelfKw,    // self
+    New,       // new   — constructor call
+    Init,      // init  — class constructor block
     Pub,
     Private,
+    // New keywords
+    Enum,      // enum  — integer-backed enum  (from Rust / Swift)
+    Defer,     // defer — deferred execution   (from Go)
+    Import,    // import "module" — multi-file import
 
     // ── Range operators ───────────────────────────────────────────────────
-    DotDot,   // ..    exclusive range
-    DotDotEq, // ..=   inclusive range
+    DotDot,    // ..    exclusive range
+    DotDotEq,  // ..=   inclusive range
 
     // ── Operators ─────────────────────────────────────────────────────────
     Plus,        // +
@@ -43,6 +59,7 @@ pub enum Token {
     Star,        // *
     Slash,       // /
     Percent,     // %
+    StarStar,    // **   power operator         (from Python)
     EqEq,        // ==
     BangEq,      // !=
     Lt,          // <
@@ -54,6 +71,8 @@ pub enum Token {
     Bang,        // !
     Assign,      // =
     FatArrow,    // =>
+    PipeGt,      // |>   pipe operator          (from Elixir / F#)
+    Question,    // ?    ternary / null-coalesce (from C / Kotlin)
     // Compound assignment
     PlusAssign,  // +=
     MinusAssign, // -=
@@ -65,6 +84,8 @@ pub enum Token {
     RParen,    // )
     LBrace,    // {
     RBrace,    // }
+    LBracket,  // [    array indexing          (from Python / JS)
+    RBracket,  // ]
     Semicolon, // ;
     Colon,     // :
     Comma,     // ,

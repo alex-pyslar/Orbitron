@@ -1,5 +1,5 @@
 pub mod token;
-pub use token::Token;
+pub use token::{InterpolPart, Token};
 
 // ── Lexer ───────────────────────────────────────────────────────────────────
 
@@ -73,6 +73,59 @@ impl Lexer {
         }
     }
 
+    /// Lex a `$"..."` interpolated string.
+    /// Supports `{ident}` holes for variable interpolation (from C# / Kotlin).
+    fn read_interp_string(&mut self) -> Result<Token, String> {
+        self.advance(); // consume '$'
+        if self.peek() != Some('"') {
+            return Err(format!("Ожидалась '\"' после '$' на строке {}", self.line));
+        }
+        self.advance(); // consume '"'
+
+        let mut parts: Vec<InterpolPart> = Vec::new();
+        let mut lit = String::new();
+
+        loop {
+            match self.advance() {
+                Some('"') => {
+                    if !lit.is_empty() { parts.push(InterpolPart::Lit(std::mem::take(&mut lit))); }
+                    return Ok(Token::InterpolStr(parts));
+                }
+                Some('{') => {
+                    if !lit.is_empty() { parts.push(InterpolPart::Lit(std::mem::take(&mut lit))); }
+                    // Read identifier until '}'
+                    let mut ident = String::new();
+                    loop {
+                        match self.advance() {
+                            Some('}') => break,
+                            Some(c) if c.is_alphanumeric() || c == '_' => ident.push(c),
+                            Some(c) => return Err(format!(
+                                "Неожиданный символ '{}' в интерполяции строки (строка {})",
+                                c, self.line
+                            )),
+                            None => return Err("Незакрытая интерполяция строки".into()),
+                        }
+                    }
+                    if ident.is_empty() {
+                        return Err("Пустая интерполяция '{}' в строке".into());
+                    }
+                    parts.push(InterpolPart::Var(ident));
+                }
+                Some('\\') => match self.advance() {
+                    Some('n')  => lit.push('\n'),
+                    Some('t')  => lit.push('\t'),
+                    Some('\\') => lit.push('\\'),
+                    Some('"')  => lit.push('"'),
+                    Some('{')  => lit.push('{'),
+                    Some(c)    => { lit.push('\\'); lit.push(c); }
+                    None       => return Err("Незакрытый escape в интерполированной строке".into()),
+                },
+                Some(c) => lit.push(c),
+                None    => return Err(format!("Незакрытая интерполированная строка на строке {}", self.line)),
+            }
+        }
+    }
+
     fn read_number(&mut self) -> Token {
         let mut s = String::new();
         while self.peek().map_or(false, |c| c.is_ascii_digit()) {
@@ -99,15 +152,18 @@ impl Lexer {
         }
         match s.as_str() {
             "var"      => Token::Var,
+            "const"    => Token::Const,     // NEW: Rust/C++
             "func"     => Token::Func,
             "return"   => Token::Return,
             "if"       => Token::If,
             "else"     => Token::Else,
+            "unless"   => Token::Unless,    // NEW: Ruby
             "while"    => Token::While,
             "do"       => Token::Do,
             "for"      => Token::For,
             "in"       => Token::In,
             "loop"     => Token::Loop,
+            "repeat"   => Token::Repeat,    // NEW
             "match"    => Token::Match,
             "println"  => Token::Println,
             "true"     => Token::True,
@@ -122,6 +178,9 @@ impl Lexer {
             "init"     => Token::Init,
             "pub"      => Token::Pub,
             "private"  => Token::Private,
+            "enum"     => Token::Enum,      // NEW: Rust/Swift
+            "defer"    => Token::Defer,     // NEW: Go
+            "import"   => Token::Import,    // NEW: multi-file import
             _          => Token::Ident(s),
         }
     }
@@ -131,6 +190,8 @@ impl Lexer {
         match self.peek() {
             None    => Ok(Token::Eof),
             Some(c) => match c {
+                // Interpolated string: $"Hello {name}!"  (from C# / Kotlin)
+                '$'                          => self.read_interp_string(),
                 '"'                          => self.read_string(),
                 '0'..='9'                    => Ok(self.read_number()),
                 'a'..='z' | 'A'..='Z' | '_' => Ok(self.read_ident()),
@@ -159,9 +220,11 @@ impl Lexer {
                     if self.peek() == Some('=') { self.advance(); Ok(Token::MinusAssign) }
                     else { Ok(Token::Minus) }
                 }
+                // ** power operator (from Python), *= compound assign, * multiply
                 '*' => {
                     self.advance();
-                    if self.peek() == Some('=') { self.advance(); Ok(Token::StarAssign) }
+                    if self.peek() == Some('*') { self.advance(); Ok(Token::StarStar) }
+                    else if self.peek() == Some('=') { self.advance(); Ok(Token::StarAssign) }
                     else { Ok(Token::Star) }
                 }
                 '/' => {
@@ -174,9 +237,14 @@ impl Lexer {
                 ')' => { self.advance(); Ok(Token::RParen) }
                 '{' => { self.advance(); Ok(Token::LBrace) }
                 '}' => { self.advance(); Ok(Token::RBrace) }
+                // Array brackets (from Python / JS)
+                '[' => { self.advance(); Ok(Token::LBracket) }
+                ']' => { self.advance(); Ok(Token::RBracket) }
                 ';' => { self.advance(); Ok(Token::Semicolon) }
                 ':' => { self.advance(); Ok(Token::Colon) }
                 ',' => { self.advance(); Ok(Token::Comma) }
+                // Ternary ? (from C / Kotlin)
+                '?' => { self.advance(); Ok(Token::Question) }
                 '=' => {
                     self.advance();
                     if self.peek() == Some('=') { self.advance(); Ok(Token::EqEq) }
@@ -203,9 +271,11 @@ impl Lexer {
                     if self.peek() == Some('&') { self.advance(); Ok(Token::AndAnd) }
                     else { Err(format!("Одиночный '&' недопустим (строка {})", self.line)) }
                 }
+                // |> pipe operator (from Elixir / F#), || logical or
                 '|' => {
                     self.advance();
                     if self.peek() == Some('|') { self.advance(); Ok(Token::OrOr) }
+                    else if self.peek() == Some('>') { self.advance(); Ok(Token::PipeGt) }
                     else { Err(format!("Одиночный '|' недопустим (строка {})", self.line)) }
                 }
                 other => Err(format!("Неожиданный символ '{}' на строке {}:{}", other, self.line, self.col)),

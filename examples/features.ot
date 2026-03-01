@@ -1,0 +1,152 @@
+// features.ot — Showcase of 10 new language features in Orbitron
+//
+// 1. const      — compile-time constants         (Rust / C++)
+// 2. **         — power operator                 (Python)
+// 3. |>         — pipe operator                  (Elixir / F#)
+// 4. unless     — inverted conditional           (Ruby)
+// 5. $"..."     — string interpolation           (C# / Kotlin)
+// 6. [...]      — array literals + indexing      (Python / JS)
+// 7. enum       — integer-backed enum types      (Rust / Swift)
+// 8. defer      — deferred execution             (Go)
+// 9. repeat N   — repeat-N-times loop            (Lua / Pascal inspired)
+// 10. ? :       — ternary operator               (C / Java)
+
+// ── 1. const  (Rust / C++) ────────────────────────────────────────────────────
+const PI: int = 3;        // integer approximation for demo
+const MAX_SIZE: int = 10;
+const VERSION: int = 2;
+
+// ── 7. enum  (Rust / Swift) ───────────────────────────────────────────────────
+enum Season { Spring, Summer, Autumn, Winter }
+enum Direction { North, South, East, West }
+
+// ── Helper functions used by pipe examples ────────────────────────────────────
+func double(n: int): int  { return n * 2; }
+func inc(n: int): int     { return n + 1; }
+func square(n: int): int  { return n * n; }
+func abs_val(n: int): int { return n > 0 ? n : -n; }
+
+func main() {
+
+    // ── 1. const ──────────────────────────────────────────────────────────────
+    println("=== 1. const (Rust/C++) ===");
+    println(PI);          // 3
+    println(MAX_SIZE);    // 10
+    println(VERSION);     // 2
+
+    var area = PI * 5 * 5;
+    println(area);        // 75
+
+    // ── 2. ** power operator  (Python) ───────────────────────────────────────
+    println("=== 2. ** power (Python) ===");
+    var p2  = 2 ** 10;
+    println(p2);          // 1024
+    var p3  = 3 ** 4;
+    println(p3);          // 81
+    var p4  = 5 ** 3;
+    println(p4);          // 125
+
+    // ── 3. |> pipe operator  (Elixir / F#) ───────────────────────────────────
+    println("=== 3. |> pipe (Elixir/F#) ===");
+    var result = 3 |> double |> inc |> square;
+    println(result);      // ((3*2)+1)^2 = 49
+
+    var r2 = 5 |> double;
+    println(r2);          // 10
+
+    // ── 4. unless  (Ruby) ────────────────────────────────────────────────────
+    println("=== 4. unless (Ruby) ===");
+    var x = 0;
+    unless (x != 0) {
+        println(42);      // prints 42 because x == 0
+    }
+    var y = 7;
+    unless (y == 0) {
+        println(y);       // prints 7
+    }
+
+    // ── 5. $"..." string interpolation  (C# / Kotlin) ─────────────────────────
+    println("=== 5. string interpolation (C#/Kotlin) ===");
+    var name_val = 42;
+    var score    = 100;
+    println($"score: {score}");
+    println($"version: {VERSION}");
+    println($"2^10 = {p2}");
+
+    // ── 6. [...] arrays with indexing  (Python / JS) ─────────────────────────
+    println("=== 6. arrays (Python/JS) ===");
+    var primes = [2, 3, 5, 7, 11, 13];
+    println(primes[0]);   // 2
+    println(primes[4]);   // 11
+
+    // array mutation
+    primes[0] = 99;
+    println(primes[0]);   // 99
+
+    // sum array with for loop
+    var sum = 0;
+    for i in 0..6 {
+        sum += primes[i];
+    }
+    println(sum);         // 99+3+5+7+11+13 = 138
+
+    // ── 7. enum with match  (Rust / Swift) ───────────────────────────────────
+    println("=== 7. enum (Rust/Swift) ===");
+    var s = Season.Summer;  // s == 1
+    println(s);             // 1
+
+    match s {
+        Season.Spring => { println("Spring!"); }
+        Season.Summer => { println("Summer!"); }
+        Season.Autumn => { println("Autumn!"); }
+        Season.Winter => { println("Winter!"); }
+        _ => { println("Unknown"); }
+    }
+
+    var d = Direction.East;
+    match d {
+        Direction.North => { println("Go north"); }
+        Direction.East  => { println("Go east");  }
+        _               => { println("Other direction"); }
+    }
+
+    // ── 8. defer  (Go) ───────────────────────────────────────────────────────
+    println("=== 8. defer (Go) ===");
+    defer println(999);   // will print LAST in this block, before function return
+    println(111);
+    println(222);
+    // 999 will print after 222 but before next section
+
+    // ── 9. repeat N  (Lua / Pascal inspired) ─────────────────────────────────
+    println("=== 9. repeat (Lua) ===");
+    var counter = 0;
+    repeat 5 {
+        counter += 1;
+    }
+    println(counter);     // 5
+
+    repeat 3 {
+        println(7);       // 7, three times
+    }
+
+    // ── 10. ternary ? :  (C / Java) ──────────────────────────────────────────
+    println("=== 10. ternary (C/Java) ===");
+    var a = 10;
+    var b = 20;
+    var bigger  = a > b ? a : b;
+    println(bigger);      // 20
+
+    var abs_neg = abs_val(-15);
+    println(abs_neg);     // 15
+
+    var grade   = score >= 90 ? 1 : 0;
+    println(grade);       // 1 (score == 100)
+
+    // Chained ternary
+    var n = 5;
+    var label = n > 10 ? 3 : n > 0 ? 2 : 1;
+    println(label);       // 2
+
+    println("Done!");
+    // defer 999 fires here, after "Done!"
+}

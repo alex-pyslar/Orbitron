@@ -1,0 +1,120 @@
+// geometry/src/main.ot — entry point
+// Demonstrates: multi-file imports, struct+impl, enum, const, **,
+//               |>, unless, repeat, ternary, defer, string interpolation,
+//               for..in (single + multi-range), arrays, match
+
+import "vectors";
+import "shapes";
+
+// ── Enums ─────────────────────────────────────────────────────────────────────
+enum TriType  { Scalene, Isoceles, Equilateral }
+enum Quadrant { Q1, Q2, Q3, Q4, Origin }
+
+// ── Pipe helpers ──────────────────────────────────────────────────────────────
+func double(n: int): int { return n * 2; }
+func inc(n: int):    int { return n + 1; }
+func square(n: int): int { return n * n; }
+
+// ── Quadrant classifier ────────────────────────────────────────────────────────
+func quadrant(x: int, y: int): int {
+    return x == 0 && y == 0 ? Quadrant.Origin :
+           x > 0 && y > 0   ? Quadrant.Q1     :
+           x < 0 && y > 0   ? Quadrant.Q2     :
+           x < 0 && y < 0   ? Quadrant.Q3     : Quadrant.Q4;
+}
+
+func main() {
+    defer println("=== Geometry done ===");
+
+    // ── Vec2 from vectors.ot ──────────────────────────────────────────────────
+    println("--- Vectors ---");
+
+    var v1 = Vec2 { x: 3, y: 4 };
+    var lsq = v1.len_sq();       // 3²+4² = 25
+    println($"len_sq={lsq}");
+
+    var dot = v1.dot(1, 0);      // 3*1 + 4*0 = 3
+    println($"dot_x={dot}");
+
+    var man = v1.manhattan();    // |3|+|4| = 7
+    println($"manhattan={man}");
+
+    v1.translate(2, -1);
+    var x1 = v1.get_x();         // 5
+    var y1 = v1.get_y();         // 3
+    println($"translated=({x1},{y1})");
+
+    // ** power: use squared length as a scaling factor
+    var factor = lsq ** 2;
+    println($"lsq^2={factor}");   // 625
+
+    // |> pipe on a computed value
+    var piped = lsq |> double |> inc;
+    println($"piped={piped}");    // 51
+
+    // ── Shapes from shapes.ot ─────────────────────────────────────────────────
+    println("--- Shapes ---");
+
+    var w = 5;
+    var h = 4;
+    var ra = rect_area(w, h);          // 20
+    var rp = rect_perimeter(w, h);     // 18
+    println($"rect_area={ra}");
+    println($"rect_perim={rp}");
+
+    var r  = 3;
+    var ca = circle_area(r);           // 27  (PI=3)
+    var cp = circle_perimeter(r);      // 18
+    println($"circle_area={ca}");
+    println($"circle_perim={cp}");
+
+    var hs = hyp_sq(3, 4);             // 25
+    println($"hyp_sq={hs}");
+
+    // Triangle classification with enum + match
+    var tt = triangle_type(3, 3, 3);   // 2 = Equilateral
+    match tt {
+        TriType.Equilateral => { println("equilateral"); }
+        TriType.Isoceles    => { println("isoceles"); }
+        TriType.Scalene     => { println("scalene"); }
+        _                   => {}
+    }
+
+    // ── Quadrants ─────────────────────────────────────────────────────────────
+    println("--- Quadrants ---");
+    var points_x = [3, -2, -1, 4, 0];
+    var points_y = [1,  3, -5, -2, 0];
+
+    for i in 0..5 {
+        var q = quadrant(points_x[i], points_y[i]);
+        match q {
+            Quadrant.Q1     => { println("Q1"); }
+            Quadrant.Q2     => { println("Q2"); }
+            Quadrant.Q3     => { println("Q3"); }
+            Quadrant.Q4     => { println("Q4"); }
+            Quadrant.Origin => { println("Origin"); }
+            _               => {}
+        }
+    }
+
+    // ── Multi-range for: 3x3 grid of len_sq values ────────────────────────────
+    println("--- Grid len_sq ---");
+    for i in 0..3, j in 0..3 {
+        var pt = Vec2 { x: i, y: j };
+        println(pt.len_sq());
+    }
+    // 0 1 4 1 2 5 4 5 8
+
+    // ── unless ────────────────────────────────────────────────────────────────
+    unless (ca == 0) {
+        println("circle has nonzero area");
+    }
+
+    // ── repeat ────────────────────────────────────────────────────────────────
+    var steps = 0;
+    repeat 8 { steps += 1; }
+    println($"steps={steps}");
+
+    // ── const from shapes.ot ──────────────────────────────────────────────────
+    println($"PI={PI}");
+}

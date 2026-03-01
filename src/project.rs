@@ -1,0 +1,37 @@
+use serde::Deserialize;
+use std::{fs, path::Path};
+
+// ── Manifest sections ─────────────────────────────────────────────────────────
+
+#[derive(Deserialize)]
+pub struct ProjectManifest {
+    pub project: ProjectSection,
+    pub build:   BuildSection,
+}
+
+#[derive(Deserialize)]
+pub struct ProjectSection {
+    pub name:    String,
+    pub version: String,
+}
+
+#[derive(Deserialize)]
+pub struct BuildSection {
+    /// Entry-point source file, relative to the project root.
+    /// Default convention: "src/main.ot"
+    pub main:   String,
+    /// Output binary path, relative to the project root.
+    /// Default convention: "bin/<project-name>"
+    pub output: String,
+}
+
+// ── Loader ───────────────────────────────────────────────────────────────────
+
+/// Load and parse `orbitron.toml` from the given directory.
+pub fn load_manifest(root: &Path) -> Result<ProjectManifest, String> {
+    let toml_path = root.join("orbitron.toml");
+    let text = fs::read_to_string(&toml_path)
+        .map_err(|e| format!("Не удалось прочитать orbitron.toml: {e}"))?;
+    toml::from_str(&text)
+        .map_err(|e| format!("Ошибка в orbitron.toml: {e}"))
+}

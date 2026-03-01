@@ -25,6 +25,10 @@ impl Parser {
         self.tokens.get(self.pos + 1).unwrap_or(&Token::Eof)
     }
 
+    fn peek3(&self) -> &Token {
+        self.tokens.get(self.pos + 2).unwrap_or(&Token::Eof)
+    }
+
     fn advance(&mut self) -> Token {
         let t = self.tokens.get(self.pos).cloned().unwrap_or(Token::Eof);
         if self.pos < self.tokens.len() { self.pos += 1; }
@@ -75,11 +79,25 @@ impl Parser {
             Token::Struct => self.parse_struct_decl(),
             Token::Impl   => self.parse_impl_decl(),
             Token::Class  => self.parse_class_decl(),
+            Token::Enum   => self.parse_enum_decl(),    // NEW: Rust/Swift enums
+            Token::Const  => self.parse_const(),        // NEW: Rust/C++ constants
+            Token::Import => self.parse_import(),       // NEW: multi-file import
             t => Err(format!(
-                "Ожидалось 'func', 'struct', 'impl' или 'class' на верхнем уровне, получено {:?}",
+                "Ожидалось 'func', 'struct', 'impl', 'class', 'enum', 'const' или 'import' \
+                 на верхнем уровне, получено {:?}",
                 t.clone()
             )),
         }
+    }
+
+    fn parse_import(&mut self) -> Result<Stmt, String> {
+        self.advance(); // consume 'import'
+        let path = match self.advance() {
+            Token::Str(s) => s,
+            t => return Err(format!("import ожидает строку, получено {:?}", t)),
+        };
+        self.eat(&Token::Semicolon);
+        Ok(Stmt::Import { path })
     }
 
     fn parse_fn_decl(&mut self) -> Result<Stmt, String> {
@@ -193,6 +211,32 @@ impl Parser {
         Ok(Stmt::ClassDecl { name, fields, methods })
     }
 
+    /// `enum Name { Variant, ... }`  (from Rust / Swift)
+    /// Each variant maps to an integer (0, 1, 2, …).
+    fn parse_enum_decl(&mut self) -> Result<Stmt, String> {
+        self.advance(); // 'enum'
+        let name = self.expect_ident()?;
+        self.expect(&Token::LBrace)?;
+        let mut variants = Vec::new();
+        while !self.check(&Token::RBrace) && !self.check(&Token::Eof) {
+            variants.push(self.expect_ident()?);
+            self.eat(&Token::Comma);
+        }
+        self.expect(&Token::RBrace)?;
+        Ok(Stmt::EnumDecl { name, variants })
+    }
+
+    /// `const NAME [: type] = expr;`  (from Rust / C++)
+    fn parse_const(&mut self) -> Result<Stmt, String> {
+        self.advance(); // 'const'
+        let name = self.expect_ident()?;
+        if self.eat(&Token::Colon) { self.skip_type_annotation()?; }
+        self.expect(&Token::Assign)?;
+        let expr = self.parse_expr()?;
+        self.expect(&Token::Semicolon)?;
+        Ok(Stmt::Const { name, expr })
+    }
+
     /// Consume an optional `pub` or `private` keyword and return the access level.
     fn parse_access_modifier(&mut self) -> Access {
         if self.eat(&Token::Pub)          { Access::Public  }
@@ -295,11 +339,15 @@ impl Parser {
 
         match self.peek().clone() {
             Token::Var      => self.parse_var(),
+            Token::Const    => self.parse_const(),              // NEW: Rust/C++
             Token::If       => self.parse_if(),
+            Token::Unless   => self.parse_unless(),             // NEW: Ruby
             Token::While    => self.parse_while(),
             Token::Do       => self.parse_do_while(),
             Token::For      => self.parse_for(),
             Token::Loop     => self.parse_loop(),
+            Token::Repeat   => self.parse_repeat(),             // NEW
+            Token::Defer    => self.parse_defer_stmt(),         // NEW: Go
             Token::Return   => self.parse_return(),
             Token::Println  => self.parse_println(),
             Token::Match    => self.parse_match(),
@@ -327,9 +375,21 @@ impl Parser {
             Token::Ident(_) if matches!(self.peek2(), Token::Assign) => {
                 self.parse_assign()
             }
-            // expression statement
+            // expression statement (may be index assignment: arr[i] = val;)
             _ => {
                 let e = self.parse_expr()?;
+                // Check for index assignment: arr[i] = val;
+                if self.eat(&Token::Assign) {
+                    let val = self.parse_expr()?;
+                    self.expect(&Token::Semicolon)?;
+                    match e {
+                        Expr::Index { arr, idx } =>
+                            return Ok(Stmt::IndexAssign { arr, idx, val }),
+                        _ => return Err(
+                            "Недопустимая левая часть присваивания (ожидался arr[idx])".into()
+                        ),
+                    }
+                }
                 self.expect(&Token::Semicolon)?;
                 Ok(Stmt::Expr(e))
             }
@@ -409,6 +469,21 @@ impl Parser {
         Ok(Stmt::If { cond, then, els })
     }
 
+    /// `unless (cond) { body }`  (from Ruby)
+    /// Desugars to: `if (!cond) { body }`
+    fn parse_unless(&mut self) -> Result<Stmt, String> {
+        self.advance(); // 'unless'
+        self.expect(&Token::LParen)?;
+        let cond = self.parse_expr()?;
+        self.expect(&Token::RParen)?;
+        let body = self.parse_block_stmts()?;
+        Ok(Stmt::If {
+            cond: Expr::Unary(UnaryOp::Not, Box::new(cond)),
+            then: Box::new(Stmt::Block(body)),
+            els:  None,
+        })
+    }
+
     fn parse_while(&mut self) -> Result<Stmt, String> {
         self.advance(); // 'while'
         self.expect(&Token::LParen)?;
@@ -476,6 +551,36 @@ impl Parser {
         Ok(Stmt::Loop { body: Box::new(Stmt::Block(body)) })
     }
 
+    /// `repeat N { body }`  (inspired by Lua / Pascal)
+    /// Desugars to: `for __ri in 0..N { body }`
+    fn parse_repeat(&mut self) -> Result<Stmt, String> {
+        self.advance(); // 'repeat'
+        let count = self.parse_expr()?;
+        let body  = self.parse_block_stmts()?;
+        Ok(Stmt::For {
+            var:       "__ri".to_string(),
+            from:      Expr::Number(0),
+            to:        count,
+            inclusive: false,
+            body:      Box::new(Stmt::Block(body)),
+        })
+    }
+
+    /// `defer stmt;`  (from Go) — registers statement for execution at function exit.
+    /// Accepts expression-statements and `println(...)` calls.
+    fn parse_defer_stmt(&mut self) -> Result<Stmt, String> {
+        self.advance(); // 'defer'
+        let inner = match self.peek() {
+            Token::Println => self.parse_println()?,
+            _ => {
+                let e = self.parse_expr()?;
+                self.expect(&Token::Semicolon)?;
+                Stmt::Expr(e)
+            }
+        };
+        Ok(Stmt::Defer(Box::new(inner)))
+    }
+
     fn parse_return(&mut self) -> Result<Stmt, String> {
         self.advance(); // 'return'
         if self.eat(&Token::Semicolon) {
@@ -522,11 +627,23 @@ impl Parser {
                     t => return Err(format!("Ожидалось целое число после '-', получено {:?}", t)),
                 }
             }
+            // `_` wildcard or `EnumName.Variant`  (from Rust / Swift)
             Token::Ident(s) if s == "_" => {
                 self.advance();
                 MatchPat::Wildcard
             }
-            t => return Err(format!("Ожидался образец match (целое или _), получено {:?}", t)),
+            Token::Ident(first) if matches!(self.peek2(), Token::Dot)
+                && matches!(self.peek3(), Token::Ident(_)) =>
+            {
+                // EnumName.Variant pattern
+                self.advance(); // EnumName
+                self.advance(); // '.'
+                let variant = self.expect_ident()?;
+                MatchPat::EnumVariant(first, variant)
+            }
+            t => return Err(format!(
+                "Ожидался образец match (целое, _, EnumName.Variant), получено {:?}", t
+            )),
         };
         self.expect(&Token::FatArrow)?;
         let body = self.parse_block_stmts()?;
@@ -536,17 +653,62 @@ impl Parser {
     // ── Expressions ────────────────────────────────────────────────────────
     //
     //  Precedence (low → high):
+    //    pipe       :  |>            (from Elixir / F#)
+    //    ternary    :  ? :           (from C / Java)
     //    or_expr    :  ||
     //    and_expr   :  &&
     //    cmp_expr   :  == != < <= > >=
     //    add_expr   :  + -
     //    mul_expr   :  * / %
     //    unary      :  - !
-    //    postfix    :  expr.field / expr.method(args)
+    //    power      :  **            (from Python) — right-associative
+    //    postfix    :  expr.field / expr.method(args) / expr[idx]
     //    call_base  :  name(args) / StructName { ... } / new ClassName(...)
-    //    primary    :  literal | ident | self | (expr)
+    //    primary    :  literal | ident | self | (expr) | [arr] | $"..."
 
-    pub fn parse_expr(&mut self) -> Result<Expr, String> { self.parse_or() }
+    pub fn parse_expr(&mut self) -> Result<Expr, String> { self.parse_pipe() }
+
+    /// `expr |> func`  or  `expr |> func(extra_args)`  (from Elixir / F#)
+    /// Desugars: `x |> f` → `f(x)`, `x |> f(a, b)` → `f(x, a, b)`
+    fn parse_pipe(&mut self) -> Result<Expr, String> {
+        let mut lhs = self.parse_ternary()?;
+        while self.eat(&Token::PipeGt) {
+            match self.peek().clone() {
+                Token::Ident(name) => {
+                    self.advance();
+                    if self.eat(&Token::LParen) {
+                        let mut extra = self.parse_arg_list()?;
+                        self.expect(&Token::RParen)?;
+                        let mut args = vec![lhs];
+                        args.append(&mut extra);
+                        lhs = Expr::Call { name, args };
+                    } else {
+                        lhs = Expr::Call { name, args: vec![lhs] };
+                    }
+                }
+                t => return Err(format!(
+                    "Ожидалось имя функции после '|>', получено {:?}", t
+                )),
+            }
+        }
+        Ok(lhs)
+    }
+
+    /// `cond ? then : els`  (from C / Java)
+    fn parse_ternary(&mut self) -> Result<Expr, String> {
+        let cond = self.parse_or()?;
+        if self.eat(&Token::Question) {
+            let then = self.parse_or()?;
+            self.expect(&Token::Colon)?;
+            let els = self.parse_ternary()?; // right-associative
+            return Ok(Expr::Ternary {
+                cond: Box::new(cond),
+                then: Box::new(then),
+                els:  Box::new(els),
+            });
+        }
+        Ok(cond)
+    }
 
     fn parse_or(&mut self) -> Result<Expr, String> {
         let mut lhs = self.parse_and()?;
@@ -623,29 +785,49 @@ impl Parser {
                 self.advance();
                 Ok(Expr::Unary(UnaryOp::Not, Box::new(self.parse_unary()?)))
             }
-            _ => self.parse_postfix(),
+            _ => self.parse_power(),
         }
     }
 
-    /// Parse a base expression then consume any dot-chains.
+    /// `base ** exp`  (from Python) — right-associative, higher than unary
+    fn parse_power(&mut self) -> Result<Expr, String> {
+        let base = self.parse_postfix()?;
+        if self.eat(&Token::StarStar) {
+            let exp = self.parse_unary()?; // right-assoc: 2**3**2 = 2**(3**2)
+            return Ok(Expr::Binary(Box::new(base), BinOp::Pow, Box::new(exp)));
+        }
+        Ok(base)
+    }
+
+    /// Parse a base expression then consume any dot-chains and index accesses.
     fn parse_postfix(&mut self) -> Result<Expr, String> {
         let mut expr = self.parse_call_base()?;
-        while self.check(&Token::Dot) {
-            self.advance(); // consume '.'
-            let member = self.expect_ident()?;
-            if self.eat(&Token::LParen) {
-                let args = self.parse_arg_list()?;
-                self.expect(&Token::RParen)?;
-                expr = Expr::MethodCall {
-                    obj:    Box::new(expr),
-                    method: member,
-                    args,
-                };
+        loop {
+            if self.check(&Token::Dot) {
+                self.advance(); // consume '.'
+                let member = self.expect_ident()?;
+                if self.eat(&Token::LParen) {
+                    let args = self.parse_arg_list()?;
+                    self.expect(&Token::RParen)?;
+                    expr = Expr::MethodCall {
+                        obj:    Box::new(expr),
+                        method: member,
+                        args,
+                    };
+                } else {
+                    expr = Expr::FieldAccess {
+                        obj:   Box::new(expr),
+                        field: member,
+                    };
+                }
+            } else if self.check(&Token::LBracket) {
+                // array indexing: expr[idx]  (from Python / JS)
+                self.advance(); // '['
+                let idx = self.parse_expr()?;
+                self.expect(&Token::RBracket)?;
+                expr = Expr::Index { arr: Box::new(expr), idx: Box::new(idx) };
             } else {
-                expr = Expr::FieldAccess {
-                    obj:   Box::new(expr),
-                    field: member,
-                };
+                break;
             }
         }
         Ok(expr)
@@ -745,6 +927,8 @@ impl Parser {
             Token::Int(n)   => Ok(Expr::Number(n)),
             Token::Float(f) => Ok(Expr::Float(f)),
             Token::Str(s)   => Ok(Expr::Str(s)),
+            // `$"Hello {name}!"` — interpolated string  (from C# / Kotlin)
+            Token::InterpolStr(parts) => Ok(Expr::Interpolated(parts)),
             Token::True     => Ok(Expr::Number(1)),
             Token::False    => Ok(Expr::Number(0)),
             Token::Ident(n) => Ok(Expr::Ident(n)),
@@ -753,6 +937,19 @@ impl Parser {
                 let e = self.parse_expr()?;
                 self.expect(&Token::RParen)?;
                 Ok(e)
+            }
+            // `[expr, ...]` — array literal  (from Python / JS)
+            Token::LBracket => {
+                let mut elems = Vec::new();
+                if !self.check(&Token::RBracket) {
+                    elems.push(self.parse_expr()?);
+                    while self.eat(&Token::Comma) {
+                        if self.check(&Token::RBracket) { break; } // trailing comma
+                        elems.push(self.parse_expr()?);
+                    }
+                }
+                self.expect(&Token::RBracket)?;
+                Ok(Expr::ArrayLit(elems))
             }
             t => Err(format!("Ожидалось выражение, получено {:?}", t)),
         }

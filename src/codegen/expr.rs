@@ -1,7 +1,7 @@
 use inkwell::values::{BasicMetadataValueEnum, FloatValue, IntValue};
 
 use crate::parser::ast::{BinOp, Expr, UnaryOp};
-use super::{CodeGen, Val, VarKind};
+use super::{CodeGen, ConstVal, Val, VarKind};
 
 impl<'ctx> CodeGen<'ctx> {
     pub(super) fn gen_expr(&mut self, expr: &Expr) -> Val<'ctx> {
@@ -9,8 +9,18 @@ impl<'ctx> CodeGen<'ctx> {
             Expr::Number(n)  => Val::Int(self.i64_ty.const_int(*n as u64, true)),
             Expr::Float(f)   => Val::Float(self.f64_ty.const_float(*f)),
             Expr::Str(_)     => panic!("Строковые литералы разрешены только внутри println()"),
+            Expr::Interpolated(_) => panic!(
+                "Интерполированные строки разрешены только внутри println()"
+            ),
 
             Expr::Ident(name) => {
+                // Check compile-time constants first  (from Rust / C++)
+                if let Some(cv) = self.consts.get(name).cloned() {
+                    return match cv {
+                        ConstVal::Int(n)   => Val::Int(self.i64_ty.const_int(n as u64, true)),
+                        ConstVal::Float(f) => Val::Float(self.f64_ty.const_float(f)),
+                    };
+                }
                 let var = self.vars.get(name)
                     .cloned()
                     .unwrap_or_else(|| panic!("Неопределённая переменная '{}'", name));
@@ -27,11 +37,85 @@ impl<'ctx> CodeGen<'ctx> {
                         ),
                     VarKind::Struct(type_name) =>
                         Val::Struct(var.ptr, type_name),
+                    VarKind::Array =>
+                        Val::Array(var.ptr),
                 }
+            }
+
+            // cond ? then : els  — ternary operator  (from C / Java)
+            Expr::Ternary { cond, then, els } => {
+                let cond_i1  = self.bool_cond(cond);
+                let func     = self.cur_fn();
+                let then_bb  = self.ctx.append_basic_block(func, "tern.then");
+                let else_bb  = self.ctx.append_basic_block(func, "tern.else");
+                let merge_bb = self.ctx.append_basic_block(func, "tern.merge");
+
+                self.builder.build_conditional_branch(cond_i1, then_bb, else_bb).unwrap();
+
+                // then branch
+                self.builder.position_at_end(then_bb);
+                let then_val = self.gen_expr(then);
+                let then_int = self.as_int(then_val);
+                let then_end = self.builder.get_insert_block().unwrap();
+                self.builder.build_unconditional_branch(merge_bb).unwrap();
+
+                // else branch
+                self.builder.position_at_end(else_bb);
+                let else_val = self.gen_expr(els);
+                let else_int = self.as_int(else_val);
+                let else_end = self.builder.get_insert_block().unwrap();
+                self.builder.build_unconditional_branch(merge_bb).unwrap();
+
+                // merge — phi node selects the value
+                self.builder.position_at_end(merge_bb);
+                let phi = self.builder.build_phi(self.i64_ty, "tern.val").unwrap();
+                phi.add_incoming(&[(&then_int, then_end), (&else_int, else_end)]);
+                Val::Int(phi.as_basic_value().into_int_value())
+            }
+
+            // [expr, ...]  — array literal  (from Python / JS)
+            Expr::ArrayLit(exprs) => {
+                let n    = exprs.len() as u64;
+                let size = self.i64_ty.const_int(n, false);
+                let alloca = self.builder
+                    .build_array_alloca(self.i64_ty, size, "arr")
+                    .unwrap();
+                for (i, e) in exprs.iter().enumerate() {
+                    let v   = self.gen_expr(e);
+                    let vi  = self.as_int(v);
+                    let idx = self.i64_ty.const_int(i as u64, false);
+                    let ptr = unsafe {
+                        self.builder.build_gep(self.i64_ty, alloca, &[idx], "arr.init").unwrap()
+                    };
+                    self.builder.build_store(ptr, vi).unwrap();
+                }
+                Val::Array(alloca)
+            }
+
+            // expr[idx]  — array element access  (from Python / JS)
+            Expr::Index { arr, idx } => {
+                let arr_ptr = self.extract_array_ptr(arr);
+                let idx_v   = { let v = self.gen_expr(idx); self.as_int(v) };
+                let elem    = unsafe {
+                    self.builder.build_gep(self.i64_ty, arr_ptr, &[idx_v], "idx.get").unwrap()
+                };
+                Val::Int(
+                    self.builder.build_load(self.i64_ty, elem, "idx.val")
+                        .unwrap().into_int_value()
+                )
             }
 
             // obj.field
             Expr::FieldAccess { obj, field } => {
+                // Check if this is an enum variant access: EnumName.Variant  (from Rust/Swift)
+                if let Expr::Ident(enum_name) = obj.as_ref() {
+                    if let Some(variants) = self.enums.get(enum_name).cloned() {
+                        if let Some(&val) = variants.get(field) {
+                            return Val::Int(self.i64_ty.const_int(val as u64, true));
+                        }
+                    }
+                }
+                // Ordinary struct field access
                 let obj_val = self.gen_expr(obj);
                 if let Val::Struct(ptr, ref type_name) = obj_val {
                     let type_name = type_name.clone();
@@ -179,6 +263,7 @@ impl<'ctx> CodeGen<'ctx> {
                         Val::Int(i)       => Val::Int(self.builder.build_int_neg(i, "neg").unwrap()),
                         Val::Float(f)     => Val::Float(self.builder.build_float_neg(f, "fneg").unwrap()),
                         Val::Struct(_, n) => panic!("Нельзя применить отрицание к struct '{}'", n),
+                        Val::Array(_)     => panic!("Нельзя применить отрицание к массиву"),
                     },
                     UnaryOp::Not => {
                         let i   = self.as_int(v);
@@ -217,6 +302,27 @@ impl<'ctx> CodeGen<'ctx> {
     }
 
     pub(super) fn gen_binop(&mut self, l: Val<'ctx>, r: Val<'ctx>, op: &BinOp) -> Val<'ctx> {
+        // Power operator: always uses libm pow()  (from Python)
+        if matches!(op, BinOp::Pow) {
+            let both_int = !l.is_float() && !r.is_float();
+            let lf = self.as_float(l);
+            let rf = self.as_float(r);
+            let pow_fn = self.module.get_function("pow").unwrap();
+            let result = self.builder
+                .build_call(pow_fn, &[lf.into(), rf.into()], "pow")
+                .unwrap()
+                .try_as_basic_value()
+                .expect_basic("pow должна возвращать значение")
+                .into_float_value();
+            return if both_int {
+                Val::Int(self.builder
+                    .build_float_to_signed_int(result, self.i64_ty, "pow2i")
+                    .unwrap())
+            } else {
+                Val::Float(result)
+            };
+        }
+
         if l.is_float() || r.is_float() {
             return self.float_binop(self.as_float(l), self.as_float(r), op);
         }
@@ -278,5 +384,20 @@ impl<'ctx> CodeGen<'ctx> {
         };
         let bit = self.builder.build_float_compare(pred, l, r, "fcmp").unwrap();
         self.builder.build_int_s_extend(bit, self.i64_ty, "fcmp.ext").unwrap()
+    }
+
+    /// Extract a raw array pointer from an expression (must resolve to Val::Array).
+    pub(super) fn extract_array_ptr(&mut self, arr: &Expr) -> inkwell::values::PointerValue<'ctx> {
+        match arr {
+            Expr::Ident(name) => {
+                let var = self.vars.get(name).cloned()
+                    .unwrap_or_else(|| panic!("Неопределённая переменная '{}'", name));
+                match var.kind {
+                    VarKind::Array => var.ptr,
+                    _ => panic!("'{}' не является массивом", name),
+                }
+            }
+            _ => panic!("Индексируемый объект должен быть именем переменной-массива"),
+        }
     }
 }

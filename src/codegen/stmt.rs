@@ -7,21 +7,39 @@ impl<'ctx> CodeGen<'ctx> {
 
             // var name = expr;
             Stmt::Let { name, expr } => {
-                let val = self.gen_expr(expr);
-                match val {
-                    Val::Int(i) => {
-                        let p = self.builder.build_alloca(self.i64_ty, name).unwrap();
-                        self.builder.build_store(p, i).unwrap();
-                        self.vars.insert(name.clone(), Var { ptr: p, kind: VarKind::Int });
+                self.gen_let(name, expr);
+            }
+
+            // const NAME = expr;  (from Rust / C++)
+            // Inside a function body, treated as var (value inlined if literal).
+            Stmt::Const { name, expr } => {
+                // Register as compile-time constant if it's a literal
+                use crate::parser::ast::UnaryOp;
+                let registered = match expr {
+                    Expr::Number(n) => {
+                        self.consts.insert(name.clone(), super::ConstVal::Int(*n));
+                        true
                     }
-                    Val::Float(f) => {
-                        let p = self.builder.build_alloca(self.f64_ty, name).unwrap();
-                        self.builder.build_store(p, f).unwrap();
-                        self.vars.insert(name.clone(), Var { ptr: p, kind: VarKind::Float });
+                    Expr::Float(f) => {
+                        self.consts.insert(name.clone(), super::ConstVal::Float(*f));
+                        true
                     }
-                    Val::Struct(ptr, type_name) => {
-                        self.vars.insert(name.clone(), Var { ptr, kind: VarKind::Struct(type_name) });
-                    }
+                    Expr::Unary(UnaryOp::Neg, inner) => match inner.as_ref() {
+                        Expr::Number(n) => {
+                            self.consts.insert(name.clone(), super::ConstVal::Int(-n));
+                            true
+                        }
+                        Expr::Float(f) => {
+                            self.consts.insert(name.clone(), super::ConstVal::Float(-f));
+                            true
+                        }
+                        _ => false,
+                    },
+                    _ => false,
+                };
+                // If not a pure literal, fall back to var-like allocation
+                if !registered {
+                    self.gen_let(name, expr);
                 }
             }
 
@@ -40,6 +58,9 @@ impl<'ctx> CodeGen<'ctx> {
                     }
                     VarKind::Struct(_) => {
                         panic!("Переприсваивание struct через '=' не поддерживается");
+                    }
+                    VarKind::Array => {
+                        panic!("Переприсваивание массива через '=' не поддерживается");
                     }
                 }
             }
@@ -71,24 +92,40 @@ impl<'ctx> CodeGen<'ctx> {
                 }
             }
 
+            // arr[idx] = val;  (from Python / JS)
+            Stmt::IndexAssign { arr, idx, val } => {
+                let arr_ptr = self.extract_array_ptr(arr);
+                let idx_v   = { let v = self.gen_expr(idx); self.as_int(v) };
+                let val_v   = { let v = self.gen_expr(val); self.as_int(v) };
+                let elem    = unsafe {
+                    self.builder.build_gep(self.i64_ty, arr_ptr, &[idx_v], "idx.set").unwrap()
+                };
+                self.builder.build_store(elem, val_v).unwrap();
+            }
+
             Stmt::Expr(e) => { self.gen_expr(e); }
 
             // println(expr);
             Stmt::Print(e) => {
                 match e {
                     Expr::Str(s) => self.print_str(s),
+                    // $"Hello, {name}!"  — interpolated string  (from C# / Kotlin)
+                    Expr::Interpolated(parts) => self.print_interpolated(parts),
                     _ => match self.gen_expr(e) {
                         Val::Int(i)       => self.print_int(i),
                         Val::Float(f)     => self.print_float(f),
                         Val::Struct(_, n) => panic!("Нельзя вывести struct '{}' напрямую", n),
+                        Val::Array(_)     => panic!("Нельзя вывести массив напрямую — используйте индекс"),
                     }
                 }
             }
 
-            // return expr;
+            // return expr;  — emit deferred before returning  (Go defer semantics)
             Stmt::Return(e) => {
                 let val = self.gen_expr(e);
                 let ret = self.as_int(val);
+                // Emit all deferred expressions before returning  (from Go)
+                self.emit_deferred();
                 self.builder.build_return(Some(&ret)).unwrap();
             }
 
@@ -155,17 +192,14 @@ impl<'ctx> CodeGen<'ctx> {
                 let cond_bb = self.ctx.append_basic_block(func, "dowhile.cond");
                 let exit_bb = self.ctx.append_basic_block(func, "dowhile.exit");
 
-                // Unconditionally jump into body
                 self.builder.build_unconditional_branch(body_bb).unwrap();
 
-                // Generate body
                 self.builder.position_at_end(body_bb);
                 self.loop_stack.push((exit_bb, cond_bb));
                 self.gen_stmt(body);
                 self.loop_stack.pop();
                 if !self.terminated() { self.builder.build_unconditional_branch(cond_bb).unwrap(); }
 
-                // Evaluate condition after body
                 self.builder.position_at_end(cond_bb);
                 let cond_i1 = self.bool_cond(cond);
                 self.builder.build_conditional_branch(cond_i1, body_bb, exit_bb).unwrap();
@@ -196,7 +230,6 @@ impl<'ctx> CodeGen<'ctx> {
 
                 self.builder.build_store(loop_alloca, phi_v).unwrap();
 
-                // `..` → exclusive (SLT), `..=` → inclusive (SLE)
                 let pred = if *inclusive {
                     inkwell::IntPredicate::SLE
                 } else {
@@ -262,6 +295,17 @@ impl<'ctx> CodeGen<'ctx> {
                 self.builder.build_unconditional_branch(cont_bb).unwrap();
             }
 
+            // defer stmt;  (from Go) — register for execution at function exit
+            Stmt::Defer(s) => {
+                self.deferred.push(*s.clone());
+            }
+
+            // enum Name { Variant, ... }  — already handled in pass 0, skip
+            Stmt::EnumDecl { .. } => {}
+
+            // import "module"  — resolved before codegen, skip
+            Stmt::Import { .. } => {}
+
             // match expr { pat => { body }, ... }
             Stmt::Match { expr, arms } => {
                 let val   = self.gen_expr(expr);
@@ -278,16 +322,16 @@ impl<'ctx> CodeGen<'ctx> {
 
                 let first_arm = arm_bbs[0];
                 if let Some(arm) = arms.first() {
-                    match &arm.pat {
-                        MatchPat::Int(n) => {
-                            let pat_v = self.i64_ty.const_int(*n as u64, true);
-                            let cmp   = self.builder.build_int_compare(
+                    let pat_val = self.resolve_match_pat(&arm.pat);
+                    match pat_val {
+                        Some(pat_v) => {
+                            let cmp = self.builder.build_int_compare(
                                 inkwell::IntPredicate::EQ, v, pat_v, "mc",
                             ).unwrap();
                             let next = if check_bbs.is_empty() { merge_bb } else { check_bbs[0] };
                             self.builder.build_conditional_branch(cmp, first_arm, next).unwrap();
                         }
-                        MatchPat::Wildcard => {
+                        None => {
                             self.builder.build_unconditional_branch(first_arm).unwrap();
                         }
                     }
@@ -305,15 +349,15 @@ impl<'ctx> CodeGen<'ctx> {
                         self.builder.position_at_end(check_bbs[i]);
                         let next_arm = arm_bbs[i + 1];
                         let fall = if i + 1 < check_bbs.len() { check_bbs[i + 1] } else { merge_bb };
-                        match &arms[i + 1].pat {
-                            MatchPat::Int(n) => {
-                                let pat_v = self.i64_ty.const_int(*n as u64, true);
-                                let cmp   = self.builder.build_int_compare(
+                        let pat_val = self.resolve_match_pat(&arms[i + 1].pat);
+                        match pat_val {
+                            Some(pat_v) => {
+                                let cmp = self.builder.build_int_compare(
                                     inkwell::IntPredicate::EQ, v, pat_v, "mc",
                                 ).unwrap();
                                 self.builder.build_conditional_branch(cmp, next_arm, fall).unwrap();
                             }
-                            MatchPat::Wildcard => {
+                            None => {
                                 self.builder.build_unconditional_branch(next_arm).unwrap();
                             }
                         }
@@ -328,6 +372,57 @@ impl<'ctx> CodeGen<'ctx> {
             }
             Stmt::StructDecl { .. } | Stmt::ImplDecl { .. } | Stmt::ClassDecl { .. } => {
                 panic!("struct/impl/class должны быть на верхнем уровне");
+            }
+        }
+    }
+
+    // ── Helper: resolve a match pattern to an LLVM integer constant ───────────
+
+    /// Returns `Some(int_val)` for patterns that compare against a constant,
+    /// or `None` for wildcard patterns.
+    fn resolve_match_pat(
+        &self,
+        pat: &MatchPat,
+    ) -> Option<inkwell::values::IntValue<'ctx>> {
+        match pat {
+            MatchPat::Int(n) =>
+                Some(self.i64_ty.const_int(*n as u64, true)),
+            MatchPat::Wildcard =>
+                None,
+            // EnumName.Variant  (from Rust / Swift)
+            MatchPat::EnumVariant(enum_name, variant) => {
+                let val = self.enums
+                    .get(enum_name)
+                    .and_then(|m| m.get(variant))
+                    .copied()
+                    .unwrap_or_else(|| panic!(
+                        "Неизвестный вариант enum '{}.{}'", enum_name, variant
+                    ));
+                Some(self.i64_ty.const_int(val as u64, true))
+            }
+        }
+    }
+
+    // ── Helper: allocate and store a `var` / `const` ─────────────────────────
+
+    fn gen_let(&mut self, name: &str, expr: &Expr) {
+        let val = self.gen_expr(expr);
+        match val {
+            Val::Int(i) => {
+                let p = self.builder.build_alloca(self.i64_ty, name).unwrap();
+                self.builder.build_store(p, i).unwrap();
+                self.vars.insert(name.to_string(), Var { ptr: p, kind: VarKind::Int });
+            }
+            Val::Float(f) => {
+                let p = self.builder.build_alloca(self.f64_ty, name).unwrap();
+                self.builder.build_store(p, f).unwrap();
+                self.vars.insert(name.to_string(), Var { ptr: p, kind: VarKind::Float });
+            }
+            Val::Struct(ptr, type_name) => {
+                self.vars.insert(name.to_string(), Var { ptr, kind: VarKind::Struct(type_name) });
+            }
+            Val::Array(ptr) => {
+                self.vars.insert(name.to_string(), Var { ptr, kind: VarKind::Array });
             }
         }
     }
