@@ -45,9 +45,10 @@ pub enum Token {
     Pub,
     Private,
     // New keywords
-    Enum,      // enum  — integer-backed enum  (from Rust / Swift)
-    Defer,     // defer — deferred execution   (from Go)
-    Import,    // import "module" — multi-file import
+    Enum,      // enum   — integer-backed enum      (from Rust / Swift)
+    Defer,     // defer  — deferred execution       (from Go)
+    Import,    // import — multi-file import
+    Extern,    // extern — external C function declaration
 
     // ── Range operators ───────────────────────────────────────────────────
     DotDot,    // ..    exclusive range
@@ -66,6 +67,7 @@ pub enum Token {
     LtEq,        // <=
     Gt,          // >
     GtEq,        // >=
+    Amp,         // &    address-of operator
     AndAnd,      // &&
     OrOr,        // ||
     Bang,        // !

@@ -12,15 +12,20 @@ use crate::parser::{Parser, Stmt};
 ///   - In project mode:    the project's `src/` directory.
 ///   - In single-file mode: the directory containing the entry file.
 ///
+/// `stdlib_root` — directory of the standard library (e.g. `{exe_dir}/stdlib/`).
+///   Used to resolve `std/*` imports.  `None` if stdlib is not found.
+///
 /// `visited` — canonicalised paths already processed (deduplication).
 ///
-/// Import resolution rule:
-///   `import "math"` → `{src_root}/math.ot`
-///   `import "net/http"` → `{src_root}/net/http.ot`
+/// Import resolution rules:
+///   `import "math"`      → `{src_root}/math.ot`         (project-local)
+///   `import "net/http"`  → `{src_root}/net/http.ot`     (project-local)
+///   `import "std/math"`  → `{stdlib_root}/math.ot`      (standard library)
 pub fn resolve(
-    entry:    &Path,
-    src_root: &Path,
-    visited:  &mut HashSet<PathBuf>,
+    entry:       &Path,
+    src_root:    &Path,
+    stdlib_root: Option<&Path>,
+    visited:     &mut HashSet<PathBuf>,
 ) -> Result<Vec<Stmt>, String> {
     // Canonicalise to detect duplicates robustly.
     let canonical = fs::canonicalize(entry)
@@ -45,9 +50,21 @@ pub fn resolve(
     for stmt in stmts {
         match &stmt {
             Stmt::Import { path } => {
-                // Resolve: src_root / path.ot
-                let import_file = src_root.join(format!("{path}.ot"));
-                let imported = resolve(&import_file, src_root, visited)
+                let import_file = if let Some(lib_name) = path.strip_prefix("std/") {
+                    // Standard library import: `import "std/math"` → stdlib_root/math.ot
+                    let sr = stdlib_root.ok_or_else(|| format!(
+                        "Стандартная библиотека не найдена. \
+                         Установите переменную ORBITRON_HOME или расположите папку 'stdlib/' \
+                         рядом с исполняемым файлом orbitron.\n\
+                         Импорт: \"{}\"", path
+                    ))?;
+                    sr.join(format!("{lib_name}.ot"))
+                } else {
+                    // Project-local import: src_root / path.ot
+                    src_root.join(format!("{path}.ot"))
+                };
+
+                let imported = resolve(&import_file, src_root, stdlib_root, visited)
                     .map_err(|e| format!("  (импортировано из '{}')\n{e}", entry.display()))?;
                 result.extend(imported);
             }

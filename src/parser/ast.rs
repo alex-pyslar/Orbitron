@@ -106,6 +106,12 @@ pub enum Expr {
     Input,
     /// readFloat()  — reads one f64 from stdin via scanf
     InputFloat,
+    /// &expr — address of a variable (returns i64 on 64-bit)
+    AddrOf(Box<Expr>),
+    /// *expr — dereference a pointer (load i64 from address)
+    Deref(Box<Expr>),
+    /// cstr("literal") — address of a null-terminated C string global
+    CStr(String),
 }
 
 // ── Statements ───────────────────────────────────────────────────────────────
@@ -197,4 +203,11 @@ pub enum Stmt {
     /// import "module";               — multi-file import
     /// Resolved by resolver before codegen; ignored by codegen.
     Import { path: String },
+    /// extern func name(p0, p1, ...): ret;  — declare external C function
+    /// `variadic` = true when last param is `...`
+    ExternFn {
+        name:     String,
+        params:   usize,  // number of typed params (excl. variadic marker)
+        variadic: bool,
+    },
 }

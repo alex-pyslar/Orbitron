@@ -1,0 +1,154 @@
+// Orbitron Standard Library — sys (Linux syscall interface)
+// import "std/sys";
+//
+// Provides raw Linux syscall numbers, standard file descriptors,
+// and thin wrappers around the built-in syscall() function.
+//
+// Built-in: syscall(nr, a0, a1, a2, a3, a4, a5) -> int
+//   Calls the Linux kernel directly. All args are i64.
+//   Returns the kernel's return value (negative = error code).
+
+// ── Standard file descriptors ─────────────────────────────────────────────────
+const STDIN:  int = 0;
+const STDOUT: int = 1;
+const STDERR: int = 2;
+
+// ── Linux syscall numbers (x86-64) ────────────────────────────────────────────
+const SYS_READ:    int = 0;
+const SYS_WRITE:   int = 1;
+const SYS_OPEN:    int = 2;
+const SYS_CLOSE:   int = 3;
+const SYS_STAT:    int = 4;
+const SYS_FSTAT:   int = 5;
+const SYS_LSEEK:   int = 8;
+const SYS_MMAP:    int = 9;
+const SYS_MPROTECT: int = 10;
+const SYS_MUNMAP:  int = 11;
+const SYS_BRK:     int = 12;
+const SYS_RT_SIGACTION: int = 13;
+const SYS_IOCTL:   int = 16;
+const SYS_PREAD:   int = 17;
+const SYS_PWRITE:  int = 18;
+const SYS_SOCKET:  int = 41;
+const SYS_CONNECT: int = 42;
+const SYS_ACCEPT:  int = 43;
+const SYS_SENDTO:  int = 44;
+const SYS_RECVFROM: int = 45;
+const SYS_BIND:    int = 49;
+const SYS_LISTEN:  int = 50;
+const SYS_GETSOCKNAME: int = 51;
+const SYS_GETPEERNAME: int = 52;
+const SYS_SETSOCKOPT: int = 54;
+const SYS_GETSOCKOPT: int = 55;
+const SYS_CLONE:   int = 56;
+const SYS_FORK:    int = 57;
+const SYS_EXECVE:  int = 59;
+const SYS_EXIT:    int = 60;
+const SYS_WAIT4:   int = 61;
+const SYS_KILL:    int = 62;
+const SYS_GETPID:  int = 39;
+const SYS_GETPPID: int = 110;
+const SYS_GETUID:  int = 102;
+const SYS_GETGID:  int = 104;
+const SYS_GETTIMEOFDAY: int = 96;
+const SYS_NANOSLEEP: int = 35;
+
+// ── open() flags ──────────────────────────────────────────────────────────────
+const O_RDONLY: int = 0;
+const O_WRONLY: int = 1;
+const O_RDWR:   int = 2;
+const O_CREAT:  int = 64;
+const O_TRUNC:  int = 512;
+const O_APPEND: int = 1024;
+const O_NONBLOCK: int = 2048;
+
+// ── mmap() flags / prots ─────────────────────────────────────────────────────
+const PROT_NONE:  int = 0;
+const PROT_READ:  int = 1;
+const PROT_WRITE: int = 2;
+const PROT_EXEC:  int = 4;
+const MAP_SHARED:   int = 1;
+const MAP_PRIVATE:  int = 2;
+const MAP_ANONYMOUS: int = 32;
+const MAP_FIXED:    int = 16;
+const MAP_FAILED:   int = -1;
+
+// ── Signal numbers ────────────────────────────────────────────────────────────
+const SIGINT:  int = 2;
+const SIGKILL: int = 9;
+const SIGTERM: int = 15;
+const SIGSEGV: int = 11;
+const SIGPIPE: int = 13;
+
+// ── Syscall wrappers ──────────────────────────────────────────────────────────
+
+// Write `len` bytes from buffer at `buf_addr` to file descriptor `fd`.
+// Returns bytes written (>=0) or negative error code.
+func sys_write(fd: int, buf_addr: int, len: int): int {
+    return syscall(SYS_WRITE, fd, buf_addr, len);
+}
+
+// Read up to `len` bytes from `fd` into buffer at `buf_addr`.
+// Returns bytes read (>=0) or negative error code.
+func sys_read(fd: int, buf_addr: int, len: int): int {
+    return syscall(SYS_READ, fd, buf_addr, len);
+}
+
+// Open a file by path (as C string address). Returns fd or negative error.
+func sys_open(path_addr: int, flags: int, mode: int): int {
+    return syscall(SYS_OPEN, path_addr, flags, mode);
+}
+
+// Close file descriptor. Returns 0 on success.
+func sys_close(fd: int): int {
+    return syscall(SYS_CLOSE, fd);
+}
+
+// Exit the process with given code (never returns).
+func sys_exit(code: int): int {
+    return syscall(SYS_EXIT, code);
+}
+
+// Get current process ID.
+func sys_getpid(): int {
+    return syscall(SYS_GETPID);
+}
+
+// Get parent process ID.
+func sys_getppid(): int {
+    return syscall(SYS_GETPPID);
+}
+
+// Fork: returns 0 in child, child-pid in parent, negative on error.
+func sys_fork(): int {
+    return syscall(SYS_FORK);
+}
+
+// Kill process `pid` with signal `sig`.
+func sys_kill(pid: int, sig: int): int {
+    return syscall(SYS_KILL, pid, sig);
+}
+
+// Allocate `len` anonymous bytes (MAP_PRIVATE | MAP_ANONYMOUS). Returns address.
+func sys_alloc(len: int): int {
+    return syscall(SYS_MMAP, 0, len,
+        PROT_READ + PROT_WRITE,
+        MAP_PRIVATE + MAP_ANONYMOUS,
+        -1, 0);
+}
+
+// Free memory allocated by sys_alloc.
+func sys_free(addr: int, len: int): int {
+    return syscall(SYS_MUNMAP, addr, len);
+}
+
+// Sleep for `secs` seconds (uses nanosleep timespec on stack).
+// Note: builds a minimal timespec struct { tv_sec, tv_nsec } on the heap.
+func sys_sleep(secs: int): int {
+    var ts = sys_alloc(16);
+    ptr_write(ts, secs);
+    ptr_write(ts + 8, 0);
+    var r = syscall(SYS_NANOSLEEP, ts, 0);
+    sys_free(ts, 16);
+    return r;
+}

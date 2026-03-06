@@ -256,6 +256,50 @@ impl<'ctx> CodeGen<'ctx> {
                 )
             }
 
+            // &expr — address-of: returns the alloca pointer as an i64
+            Expr::AddrOf(inner) => {
+                let ptr_ty = self.ctx.ptr_type(inkwell::AddressSpace::default());
+                let raw_ptr = match inner.as_ref() {
+                    Expr::Ident(name) => {
+                        let var = self.vars.get(name).cloned()
+                            .unwrap_or_else(|| panic!("& : неопределённая переменная '{}'", name));
+                        var.ptr
+                    }
+                    _ => panic!("& (address-of) работает только с именем переменной"),
+                };
+                let _ = ptr_ty; // suppress unused warning
+                Val::Int(
+                    self.builder.build_ptr_to_int(raw_ptr, self.i64_ty, "addr").unwrap()
+                )
+            }
+
+            // *expr — dereference: interpret i64 as a pointer and load i64 from it
+            Expr::Deref(inner) => {
+                let ptr_ty = self.ctx.ptr_type(inkwell::AddressSpace::default());
+                let v   = self.gen_expr(inner);
+                let addr = self.as_int(v);
+                let ptr = self.builder.build_int_to_ptr(addr, ptr_ty, "deref.ptr").unwrap();
+                Val::Int(
+                    self.builder.build_load(self.i64_ty, ptr, "deref.val")
+                        .unwrap().into_int_value()
+                )
+            }
+
+            // cstr("literal") — address of a null-terminated C string stored as a global
+            Expr::CStr(s) => {
+                let key = format!("cstr.{:x}", super::fxhash(s));
+                let ptr = match self.module.get_global(&key) {
+                    Some(g) => g.as_pointer_value(),
+                    None    => self.builder
+                        .build_global_string_ptr(s, &key)
+                        .unwrap()
+                        .as_pointer_value(),
+                };
+                Val::Int(
+                    self.builder.build_ptr_to_int(ptr, self.i64_ty, "cstr.addr").unwrap()
+                )
+            }
+
             Expr::Unary(op, inner) => {
                 let v = self.gen_expr(inner);
                 match op {
@@ -282,6 +326,48 @@ impl<'ctx> CodeGen<'ctx> {
             }
 
             Expr::Call { name, args } => {
+                // ── ptr_write(addr, val) — store i64 val at raw address addr ──
+                if name == "ptr_write" {
+                    if args.len() != 2 {
+                        panic!("ptr_write(addr, val) принимает ровно 2 аргумента");
+                    }
+                    let ptr_ty = self.ctx.ptr_type(inkwell::AddressSpace::default());
+                    let addr_v = { let v = self.gen_expr(&args[0]); self.as_int(v) };
+                    let val_v  = { let v = self.gen_expr(&args[1]); self.as_int(v) };
+                    let ptr    = self.builder.build_int_to_ptr(addr_v, ptr_ty, "pw.ptr").unwrap();
+                    self.builder.build_store(ptr, val_v).unwrap();
+                    return Val::Int(self.i64_ty.const_int(0, false));
+                }
+
+                // ── ptr_write_byte(addr, val) — store i8 at raw address ──
+                if name == "ptr_write_byte" {
+                    if args.len() != 2 {
+                        panic!("ptr_write_byte(addr, val) принимает ровно 2 аргумента");
+                    }
+                    let ptr_ty  = self.ctx.ptr_type(inkwell::AddressSpace::default());
+                    let i8_ty   = self.ctx.i8_type();
+                    let addr_v  = { let v = self.gen_expr(&args[0]); self.as_int(v) };
+                    let val_v   = { let v = self.gen_expr(&args[1]); self.as_int(v) };
+                    let byte_v  = self.builder.build_int_truncate(val_v, i8_ty, "byte").unwrap();
+                    let ptr     = self.builder.build_int_to_ptr(addr_v, ptr_ty, "pwb.ptr").unwrap();
+                    self.builder.build_store(ptr, byte_v).unwrap();
+                    return Val::Int(self.i64_ty.const_int(0, false));
+                }
+
+                // ── ptr_read(addr) — load i64 from raw address ──
+                if name == "ptr_read" {
+                    if args.len() != 1 {
+                        panic!("ptr_read(addr) принимает ровно 1 аргумент");
+                    }
+                    let ptr_ty = self.ctx.ptr_type(inkwell::AddressSpace::default());
+                    let addr_v = { let v = self.gen_expr(&args[0]); self.as_int(v) };
+                    let ptr    = self.builder.build_int_to_ptr(addr_v, ptr_ty, "pr.ptr").unwrap();
+                    return Val::Int(
+                        self.builder.build_load(self.i64_ty, ptr, "pr.val")
+                            .unwrap().into_int_value()
+                    );
+                }
+
                 let callee = self.module.get_function(name)
                     .unwrap_or_else(|| panic!("Неопределённая функция '{}'", name));
                 let argv: Vec<BasicMetadataValueEnum> = args.iter()

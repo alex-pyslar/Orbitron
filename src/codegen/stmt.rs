@@ -306,6 +306,9 @@ impl<'ctx> CodeGen<'ctx> {
             // import "module"  — resolved before codegen, skip
             Stmt::Import { .. } => {}
 
+            // extern func ...  — declared in pass 1, no body to generate
+            Stmt::ExternFn { .. } => {}
+
             // match expr { pat => { body }, ... }
             Stmt::Match { expr, arms } => {
                 let val   = self.gen_expr(expr);

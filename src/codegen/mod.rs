@@ -103,6 +103,10 @@ impl<'ctx> CodeGen<'ctx> {
         let pow_ty = f64_ty.fn_type(&[f64_ty.into(), f64_ty.into()], false);
         module.add_function("pow", pow_ty, None);
 
+        // Declare libc syscall(long number, ...) -> long  — for raw syscalls
+        let syscall_ty = i64_ty.fn_type(&[i64_ty.into()], true);
+        module.add_function("syscall", syscall_ty, None);
+
         Self {
             ctx,
             builder,
@@ -151,7 +155,7 @@ impl<'ctx> CodeGen<'ctx> {
             }
         }
 
-        // Pass 1: forward-declare functions and methods.
+        // Pass 1: forward-declare functions, methods and extern declarations.
         for stmt in program {
             match stmt {
                 Stmt::FnDecl { name, params, .. } => {
@@ -171,6 +175,19 @@ impl<'ctx> CodeGen<'ctx> {
                 Stmt::ClassDecl { name, methods, .. } => {
                     for m in methods {
                         self.forward_declare_method(name, m);
+                    }
+                }
+                // extern func — declare external C function (pass 1)
+                Stmt::ExternFn { name, params, variadic } => {
+                    // Skip if already declared (e.g. printf, scanf, pow, syscall)
+                    if self.module.get_function(name).is_none() {
+                        let ptys: Vec<BasicMetadataTypeEnum> =
+                            (0..*params).map(|_| BasicMetadataTypeEnum::from(self.i64_ty)).collect();
+                        self.module.add_function(
+                            name,
+                            self.i64_ty.fn_type(&ptys, *variadic),
+                            None,
+                        );
                     }
                 }
                 _ => {}
@@ -195,10 +212,12 @@ impl<'ctx> CodeGen<'ctx> {
                 }
                 // Top-level declarations already handled in pass 0 — skip silently.
                 // Import nodes are resolved before codegen — skip silently.
+                // ExternFn declared in pass 1 — skip in pass 2.
                 Stmt::StructDecl { .. }
                 | Stmt::EnumDecl  { .. }
                 | Stmt::Const     { .. }
-                | Stmt::Import    { .. } => {}
+                | Stmt::Import    { .. }
+                | Stmt::ExternFn  { .. } => {}
                 s => panic!("Неожиданный оператор верхнего уровня: {:?}", s),
             }
         }

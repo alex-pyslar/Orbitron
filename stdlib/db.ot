@@ -1,0 +1,183 @@
+// Orbitron Standard Library — db (SQLite3 bindings)
+// import "std/db";
+//
+// Requires SQLite3 development library. Compile with:
+//   orbitron build --libs sqlite3
+// or manually:
+//   clang output.s -o output -lm -lsqlite3
+//
+// All SQLite3 handles (db, stmt) are opaque pointers stored as i64.
+// SQL queries are passed as C strings via cstr("SELECT ...").
+
+// ── SQLite3 return codes ──────────────────────────────────────────────────────
+const SQLITE_OK:       int = 0;
+const SQLITE_ERROR:    int = 1;
+const SQLITE_INTERNAL: int = 2;
+const SQLITE_PERM:     int = 3;
+const SQLITE_ABORT:    int = 4;
+const SQLITE_BUSY:     int = 5;
+const SQLITE_LOCKED:   int = 6;
+const SQLITE_NOMEM:    int = 7;
+const SQLITE_READONLY: int = 8;
+const SQLITE_INTERRUPT: int = 9;
+const SQLITE_IOERR:    int = 10;
+const SQLITE_CORRUPT:  int = 11;
+const SQLITE_NOTFOUND: int = 12;
+const SQLITE_FULL:     int = 13;
+const SQLITE_CANTOPEN: int = 14;
+const SQLITE_PROTOCOL: int = 15;
+const SQLITE_EMPTY:    int = 16;
+const SQLITE_SCHEMA:   int = 17;
+const SQLITE_TOOBIG:   int = 18;
+const SQLITE_CONSTRAINT: int = 19;
+const SQLITE_MISMATCH: int = 20;
+const SQLITE_MISUSE:   int = 21;
+const SQLITE_NOLFS:    int = 22;
+const SQLITE_AUTH:     int = 23;
+const SQLITE_FORMAT:   int = 24;
+const SQLITE_RANGE:    int = 25;
+const SQLITE_NOTADB:   int = 26;
+const SQLITE_ROW:      int = 100;
+const SQLITE_DONE:     int = 101;
+
+// ── SQLite3 column types ──────────────────────────────────────────────────────
+const SQLITE_INTEGER: int = 1;
+const SQLITE_FLOAT:   int = 2;
+const SQLITE_TEXT:    int = 3;
+const SQLITE_BLOB:    int = 4;
+const SQLITE_NULL:    int = 5;
+
+// ── External C functions (sqlite3.h) ──────────────────────────────────────────
+
+// sqlite3_open(filename, ppDb) -> int
+// Opens (or creates) the database at `filename` (C string address).
+// On success, `*ppDb` is set to the db handle. Returns SQLITE_OK or error.
+extern func sqlite3_open(filename: int, ppDb: int): int;
+
+// sqlite3_close(db) -> int
+// Closes a database handle. Returns SQLITE_OK or error.
+extern func sqlite3_close(db: int): int;
+
+// sqlite3_close_v2(db) -> int (safe version, preferred)
+extern func sqlite3_close_v2(db: int): int;
+
+// sqlite3_exec(db, sql, callback, cbarg, errmsg) -> int
+// Executes one or more SQL statements. callback/cbarg may be 0 (NULL).
+// errmsg may be 0 or a ptr-to-ptr for error message string.
+extern func sqlite3_exec(db: int, sql: int, callback: int, cbarg: int, errmsg: int): int;
+
+// sqlite3_prepare_v2(db, sql, nbytes, ppStmt, pzTail) -> int
+// Compiles one SQL statement. nbytes = -1 for null-terminated.
+// pzTail may be 0. Returns SQLITE_OK or error.
+extern func sqlite3_prepare_v2(db: int, sql: int, nbytes: int, ppStmt: int, pzTail: int): int;
+
+// sqlite3_step(stmt) -> int  — SQLITE_ROW or SQLITE_DONE or error
+extern func sqlite3_step(stmt: int): int;
+
+// sqlite3_finalize(stmt) -> int  — frees statement
+extern func sqlite3_finalize(stmt: int): int;
+
+// sqlite3_reset(stmt) -> int  — reset for re-execution
+extern func sqlite3_reset(stmt: int): int;
+
+// sqlite3_bind_int64(stmt, col, value) -> int  — bind integer parameter (1-indexed)
+extern func sqlite3_bind_int64(stmt: int, col: int, value: int): int;
+
+// sqlite3_bind_text(stmt, col, text, nbytes, destructor) -> int
+// For text: pass cstr("value"), -1, 0
+extern func sqlite3_bind_text(stmt: int, col: int, text: int, nbytes: int, destructor: int): int;
+
+// sqlite3_bind_null(stmt, col) -> int
+extern func sqlite3_bind_null(stmt: int, col: int): int;
+
+// sqlite3_column_count(stmt) -> int
+extern func sqlite3_column_count(stmt: int): int;
+
+// sqlite3_column_type(stmt, col) -> int  — col is 0-indexed
+extern func sqlite3_column_type(stmt: int, col: int): int;
+
+// sqlite3_column_int64(stmt, col) -> i64  — read integer column (0-indexed)
+extern func sqlite3_column_int64(stmt: int, col: int): int;
+
+// sqlite3_column_double(stmt, col) -> f64 — NOTE: returns double, cast result
+extern func sqlite3_column_double(stmt: int, col: int): int;
+
+// sqlite3_column_text(stmt, col) -> const char*  (address as i64)
+extern func sqlite3_column_text(stmt: int, col: int): int;
+
+// sqlite3_errmsg(db) -> const char*  (address as i64)
+extern func sqlite3_errmsg(db: int): int;
+
+// sqlite3_last_insert_rowid(db) -> i64
+extern func sqlite3_last_insert_rowid(db: int): int;
+
+// sqlite3_changes(db) -> int  — rows affected by last INSERT/UPDATE/DELETE
+extern func sqlite3_changes(db: int): int;
+
+// ── High-level helpers ────────────────────────────────────────────────────────
+
+// Open a database and return its handle.
+// Allocates an i64 slot on the heap to receive the db pointer.
+// Returns the db handle (i64), or 0 on failure.
+func db_open(path_addr: int): int {
+    var slot = syscall(9, 0, 8, 3, 34, -1, 0);    // mmap 8 bytes for *db
+    var rc = sqlite3_open(path_addr, slot);
+    var db = ptr_read(slot);
+    syscall(11, slot, 8);                          // munmap slot
+    if (rc != SQLITE_OK) {
+        return 0;
+    }
+    return db;
+}
+
+// Execute a simple SQL statement (no result rows). Returns SQLITE_OK or error.
+func db_exec(db: int, sql_addr: int): int {
+    return sqlite3_exec(db, sql_addr, 0, 0, 0);
+}
+
+// Prepare a statement. Returns stmt handle or 0 on failure.
+func db_prepare(db: int, sql_addr: int): int {
+    var slot = syscall(9, 0, 8, 3, 34, -1, 0);
+    var rc = sqlite3_prepare_v2(db, sql_addr, -1, slot, 0);
+    var stmt = ptr_read(slot);
+    syscall(11, slot, 8);
+    if (rc != SQLITE_OK) {
+        return 0;
+    }
+    return stmt;
+}
+
+// Step a prepared statement. Returns SQLITE_ROW, SQLITE_DONE, or error.
+func db_step(stmt: int): int {
+    return sqlite3_step(stmt);
+}
+
+// Finalize (free) a prepared statement.
+func db_finalize(stmt: int): int {
+    return sqlite3_finalize(stmt);
+}
+
+// Get an integer column from the current row (0-indexed column).
+func db_col_int(stmt: int, col: int): int {
+    return sqlite3_column_int64(stmt, col);
+}
+
+// Get number of columns in the result set.
+func db_col_count(stmt: int): int {
+    return sqlite3_column_count(stmt);
+}
+
+// Close a database.
+func db_close(db: int): int {
+    return sqlite3_close_v2(db);
+}
+
+// Get last auto-increment rowid.
+func db_last_rowid(db: int): int {
+    return sqlite3_last_insert_rowid(db);
+}
+
+// Get number of rows affected by last change.
+func db_changes(db: int): int {
+    return sqlite3_changes(db);
+}

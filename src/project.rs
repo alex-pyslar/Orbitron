@@ -20,10 +20,15 @@ pub struct BuildSection {
     /// Entry-point source file, relative to the project root.
     /// Default convention: "src/main.ot"
     pub main:   String,
-    /// Output binary path, relative to the project root.
+    /// Output binary/jar path, relative to the project root.
     /// Default convention: "bin/<project-name>"
     pub output: String,
+    /// Compilation backend: "llvm" (default) or "jvm"
+    #[serde(default = "default_backend")]
+    pub backend: String,
 }
+
+fn default_backend() -> String { "llvm".to_string() }
 
 // ── Loader ───────────────────────────────────────────────────────────────────
 

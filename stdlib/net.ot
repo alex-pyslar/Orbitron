@@ -1,0 +1,154 @@
+// Orbitron Standard Library — net (POSIX networking)
+// import "std/net";
+//
+// Provides TCP/UDP socket wrappers built on the libc socket API.
+// The underlying C functions are declared with `extern func` and
+// linked automatically (they are part of glibc).
+//
+// Addresses are stored as plain i64 integers (sockaddr_in struct on heap).
+// Use sys_alloc() from std/sys to allocate buffers for send/recv.
+
+// ── External C socket functions ───────────────────────────────────────────────
+
+extern func socket(domain: int, type: int, proto: int): int;
+extern func bind(fd: int, addr: int, addrlen: int): int;
+extern func listen(fd: int, backlog: int): int;
+extern func accept(fd: int, addr: int, addrlen_ptr: int): int;
+extern func connect(fd: int, addr: int, addrlen: int): int;
+extern func send(fd: int, buf: int, len: int, flags: int): int;
+extern func recv(fd: int, buf: int, len: int, flags: int): int;
+extern func close(fd: int): int;
+extern func setsockopt(fd: int, level: int, optname: int, optval: int, optlen: int): int;
+extern func getsockname(fd: int, addr: int, addrlen_ptr: int): int;
+extern func getpeername(fd: int, addr: int, addrlen_ptr: int): int;
+extern func memset(s: int, c: int, n: int): int;
+
+// ── Address families / socket types / protocols ───────────────────────────────
+const AF_UNIX:    int = 1;
+const AF_INET:    int = 2;
+const AF_INET6:   int = 10;
+
+const SOCK_STREAM: int = 1;
+const SOCK_DGRAM:  int = 2;
+const SOCK_RAW:    int = 3;
+
+const IPPROTO_TCP: int = 6;
+const IPPROTO_UDP: int = 17;
+const IPPROTO_IP:  int = 0;
+
+const SOL_SOCKET:   int = 1;
+const SO_REUSEADDR: int = 2;
+const SO_REUSEPORT: int = 15;
+const SO_KEEPALIVE: int = 9;
+
+const TCP_NODELAY: int = 1;
+
+const INADDR_ANY:      int = 0;
+const INADDR_LOOPBACK: int = 2130706433;
+
+const INVALID_SOCKET: int = -1;
+
+// ── sockaddr_in layout (16 bytes) ─────────────────────────────────────────────
+// Offset  Size  Field
+//   0       2   sin_family  (AF_INET = 2)
+//   2       2   sin_port    (big-endian / network byte order)
+//   4       4   sin_addr    (big-endian / network byte order)
+//   8       8   sin_zero    (padding, must be 0)
+const SOCKADDR_IN_SIZE: int = 16;
+
+// Build a sockaddr_in struct at `addr_ptr` (must be 16 bytes allocated).
+// `ip` is the IPv4 address in HOST byte order built with net_ip().
+// `port` is in HOST byte order (e.g., 8080).
+func net_fill_sockaddr(addr_ptr: int, ip: int, port: int): int {
+    memset(addr_ptr, 0, 16);
+
+    // sin_family = AF_INET (2) as little-endian 16-bit at offset 0
+    ptr_write_byte(addr_ptr + 0, 2);
+    ptr_write_byte(addr_ptr + 1, 0);
+
+    // sin_port in big-endian (network byte order) at offset 2
+    ptr_write_byte(addr_ptr + 2, port / 256);
+    ptr_write_byte(addr_ptr + 3, port % 256);
+
+    // sin_addr in big-endian at offset 4
+    // net_ip(a,b,c,d) = a*16777216 + b*65536 + c*256 + d
+    var byte_a = ip / 16777216;
+    var byte_b = (ip / 65536) % 256;
+    var byte_c = (ip / 256) % 256;
+    var byte_d = ip % 256;
+    ptr_write_byte(addr_ptr + 4, byte_a);
+    ptr_write_byte(addr_ptr + 5, byte_b);
+    ptr_write_byte(addr_ptr + 6, byte_c);
+    ptr_write_byte(addr_ptr + 7, byte_d);
+
+    return 0;
+}
+
+// Encode IPv4 dotted-decimal as integer: net_ip(127, 0, 0, 1) = 2130706433
+func net_ip(a: int, b: int, c: int, d: int): int {
+    return (a * 16777216) + (b * 65536) + (c * 256) + d;
+}
+
+// ── TCP/UDP helpers ───────────────────────────────────────────────────────────
+
+// Create a TCP socket. Returns fd or -1 on error.
+func tcp_socket(): int {
+    return socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+}
+
+// Create a UDP socket. Returns fd or -1 on error.
+func udp_socket(): int {
+    return socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+}
+
+// Set SO_REUSEADDR on socket. Returns 0 on success.
+func net_reuseaddr(fd: int): int {
+    var opt_ptr = syscall(9, 0, 8, 3, 34, -1, 0);
+    ptr_write(opt_ptr, 1);
+    var r = setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, opt_ptr, 4);
+    syscall(11, opt_ptr, 8);
+    return r;
+}
+
+// Connect TCP socket to (ip, port). Returns 0 on success, negative on error.
+func tcp_connect(fd: int, ip: int, port: int): int {
+    var addr = syscall(9, 0, 16, 3, 34, -1, 0);
+    net_fill_sockaddr(addr, ip, port);
+    var r = connect(fd, addr, 16);
+    syscall(11, addr, 16);
+    return r;
+}
+
+// Bind a socket to (ip, port). Use ip = INADDR_ANY (0) to bind all interfaces.
+func net_bind(fd: int, ip: int, port: int): int {
+    var addr = syscall(9, 0, 16, 3, 34, -1, 0);
+    net_fill_sockaddr(addr, ip, port);
+    var r = bind(fd, addr, 16);
+    syscall(11, addr, 16);
+    return r;
+}
+
+// Start listening on a bound socket. Returns 0 on success.
+func net_listen(fd: int, backlog: int): int {
+    return listen(fd, backlog);
+}
+
+// Accept one connection. Returns the new client fd.
+func net_accept(fd: int): int {
+    return accept(fd, 0, 0);
+}
+
+// Send data from buffer at `buf_addr` (length `len`). Returns bytes sent.
+func net_send(fd: int, buf_addr: int, len: int): int {
+    return send(fd, buf_addr, len, 0);
+}
+
+// Receive data into buffer at `buf_addr` (up to `len` bytes). Returns bytes received.
+func net_recv(fd: int, buf_addr: int, len: int): int {
+    return recv(fd, buf_addr, len, 0);
+}
+
+// Close a socket.
+func net_close(fd: int): int {
+    return close(fd);
+}

@@ -1,7 +1,7 @@
 # Справочник синтаксиса — Orbitron
 
 Orbitron — компилируемый язык с синтаксисом, вдохновлённым Go, Rust, Python, Ruby, Elixir,
-Java, C# и Kotlin. Компилируется через LLVM в нативный бинарный файл.
+Java, C# и Kotlin. Компилируется через LLVM в нативный бинарный файл или в JVM-байткод (.jar).
 
 ---
 
@@ -22,8 +22,10 @@ Java, C# и Kotlin. Компилируется через LLVM в нативны
 13. [Структуры (struct + impl)](#13-структуры-struct--impl)
 14. [Классы (class)](#14-классы-class)
 15. [Система проектов и импорт](#15-система-проектов-и-импорт)
-16. [Приоритет операторов](#16-приоритет-операторов)
-17. [Грамматика (EBNF)](#17-грамматика-ebnf)
+16. [Стандартная библиотека (stdlib)](#16-стандартная-библиотека-stdlib)
+17. [Бэкенды компиляции](#17-бэкенды-компиляции)
+18. [Приоритет операторов](#18-приоритет-операторов)
+19. [Грамматика (EBNF)](#19-грамматика-ebnf)
 
 ---
 
@@ -515,7 +517,170 @@ orbitron -v examples/fib.ot        # подробный вывод
 
 ---
 
-## 16. Приоритет операторов
+## 16. Стандартная библиотека (stdlib)
+
+Orbitron поставляется с набором стандартных модулей в папке `stdlib/`.
+Подключение через префикс `std/`:
+
+```orbitron
+import "std/math";   // математические функции
+import "std/bits";   // битовые операции
+import "std/algo";   // вспомогательные алгоритмы
+```
+
+### `std/math` — математика
+
+| Функция / константа | Описание |
+|---------------------|----------|
+| `PI: float`         | Число π ≈ 3.14159... |
+| `E: float`          | Число e ≈ 2.71828... |
+| `INT_MAX: int`      | Максимальное значение int (i64) |
+| `abs(x)`            | Абсолютное значение |
+| `max(a, b)`         | Максимум из двух |
+| `min(a, b)`         | Минимум из двух |
+| `clamp(val, lo, hi)`| Ограничить val диапазоном [lo, hi] |
+| `factorial(n)`      | n! (n >= 0) |
+| `fib(n)`            | n-е число Фибоначчи (0-индексация) |
+| `gcd(a, b)`         | Наибольший общий делитель |
+| `lcm(a, b)`         | Наименьшее общее кратное |
+| `sum_range(a, b)`   | Сумма целых от a до b включительно |
+| `sign(x)`           | Знак: -1, 0 или 1 |
+| `is_prime(n)`       | 1 если n простое, иначе 0 |
+
+```orbitron
+import "std/math";
+
+func main() {
+    println(factorial(10));   // 3628800
+    println(gcd(48, 18));     // 6
+    println(is_prime(97));    // 1
+    println(sum_range(1, 100)); // 5050
+}
+```
+
+### `std/bits` — битовые операции
+
+| Функция | Описание |
+|---------|----------|
+| `bit_count(x)` | Количество установленных битов (popcount) |
+| `bit_len(x)` | Длина числа в битах (floor(log2(x))+1) |
+| `is_pow2(x)` | 1 если x — степень двойки |
+| `next_pow2(x)` | Следующая степень двойки >= x |
+| `prev_pow2(x)` | Предыдущая степень двойки <= x |
+| `low_bit(x)` | Наименьший установленный бит |
+| `shl(x, n)` | Сдвиг влево: x * 2^n |
+| `shr(x, n)` | Сдвиг вправо: x / 2^n |
+| `floor_log2(x)` | Целочисленный log2 (floor) |
+| `reverse_bits(x, bits)` | Обратить bits младших битов числа |
+
+```orbitron
+import "std/bits";
+
+func main() {
+    println(bit_count(255));   // 8
+    println(is_pow2(16));      // 1
+    println(next_pow2(5));     // 8
+    println(shl(1, 10));       // 1024
+    println(floor_log2(100));  // 6
+}
+```
+
+### `std/algo` — алгоритмы
+
+| Функция | Описание |
+|---------|----------|
+| `min3(a, b, c)` | Минимум из трёх |
+| `max3(a, b, c)` | Максимум из трёх |
+| `median3(a, b, c)` | Медиана из трёх |
+| `lerp(lo, hi, t)` | Линейная интерполяция, t в [0..100] |
+| `map_range(val, in_lo, in_hi, out_lo, out_hi)` | Перевод из одного диапазона в другой |
+| `dist(a, b)` | Расстояние: \|a - b\| |
+| `digit_count(x)` | Количество цифр в десятичной записи |
+| `digit_sum(x)` | Сумма цифр |
+| `reverse_digits(x)` | Разворот цифр числа |
+| `is_palindrome_num(x)` | 1 если число — палиндром |
+| `ipow(base, exp)` | Целочисленная степень (быстрое возведение) |
+| `triangle(n)` | Треугольное число T(n) = n*(n+1)/2 |
+| `is_triangle(n)` | 1 если n — треугольное число |
+| `isqrt(n)` | Целочисленный квадратный корень (floor) |
+| `is_square(n)` | 1 если n — точный квадрат |
+| `near(a, b, tol)` | 1 если \|a-b\| <= tol |
+| `cycle(x, delta, n)` | Циклическое смещение: (x + delta) mod n |
+
+```orbitron
+import "std/algo";
+
+func main() {
+    println(ipow(2, 10));           // 1024
+    println(isqrt(100));            // 10
+    println(map_range(50, 0, 100, 0, 255)); // 127
+    println(is_palindrome_num(121)); // 1
+    println(cycle(6, 1, 7));        // 0
+}
+```
+
+### Расположение stdlib
+
+Папка `stdlib/` должна находиться в одном из мест:
+1. Рядом с бинарником `orbitron` (рекомендуется)
+2. В `$ORBITRON_HOME/stdlib/`
+
+### Добавление собственных модулей
+
+Любой `.ot` файл в папке `src/` проекта можно импортировать:
+
+```orbitron
+import "utils";      // загрузит src/utils.ot
+import "net/http";   // загрузит src/net/http.ot
+```
+
+---
+
+## 17. Бэкенды компиляции
+
+### LLVM (по умолчанию)
+
+Компилирует в нативный бинарник. Требует: `llc`, `clang`, `libm`.
+
+```bash
+orbitron build                    # LLVM бэкенд (по умолчанию)
+orbitron hello.ot                 # один файл → ./hello
+orbitron build --emit-llvm        # остановиться на LLVM IR (.ll)
+orbitron build --save-temps       # сохранить .ll и .s
+```
+
+### JVM
+
+Компилирует в `.jar`. Требует: `javac`, `jar` (JDK).
+
+```bash
+orbitron build --backend jvm      # → bin/myapp.jar
+orbitron run   --backend jvm      # собрать + запустить через java -jar
+orbitron hello.ot --backend jvm   # один файл → hello.jar
+orbitron build --emit-java        # остановиться на Main.java
+```
+
+Запуск скомпилированного jar:
+```bash
+java -jar bin/myapp.jar
+```
+
+GraalVM нативный образ:
+```bash
+native-image -jar bin/myapp.jar -o bin/myapp
+```
+
+### Выбор бэкенда
+
+| Способ | Приоритет |
+|--------|-----------|
+| Флаг `--backend llvm\|jvm` | Высший |
+| `[build] backend = "jvm"` в `orbitron.toml` | Средний |
+| По умолчанию: `llvm` | Низший |
+
+---
+
+## 18. Приоритет операторов
 
 От низкого к высокому:
 
@@ -534,7 +699,7 @@ orbitron -v examples/fib.ot        # подробный вывод
 
 ---
 
-## 17. Грамматика (EBNF, упрощённо)
+## 19. Грамматика (EBNF, упрощённо)
 
 ```
 program    = (func_decl | struct_decl | impl_decl | class_decl

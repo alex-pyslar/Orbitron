@@ -1,0 +1,142 @@
+// Orbitron Standard Library — bits
+// import "std/bits";
+//
+// Битовые операции над целыми числами (i64).
+
+// Количество установленных битов (popcount / Hamming weight)
+func bit_count(x: int): int {
+    var n = x;
+    if (n < 0) { n = -n; }
+    var count = 0;
+    while (n != 0) {
+        count = count + (n - (n / 2) * 2);
+        n = n / 2;
+    }
+    return count;
+}
+
+// Длина числа в битах: floor(log2(x)) + 1  для x > 0; 0 для x <= 0
+func bit_len(x: int): int {
+    if (x <= 0) { return 0; }
+    var n = x;
+    var len = 0;
+    while (n > 0) {
+        len = len + 1;
+        n = n / 2;
+    }
+    return len;
+}
+
+// Истина (1), если x является степенью двойки (x > 0)
+func is_pow2(x: int): int {
+    if (x <= 0) { return 0; }
+    // x & (x-1) == 0 iff x is a power of two
+    // Emulate bitwise AND via arithmetic
+    var v = x - 1;
+    var a = x;
+    var b = v;
+    // AND bit by bit from LSB
+    var bit = 1;
+    var result = 0;
+    repeat 62 {
+        var ra = a - (a / 2) * 2;
+        var rb = b - (b / 2) * 2;
+        if (ra != 0) {
+            if (rb != 0) {
+                result = result + bit;
+            }
+        }
+        a = a / 2;
+        b = b / 2;
+        bit = bit * 2;
+    }
+    return result == 0 ? 1 : 0;
+}
+
+// Следующая степень двойки >= x  (x >= 1)
+func next_pow2(x: int): int {
+    if (x <= 1) { return 1; }
+    var n = 1;
+    while (n < x) {
+        n = n * 2;
+    }
+    return n;
+}
+
+// Предыдущая степень двойки <= x  (x >= 1)
+func prev_pow2(x: int): int {
+    if (x <= 0) { return 0; }
+    var n = 1;
+    while (n * 2 <= x) {
+        n = n * 2;
+    }
+    return n;
+}
+
+// Младший установленный бит: наименьшая степень двойки k такая, что x & k != 0
+// Возвращает 0 если x == 0
+func low_bit(x: int): int {
+    if (x == 0) { return 0; }
+    var n = x;
+    if (n < 0) { n = -n; }
+    var bit = 1;
+    while ((n / bit) * bit == n - (n - (n / bit) * bit)) {
+        // check if bit is set: n has this bit if (n / bit) % 2 == 1
+        var q = n / bit;
+        if (q - (q / 2) * 2 == 1) {
+            return bit;
+        }
+        bit = bit * 2;
+    }
+    return bit;
+}
+
+// Сдвиг влево: x * 2^n
+func shl(x: int, n: int): int {
+    var result = x;
+    var i = 0;
+    while (i < n) {
+        result = result * 2;
+        i = i + 1;
+    }
+    return result;
+}
+
+// Сдвиг вправо (логический): x / 2^n
+func shr(x: int, n: int): int {
+    var result = x;
+    var i = 0;
+    while (i < n) {
+        result = result / 2;
+        i = i + 1;
+    }
+    return result;
+}
+
+// Целочисленный log2 (floor): количество раз, которое можно поделить x на 2 до 1
+// floor_log2(1) = 0, floor_log2(2) = 1, floor_log2(7) = 2, floor_log2(8) = 3
+func floor_log2(x: int): int {
+    if (x <= 0) { return -1; }
+    var n = x;
+    var k = 0;
+    while (n > 1) {
+        n = n / 2;
+        k = k + 1;
+    }
+    return k;
+}
+
+// Обратить биты числа в диапазоне [0, 2^bits)
+// Например: reverse_bits(0b1011, 4) = 0b1101 = 13
+func reverse_bits(x: int, bits: int): int {
+    var result = 0;
+    var val    = x;
+    var i      = 0;
+    while (i < bits) {
+        var lsb = val - (val / 2) * 2;
+        result = result * 2 + lsb;
+        val    = val / 2;
+        i      = i + 1;
+    }
+    return result;
+}

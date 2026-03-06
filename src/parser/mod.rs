@@ -82,9 +82,10 @@ impl Parser {
             Token::Enum   => self.parse_enum_decl(),    // NEW: Rust/Swift enums
             Token::Const  => self.parse_const(),        // NEW: Rust/C++ constants
             Token::Import => self.parse_import(),       // NEW: multi-file import
+            Token::Extern => self.parse_extern_fn(),    // NEW: extern C function
             t => Err(format!(
-                "Ожидалось 'func', 'struct', 'impl', 'class', 'enum', 'const' или 'import' \
-                 на верхнем уровне, получено {:?}",
+                "Ожидалось 'func', 'struct', 'impl', 'class', 'enum', 'const', 'import' \
+                 или 'extern' на верхнем уровне, получено {:?}",
                 t.clone()
             )),
         }
@@ -98,6 +99,45 @@ impl Parser {
         };
         self.eat(&Token::Semicolon);
         Ok(Stmt::Import { path })
+    }
+
+    /// `extern func name(p0: type, p1: type [, ...]): ret;`
+    /// Declares an external C function. All parameter types are treated as i64.
+    /// Use `...` as the last parameter for variadic functions (like printf).
+    fn parse_extern_fn(&mut self) -> Result<Stmt, String> {
+        self.advance(); // consume 'extern'
+        self.expect(&Token::Func)?;
+        let name = self.expect_ident()?;
+        self.expect(&Token::LParen)?;
+
+        let mut params: usize = 0;
+        let mut variadic = false;
+
+        if !self.check(&Token::RParen) {
+            loop {
+                // `...` variadic marker
+                if self.check(&Token::DotDot) {
+                    // consume .. then check for next dot for ...
+                    self.advance();
+                    if self.eat(&Token::Dot) {
+                        variadic = true;
+                        break;
+                    }
+                    return Err("Ожидалось '...' (три точки) для variadic".into());
+                }
+                // named param: ident [: type]
+                self.expect_ident()?;
+                if self.eat(&Token::Colon) { self.skip_type_annotation()?; }
+                params += 1;
+                if !self.eat(&Token::Comma) { break; }
+            }
+        }
+
+        self.expect(&Token::RParen)?;
+        // optional return type annotation
+        if self.eat(&Token::Colon) { self.skip_type_annotation()?; }
+        self.eat(&Token::Semicolon);
+        Ok(Stmt::ExternFn { name, params, variadic })
     }
 
     fn parse_fn_decl(&mut self) -> Result<Stmt, String> {
@@ -785,6 +825,16 @@ impl Parser {
                 self.advance();
                 Ok(Expr::Unary(UnaryOp::Not, Box::new(self.parse_unary()?)))
             }
+            // &expr — address-of operator (low-level pointer)
+            Token::Amp => {
+                self.advance();
+                Ok(Expr::AddrOf(Box::new(self.parse_unary()?)))
+            }
+            // *expr — dereference operator (load i64 from address)
+            Token::Star => {
+                self.advance();
+                Ok(Expr::Deref(Box::new(self.parse_unary()?)))
+            }
             _ => self.parse_power(),
         }
     }
@@ -865,6 +915,17 @@ impl Parser {
                 self.advance(); // '('
                 self.expect(&Token::RParen)?;
                 return Ok(Expr::InputFloat);
+            }
+            // `cstr("literal")` → Expr::CStr  — address of null-terminated C string
+            if name == "cstr" && matches!(self.peek2(), Token::LParen) {
+                self.advance(); // 'cstr'
+                self.advance(); // '('
+                let s = match self.advance() {
+                    Token::Str(s) => s,
+                    t => return Err(format!("cstr() ожидает строковый литерал, получено {:?}", t)),
+                };
+                self.expect(&Token::RParen)?;
+                return Ok(Expr::CStr(s));
             }
             // `name(args)` → Call
             if matches!(self.peek2(), Token::LParen) {

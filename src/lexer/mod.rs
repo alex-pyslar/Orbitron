@@ -181,6 +181,7 @@ impl Lexer {
             "enum"     => Token::Enum,      // NEW: Rust/Swift
             "defer"    => Token::Defer,     // NEW: Go
             "import"   => Token::Import,    // NEW: multi-file import
+            "extern"   => Token::Extern,    // NEW: external C declaration
             _          => Token::Ident(s),
         }
     }
@@ -269,7 +270,7 @@ impl Lexer {
                 '&' => {
                     self.advance();
                     if self.peek() == Some('&') { self.advance(); Ok(Token::AndAnd) }
-                    else { Err(format!("Одиночный '&' недопустим (строка {})", self.line)) }
+                    else { Ok(Token::Amp) }
                 }
                 // |> pipe operator (from Elixir / F#), || logical or
                 '|' => {
