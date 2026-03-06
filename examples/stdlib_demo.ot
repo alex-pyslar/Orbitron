@@ -1,9 +1,9 @@
-// stdlib_demo.ot — Демонстрация стандартной библиотеки Orbitron
+// stdlib_demo.ot — Orbitron standard library showcase
 //
-// Подключаемые модули:
-//   std/math  — математика: abs, max, min, gcd, lcm, factorial, fib, ...
-//   std/bits  — биты: bit_count, bit_len, is_pow2, shl/shr, floor_log2, ...
-//   std/algo  — алгоритмы: min3/max3/median3, lerp, ipow, isqrt, digit_sum, ...
+// Modules used:
+//   std/math  — math: abs, max, min, gcd, lcm, factorial, fib, ...
+//   std/bits  — bits: bit_count, bit_len, is_pow2, shl/shr, floor_log2, ...
+//   std/algo  — algorithms: min3/max3/median3, lerp, ipow, isqrt, digit_sum, ...
 
 import "std/math";
 import "std/bits";
@@ -36,13 +36,13 @@ func main() {
     println(is_prime(97));      // 1
     println(is_prime(100));     // 0
 
-    // константы из std/math
+    // constants from std/math
     println(INT_MAX);           // 9223372036854775807
 
     // ── std/bits ──────────────────────────────────────────────────────────────
     println("=== std/bits ===");
 
-    println(bit_count(255));    // 8  (все биты в байте)
+    println(bit_count(255));    // 8  (all bits in a byte)
     println(bit_count(7));      // 3  (0b111)
     println(bit_count(0));      // 0
 
@@ -75,8 +75,8 @@ func main() {
     println(max3(3, 1, 2));     // 3
     println(median3(3, 1, 2));  // 2
 
-    println(lerp(0, 100, 25));  // 25   (25% от [0..100])
-    println(lerp(0, 200, 50));  // 100  (50% от [0..200])
+    println(lerp(0, 100, 25));  // 25   (25% of [0..100])
+    println(lerp(0, 200, 50));  // 100  (50% of [0..200])
 
     println(map_range(50, 0, 100, 0, 255)); // 127
     println(map_range(100, 0, 100, 0, 255)); // 255

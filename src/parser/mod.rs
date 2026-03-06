@@ -44,13 +44,13 @@ impl Parser {
     fn expect(&mut self, tok: &Token) -> Result<(), String> {
         let got = self.advance();
         if &got == tok { Ok(()) }
-        else { Err(format!("Ожидалось {:?}, получено {:?}", tok, got)) }
+        else { Err(format!("Expected {:?}, got {:?}", tok, got)) }
     }
 
     fn expect_ident(&mut self) -> Result<String, String> {
         match self.advance() {
             Token::Ident(s) => Ok(s),
-            t => Err(format!("Ожидался идентификатор, получено {:?}", t)),
+            t => Err(format!("Expected identifier, got {:?}", t)),
         }
     }
 
@@ -59,7 +59,7 @@ impl Parser {
         match self.advance() {
             Token::Ident(s) => Ok(s),
             Token::New      => Ok("new".to_string()),
-            t => Err(format!("Ожидалось имя метода, получено {:?}", t)),
+            t => Err(format!("Expected method name, got {:?}", t)),
         }
     }
 
@@ -84,8 +84,8 @@ impl Parser {
             Token::Import => self.parse_import(),       // NEW: multi-file import
             Token::Extern => self.parse_extern_fn(),    // NEW: extern C function
             t => Err(format!(
-                "Ожидалось 'func', 'struct', 'impl', 'class', 'enum', 'const', 'import' \
-                 или 'extern' на верхнем уровне, получено {:?}",
+                "Expected 'func', 'struct', 'impl', 'class', 'enum', 'const', 'import' \
+                 or 'extern' at top level, got {:?}",
                 t.clone()
             )),
         }
@@ -95,7 +95,7 @@ impl Parser {
         self.advance(); // consume 'import'
         let path = match self.advance() {
             Token::Str(s) => s,
-            t => return Err(format!("import ожидает строку, получено {:?}", t)),
+            t => return Err(format!("import expects a string, got {:?}", t)),
         };
         self.eat(&Token::Semicolon);
         Ok(Stmt::Import { path })
@@ -123,7 +123,7 @@ impl Parser {
                         variadic = true;
                         break;
                     }
-                    return Err("Ожидалось '...' (три точки) для variadic".into());
+                    return Err("Expected '...' (three dots) for variadic".into());
                 }
                 // named param: ident [: type]
                 self.expect_ident()?;
@@ -169,7 +169,7 @@ impl Parser {
     fn skip_type_annotation(&mut self) -> Result<(), String> {
         match self.peek().clone() {
             Token::Ident(_) => { self.advance(); Ok(()) }
-            t => Err(format!("Ожидалось имя типа, получено {:?}", t)),
+            t => Err(format!("Expected type name, got {:?}", t)),
         }
     }
 
@@ -201,7 +201,7 @@ impl Parser {
                     other   => Ok(FieldType::Named(other.to_string())),
                 }
             }
-            t => Err(format!("Ожидался тип поля (int/float/имя), получено {:?}", t)),
+            t => Err(format!("Expected field type (int/float/name), got {:?}", t)),
         }
     }
 
@@ -426,7 +426,7 @@ impl Parser {
                         Expr::Index { arr, idx } =>
                             return Ok(Stmt::IndexAssign { arr, idx, val }),
                         _ => return Err(
-                            "Недопустимая левая часть присваивания (ожидался arr[idx])".into()
+                            "Invalid left-hand side of assignment (expected arr[idx])".into()
                         ),
                     }
                 }
@@ -463,7 +463,7 @@ impl Parser {
             Token::MinusAssign => BinOp::Sub,
             Token::StarAssign  => BinOp::Mul,
             Token::SlashAssign => BinOp::Div,
-            t => return Err(format!("Ожидался оператор присваивания, получено {:?}", t)),
+            t => return Err(format!("Expected assignment operator, got {:?}", t)),
         };
         let rhs = self.parse_expr()?;
         self.expect(&Token::Semicolon)?;
@@ -477,7 +477,7 @@ impl Parser {
         let obj_name = match self.advance() {
             Token::Ident(s) => s,
             Token::SelfKw   => "self".to_string(),
-            t => return Err(format!("Ожидался идентификатор или 'self', получено {:?}", t)),
+            t => return Err(format!("Expected identifier or 'self', got {:?}", t)),
         };
         self.expect(&Token::Dot)?;
         let field = self.expect_ident()?;
@@ -577,7 +577,7 @@ impl Parser {
             false
         } else {
             return Err(format!(
-                "Ожидался '..' или '..=' в цикле for, получено {:?}",
+                "Expected '..' or '..=' in for loop, got {:?}",
                 self.peek().clone()
             ));
         };
@@ -664,7 +664,7 @@ impl Parser {
                 self.advance();
                 match self.advance() {
                     Token::Int(n) => MatchPat::Int(-n),
-                    t => return Err(format!("Ожидалось целое число после '-', получено {:?}", t)),
+                    t => return Err(format!("Expected integer after '-', got {:?}", t)),
                 }
             }
             // `_` wildcard or `EnumName.Variant`  (from Rust / Swift)
@@ -682,7 +682,7 @@ impl Parser {
                 MatchPat::EnumVariant(first, variant)
             }
             t => return Err(format!(
-                "Ожидался образец match (целое, _, EnumName.Variant), получено {:?}", t
+                "Expected match pattern (integer, _, EnumName.Variant), got {:?}", t
             )),
         };
         self.expect(&Token::FatArrow)?;
@@ -727,7 +727,7 @@ impl Parser {
                     }
                 }
                 t => return Err(format!(
-                    "Ожидалось имя функции после '|>', получено {:?}", t
+                    "Expected function name after '|>', got {:?}", t
                 )),
             }
         }
@@ -922,7 +922,7 @@ impl Parser {
                 self.advance(); // '('
                 let s = match self.advance() {
                     Token::Str(s) => s,
-                    t => return Err(format!("cstr() ожидает строковый литерал, получено {:?}", t)),
+                    t => return Err(format!("cstr() expects a string literal, got {:?}", t)),
                 };
                 self.expect(&Token::RParen)?;
                 return Ok(Expr::CStr(s));
@@ -1012,7 +1012,7 @@ impl Parser {
                 self.expect(&Token::RBracket)?;
                 Ok(Expr::ArrayLit(elems))
             }
-            t => Err(format!("Ожидалось выражение, получено {:?}", t)),
+            t => Err(format!("Expected expression, got {:?}", t)),
         }
     }
 }

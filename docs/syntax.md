@@ -1,50 +1,50 @@
-# Справочник синтаксиса — Orbitron
+# Orbitron Language Reference
 
-Orbitron — компилируемый язык с синтаксисом, вдохновлённым Go, Rust, Python, Ruby, Elixir,
-Java, C# и Kotlin. Компилируется через LLVM в нативный бинарный файл или в JVM-байткод (.jar).
-
----
-
-## Содержание
-
-1. [Переменные и типы](#1-переменные-и-типы)
-2. [Константы](#2-константы)
-3. [Функции](#3-функции)
-4. [Вывод и ввод](#4-вывод-и-ввод)
-5. [Строковая интерполяция](#5-строковая-интерполяция)
-6. [Операторы](#6-операторы)
-7. [Условия](#7-условия)
-8. [Циклы](#8-циклы)
-9. [Массивы](#9-массивы)
-10. [Перечисления (enum)](#10-перечисления-enum)
-11. [Сопоставление с образцом (match)](#11-сопоставление-с-образцом-match)
-12. [Отложенный вызов (defer)](#12-отложенный-вызов-defer)
-13. [Структуры (struct + impl)](#13-структуры-struct--impl)
-14. [Классы (class)](#14-классы-class)
-15. [Система проектов и импорт](#15-система-проектов-и-импорт)
-16. [Стандартная библиотека (stdlib)](#16-стандартная-библиотека-stdlib)
-17. [Бэкенды компиляции](#17-бэкенды-компиляции)
-18. [Приоритет операторов](#18-приоритет-операторов)
-19. [Грамматика (EBNF)](#19-грамматика-ebnf)
+Orbitron is a compiled language with syntax inspired by Go, Rust, Python, Ruby, Elixir, Java, C#,
+and Kotlin. It compiles to a native binary via LLVM IR, or to JVM bytecode (`.jar`).
 
 ---
 
-## 1. Переменные и типы
+## Table of Contents
+
+1. [Variables and Types](#1-variables-and-types)
+2. [Constants](#2-constants)
+3. [Functions](#3-functions)
+4. [Output and Input](#4-output-and-input)
+5. [String Interpolation](#5-string-interpolation)
+6. [Operators](#6-operators)
+7. [Conditionals](#7-conditionals)
+8. [Loops](#8-loops)
+9. [Arrays](#9-arrays)
+10. [Enums](#10-enums)
+11. [Pattern Matching](#11-pattern-matching)
+12. [Defer](#12-defer)
+13. [Structs](#13-structs)
+14. [Classes](#14-classes)
+15. [Project System and Imports](#15-project-system-and-imports)
+16. [Standard Library](#16-standard-library)
+17. [Compilation Backends](#17-compilation-backends)
+18. [Operator Precedence](#18-operator-precedence)
+19. [Grammar (EBNF)](#19-grammar-ebnf)
+
+---
+
+## 1. Variables and Types
 
 ```orbitron
-var x = 42;           // целое число (int, 64-бит)
-var pi: float = 3.14; // вещественное (float, 64-бит); аннотация типа — опциональна
+var x = 42;            // integer (int, 64-bit)
+var pi: float = 3.14;  // float (64-bit); type annotation is optional
 var s = 10;
-s = s + 1;            // переприсваивание без var
+s = s + 1;             // reassignment without var
 ```
 
-Поддерживаемые типы: `int` (i64), `float` (f64).
+Supported types: `int` (i64), `float` (f64).
 
-При смешанных арифметических операциях `int` автоматически повышается до `float`.
+In mixed arithmetic expressions, `int` is automatically promoted to `float`.
 
 ---
 
-## 2. Константы  *(Rust / C++)*
+## 2. Constants  *(Rust / C++)*
 
 ```orbitron
 const MAX: int   = 100;
@@ -57,13 +57,13 @@ func main() {
 }
 ```
 
-- Объявляются на верхнем уровне или внутри функции.
-- Значение — числовой литерал.
-- Доступны во всех функциях того же файла (и в импортирующих файлах).
+- May be declared at the top level or inside a function.
+- Value must be a numeric literal.
+- Visible to all functions in the same file and in importing files.
 
 ---
 
-## 3. Функции
+## 3. Functions
 
 ```orbitron
 func add(a: int, b: int): int {
@@ -75,9 +75,9 @@ func greet() {
 }
 ```
 
-Аннотации типов у параметров и возвращаемого значения **опциональны** (служат документацией).
+Type annotations on parameters and the return type are **optional** (they serve as documentation).
 
-Точка входа — функция `main`:
+The program entry point is the `main` function:
 
 ```orbitron
 func main() {
@@ -87,16 +87,16 @@ func main() {
 
 ---
 
-## 4. Вывод и ввод
+## 4. Output and Input
 
-| Конструкция     | Описание                        |
-|-----------------|---------------------------------|
-| `println(выр);` | Вывод значения + перевод строки |
-| `readInt()`     | Чтение целого числа из stdin    |
-| `readFloat()`   | Чтение вещественного из stdin   |
+| Construct      | Description                          |
+|----------------|--------------------------------------|
+| `println(val);`| Print a value followed by a newline  |
+| `readInt()`    | Read one integer from stdin          |
+| `readFloat()`  | Read one float from stdin            |
 
 ```orbitron
-println("Введите число:");
+println("Enter a number:");
 var n = readInt();
 println(n * n);
 
@@ -106,64 +106,64 @@ println(f * 2.0);
 
 ---
 
-## 5. Строковая интерполяция  *(C# / Kotlin)*
+## 5. String Interpolation  *(C# / Kotlin)*
 
-Синтаксис `$"..."` позволяет встраивать переменные и константы прямо в строку:
+The `$"..."` syntax embeds variables and constants directly into a string:
 
 ```orbitron
 var x     = 42;
 var score = 100;
 println($"x = {x}");           // x = 42
 println($"score: {score}");    // score: 100
-println($"PI = {PI}");         // PI = 3  (константа)
+println($"PI = {PI}");         // PI = 3  (constant)
 ```
 
-> Поддерживаются: переменные и константы типа `int` и `float`.
-> Строковая интерполяция разрешена только внутри `println()`.
+> Supported: `int` and `float` variables and constants.
+> String interpolation is only allowed inside `println()`.
 
 ---
 
-## 6. Операторы
+## 6. Operators
 
-### Арифметика
+### Arithmetic
 
-| Оператор | Значение                           |
-|----------|------------------------------------|
-| `+`      | Сложение                           |
-| `-`      | Вычитание                          |
-| `*`      | Умножение                          |
-| `/`      | Деление                            |
-| `%`      | Остаток от деления                 |
-| `**`     | Возведение в степень *(Python)*    |
+| Operator | Meaning                              |
+|----------|--------------------------------------|
+| `+`      | Addition                             |
+| `-`      | Subtraction                          |
+| `*`      | Multiplication                       |
+| `/`      | Division                             |
+| `%`      | Remainder                            |
+| `**`     | Exponentiation *(Python)*            |
 
 ```orbitron
 var p = 2 ** 10;    // 1024
 var q = 3 ** 4;     // 81
 ```
 
-### Сравнение
+### Comparison
 
 `==`  `!=`  `<`  `<=`  `>`  `>=`
 
-Результат: `-1` (истина) или `0` (ложь) — оба представляются как `int`.
+Result: `-1` (true) or `0` (false) — both are represented as `int`.
 
-### Логика
+### Logical
 
 `&&`  `||`  `!`
 
-### Тернарный оператор  *(C / Java)*
+### Ternary Operator  *(C / Java)*
 
 ```orbitron
 var max = a > b ? a : b;
 var abs = x >= 0 ? x : -x;
 
-// Цепочка (право-ассоциативный):
+// Chained (right-associative):
 var label = n > 10 ? 3 : n > 0 ? 2 : 1;
 ```
 
-### Оператор канала `|>`  *(Elixir / F#)*
+### Pipe Operator `|>`  *(Elixir / F#)*
 
-Передаёт значение левой части как первый аргумент функции правой части:
+Passes the left-hand value as the first argument to the right-hand function:
 
 ```orbitron
 func double(n: int): int { return n * 2; }
@@ -172,9 +172,9 @@ func inc(n: int):    int { return n + 1; }
 var result = 3 |> double |> inc;   // inc(double(3)) = 7
 ```
 
-### Составное присваивание
+### Compound Assignment
 
-| Форма      | Эквивалент    |
+| Form       | Equivalent    |
 |------------|---------------|
 | `x += 5;`  | `x = x + 5;`  |
 | `x -= 3;`  | `x = x - 3;`  |
@@ -183,12 +183,12 @@ var result = 3 |> double |> inc;   // inc(double(3)) = 7
 
 ---
 
-## 7. Условия
+## 7. Conditionals
 
 ```orbitron
-if (условие) {
+if (condition) {
     // ...
-} else if (другое) {
+} else if (other) {
     // ...
 } else {
     // ...
@@ -197,42 +197,42 @@ if (условие) {
 
 ### `unless`  *(Ruby)*
 
-Выполняется, когда условие **ложно** — синтаксический сахар для `if (!...)`:
+Executes when the condition is **false** — syntactic sugar for `if (!...)`:
 
 ```orbitron
 unless (x == 0) {
-    println(100 / x);   // безопасное деление
+    println(100 / x);   // safe division
 }
 ```
 
 ---
 
-## 8. Циклы
+## 8. Loops
 
-### `for..in` — диапазонный цикл
+### `for..in` — range loop
 
 ```orbitron
-// Исключительный диапазон [from, to)
+// Exclusive range [from, to)
 for i in 0..4 {
     println(i);   // 0 1 2 3
 }
 
-// Включительный диапазон [from, to]
+// Inclusive range [from, to]
 for i in 0..=4 {
     println(i);   // 0 1 2 3 4
 }
 ```
 
-### Многодиапазонный `for` — вложенные циклы одной строкой
+### Multi-range `for` — nested loops on one line
 
 ```orbitron
-// Эквивалентно: for i { for j { ... } }
+// Equivalent to: for i { for j { ... } }
 for i in 0..3, j in 0..3 {
     println(i * 10 + j);
 }
 ```
 
-### `while` — цикл с предусловием
+### `while` — pre-condition loop
 
 ```orbitron
 while (n > 0) {
@@ -240,7 +240,7 @@ while (n > 0) {
 }
 ```
 
-### `do..while` — цикл с постусловием
+### `do..while` — post-condition loop
 
 ```orbitron
 do {
@@ -248,7 +248,7 @@ do {
 } while (n < 10);
 ```
 
-### `loop` — бесконечный цикл
+### `loop` — infinite loop
 
 ```orbitron
 loop {
@@ -258,7 +258,7 @@ loop {
 
 ### `repeat N`  *(Lua / Pascal)*
 
-Повторить тело ровно N раз:
+Execute the body exactly N times:
 
 ```orbitron
 repeat 5 {
@@ -270,7 +270,7 @@ repeat 10 { counter += 1; }
 // counter == 10
 ```
 
-### `break` и `continue`
+### `break` and `continue`
 
 ```orbitron
 for i in 0..10 {
@@ -282,40 +282,40 @@ for i in 0..10 {
 
 ---
 
-## 9. Массивы  *(Python / JavaScript)*
+## 9. Arrays  *(Python / JavaScript)*
 
 ```orbitron
 var primes = [2, 3, 5, 7, 11];
 
-// Чтение
+// Read
 println(primes[0]);    // 2
 println(primes[4]);    // 11
 
-// Запись
+// Write
 primes[0] = 99;
 
-// Обход
+// Iterate
 for i in 0..5 {
     println(primes[i]);
 }
 
-// Накопление
+// Accumulate
 var sum = 0;
 for i in 0..5 { sum += primes[i]; }
 ```
 
-Элементы массива — `int`. Размер определяется при инициализации.
+Array elements are `int`. The size is determined at initialization.
 
 ---
 
-## 10. Перечисления (`enum`)  *(Rust / Swift)*
+## 10. Enums  *(Rust / Swift)*
 
 ```orbitron
 enum Color  { Red, Green, Blue }
 enum Season { Spring, Summer, Autumn, Winter }
 ```
 
-Каждый вариант получает целочисленное значение: 0, 1, 2, ...
+Each variant receives an integer value: 0, 1, 2, ...
 
 ```orbitron
 var c = Color.Red;      // c == 0
@@ -325,50 +325,50 @@ println(s);             // 1
 
 ---
 
-## 11. Сопоставление с образцом (`match`)
+## 11. Pattern Matching
 
 ```orbitron
-match выражение {
-    значение       => { /* блок */ }
-    EnumName.Var   => { /* вариант enum */ }
-    _              => { /* по умолчанию */ }
+match expression {
+    value        => { /* block */ }
+    EnumName.Var => { /* enum variant */ }
+    _            => { /* wildcard / default */ }
 }
 ```
 
-Образцы: целые числа, варианты `enum`, `_` (wildcard).
+Patterns: integer literals, enum variants, `_` (wildcard).
 
 ```orbitron
 enum Dir { North, South, East, West }
 var d = Dir.East;
 
 match d {
-    Dir.North => { println("Север"); }
-    Dir.East  => { println("Восток"); }
-    _         => { println("Другое"); }
+    Dir.North => { println("North"); }
+    Dir.East  => { println("East"); }
+    _         => { println("Other"); }
 }
 ```
 
 ---
 
-## 12. Отложенный вызов (`defer`)  *(Go)*
+## 12. Defer  *(Go)*
 
-`defer` регистрирует оператор для выполнения **прямо перед выходом из функции**.
-При нескольких `defer` выполняются в порядке LIFO (последний — первым).
+`defer` registers a statement to execute **just before the function returns**.
+Multiple defers execute in LIFO order (last registered, first executed).
 
 ```orbitron
 func example() {
-    defer println("Конец!");   // напечатается последним
-    println("Начало");
-    println("Середина");
+    defer println("Done!");    // runs last
+    println("Start");
+    println("Middle");
 }
-// Вывод: Начало → Середина → Конец!
+// Output: Start → Middle → Done!
 ```
 
 ---
 
-## 13. Структуры (`struct + impl`)
+## 13. Structs  *(Go / Rust style)*
 
-Стиль Go / Rust. Данные и методы определяются отдельно.
+Data and methods are defined separately.
 
 ```orbitron
 struct Point {
@@ -387,20 +387,20 @@ impl Point {
     }
 }
 
-// Создание: литерал без `new`
+// Creation: struct literal — no `new`
 var p = Point { x: 3, y: 4 };
 println(p.dist_sq());   // 25
 p.move_by(1, 0);
 ```
 
-Поля: `name: int` или `name: float`.
-`self` — явный первый параметр всех методов.
+Fields: `name: int` or `name: float`.
+`self` is an explicit first parameter for all methods.
 
 ---
 
-## 14. Классы (`class`)
+## 14. Classes  *(Java / C# / Kotlin style)*
 
-Стиль Java / C# / Kotlin. Данные и методы объединены, есть конструктор `init`.
+Data and methods are co-located; a constructor is declared with `init`.
 
 ```orbitron
 class Counter {
@@ -426,40 +426,40 @@ c.tick();
 println(c.get());   // 5
 ```
 
-### Модификаторы доступа
+### Access Modifiers
 
-| Ключевое слово | Значение                 |
-|----------------|--------------------------|
-| `pub`          | Публичный (по умолчанию) |
-| `private`      | Приватный                |
+| Keyword   | Meaning                    |
+|-----------|----------------------------|
+| `pub`     | Public (default)           |
+| `private` | Private                    |
 
-### Сравнение стилей ООП
+### Comparing OOP Styles
 
-| Аспект       | `struct + impl`            | `class`                   |
-|--------------|----------------------------|---------------------------|
-| Вдохновение  | Go, Rust                   | Java, C#, Kotlin          |
-| Создание     | `Foo { field: val }`       | `new Foo(args)`           |
-| Конструктор  | не нужен                   | `init(params) { ... }`    |
-| Методы       | в блоке `impl Foo { ... }` | внутри `class Foo { ... }`|
-| `self`       | явный параметр             | явный параметр            |
+| Aspect      | `struct + impl`              | `class`                       |
+|-------------|------------------------------|-------------------------------|
+| Inspiration | Go, Rust                     | Java, C#, Kotlin              |
+| Creation    | `Foo { field: val }`         | `new Foo(args)`               |
+| Constructor | not needed                   | `init(params) { ... }`        |
+| Methods     | in `impl Foo { ... }` block  | inside `class Foo { ... }`    |
+| `self`      | explicit parameter           | explicit parameter            |
 
 ---
 
-## 15. Система проектов и импорт
+## 15. Project System and Imports
 
-### Структура проекта
+### Project Layout
 
 ```
 myproject/
-├── orbitron.toml       # манифест проекта
+├── orbitron.toml       # project manifest
 ├── src/
-│   ├── main.ot         # точка входа (содержит func main)
-│   ├── math.ot         # модуль
-│   └── geometry.ot     # ещё один модуль
-└── bin/                # директория выходных бинарников
+│   ├── main.ot         # entry point (contains func main)
+│   ├── math.ot         # module
+│   └── geometry.ot     # another module
+└── bin/                # output directory
 ```
 
-### Манифест `orbitron.toml`
+### `orbitron.toml` Manifest
 
 ```toml
 [project]
@@ -467,111 +467,111 @@ name    = "myproject"
 version = "0.1.0"
 
 [build]
-main   = "src/main.ot"     # точка входа
-output = "bin/myproject"   # путь к выходному бинарнику
+main   = "src/main.ot"     # entry point
+output = "bin/myproject"   # output binary path
 ```
 
-### Импорт модулей
+### Importing Modules
 
 ```orbitron
 // src/main.ot
-import "math";       // загружает src/math.ot
-import "geometry";   // загружает src/geometry.ot
+import "math";       // loads src/math.ot
+import "geometry";   // loads src/geometry.ot
 
 func main() {
-    println(add(2, 3));   // функция из math.ot
+    println(add(2, 3));   // function from math.ot
 }
 ```
 
-Импорт разрешается **до** кодогенерации: компилятор обходит все файлы и объединяет AST.
-Циклические импорты → ошибка компиляции. Один файл не импортируется дважды.
+Imports are resolved **before** code generation: the compiler traverses all files and merges their
+ASTs. Circular imports result in a compile error. Each file is imported at most once.
 
-### CLI-команды
+### CLI Commands
 
 ```bash
-# Создать новый проект
+# Create a new project
 orbitron new myapp
 cd myapp
 
-# Собрать (ищет orbitron.toml вверх по дереву директорий)
+# Build (searches for orbitron.toml up the directory tree)
 orbitron build
 
-# Собрать и запустить
+# Build and run
 orbitron run
 
-# Флаги
-orbitron build -o bin/release      # имя выходного файла
-orbitron build --emit-llvm         # сохранить .ll и остановиться
-orbitron build --save-temps        # сохранить .ll и .s
-orbitron build -v                  # подробный вывод шагов
+# Flags
+orbitron build -o bin/release      # override output path
+orbitron build --emit-llvm         # save .ll file and stop
+orbitron build --save-temps        # keep .ll and .s files
+orbitron build -v                  # verbose pipeline output
 ```
 
-### Однофайловый режим (обратная совместимость)
+### Single-file Mode
 
 ```bash
 orbitron hello.ot                  # → ./hello
 orbitron -o myapp hello.ot         # → ./myapp
-orbitron --emit-llvm hello.ot      # → hello.ll (без линковки)
-orbitron -v examples/fib.ot        # подробный вывод
+orbitron --emit-llvm hello.ot      # → hello.ll (no linking)
+orbitron -v examples/fib.ot        # verbose output
 ```
 
 ---
 
-## 16. Стандартная библиотека (stdlib)
+## 16. Standard Library
 
-Orbitron поставляется с набором стандартных модулей в папке `stdlib/`.
-Подключение через префикс `std/`:
+Orbitron ships with a set of standard library modules in the `stdlib/` folder.
+They are imported with the `std/` prefix:
 
 ```orbitron
-import "std/math";   // математические функции
-import "std/bits";   // битовые операции
-import "std/algo";   // вспомогательные алгоритмы
+import "std/math";   // math functions
+import "std/bits";   // bitwise operations
+import "std/algo";   // utility algorithms
 ```
 
-### `std/math` — математика
+### `std/math`
 
-| Функция / константа | Описание |
-|---------------------|----------|
-| `PI: float`         | Число π ≈ 3.14159... |
-| `E: float`          | Число e ≈ 2.71828... |
-| `INT_MAX: int`      | Максимальное значение int (i64) |
-| `abs(x)`            | Абсолютное значение |
-| `max(a, b)`         | Максимум из двух |
-| `min(a, b)`         | Минимум из двух |
-| `clamp(val, lo, hi)`| Ограничить val диапазоном [lo, hi] |
-| `factorial(n)`      | n! (n >= 0) |
-| `fib(n)`            | n-е число Фибоначчи (0-индексация) |
-| `gcd(a, b)`         | Наибольший общий делитель |
-| `lcm(a, b)`         | Наименьшее общее кратное |
-| `sum_range(a, b)`   | Сумма целых от a до b включительно |
-| `sign(x)`           | Знак: -1, 0 или 1 |
-| `is_prime(n)`       | 1 если n простое, иначе 0 |
+| Function / constant  | Description |
+|----------------------|-------------|
+| `PI: float`          | π ≈ 3.14159... |
+| `E: float`           | e ≈ 2.71828... |
+| `INT_MAX: int`       | Maximum int value (i64) |
+| `abs(x)`             | Absolute value |
+| `max(a, b)`          | Maximum of two values |
+| `min(a, b)`          | Minimum of two values |
+| `clamp(val, lo, hi)` | Clamp val to [lo, hi] |
+| `factorial(n)`       | n! (n >= 0) |
+| `fib(n)`             | nth Fibonacci number (0-indexed) |
+| `gcd(a, b)`          | Greatest common divisor |
+| `lcm(a, b)`          | Least common multiple |
+| `sum_range(a, b)`    | Sum of integers from a to b inclusive |
+| `sign(x)`            | Sign: -1, 0, or 1 |
+| `is_prime(n)`        | 1 if n is prime, else 0 |
 
 ```orbitron
 import "std/math";
 
 func main() {
-    println(factorial(10));   // 3628800
-    println(gcd(48, 18));     // 6
-    println(is_prime(97));    // 1
+    println(factorial(10));     // 3628800
+    println(gcd(48, 18));       // 6
+    println(is_prime(97));      // 1
     println(sum_range(1, 100)); // 5050
 }
 ```
 
-### `std/bits` — битовые операции
+### `std/bits`
 
-| Функция | Описание |
-|---------|----------|
-| `bit_count(x)` | Количество установленных битов (popcount) |
-| `bit_len(x)` | Длина числа в битах (floor(log2(x))+1) |
-| `is_pow2(x)` | 1 если x — степень двойки |
-| `next_pow2(x)` | Следующая степень двойки >= x |
-| `prev_pow2(x)` | Предыдущая степень двойки <= x |
-| `low_bit(x)` | Наименьший установленный бит |
-| `shl(x, n)` | Сдвиг влево: x * 2^n |
-| `shr(x, n)` | Сдвиг вправо: x / 2^n |
-| `floor_log2(x)` | Целочисленный log2 (floor) |
-| `reverse_bits(x, bits)` | Обратить bits младших битов числа |
+| Function              | Description |
+|-----------------------|-------------|
+| `bit_count(x)`        | Number of set bits (popcount) |
+| `bit_len(x)`          | Bit length: floor(log2(x))+1 |
+| `is_pow2(x)`          | 1 if x is a power of two |
+| `next_pow2(x)`        | Next power of two >= x |
+| `prev_pow2(x)`        | Previous power of two <= x |
+| `low_bit(x)`          | Lowest set bit |
+| `shl(x, n)`           | Left shift: x * 2^n |
+| `shr(x, n)`           | Right shift: x / 2^n |
+| `floor_log2(x)`       | Integer log2 (floor) |
+| `reverse_bits(x, n)`  | Reverse the n lowest bits |
 
 ```orbitron
 import "std/bits";
@@ -585,121 +585,121 @@ func main() {
 }
 ```
 
-### `std/algo` — алгоритмы
+### `std/algo`
 
-| Функция | Описание |
-|---------|----------|
-| `min3(a, b, c)` | Минимум из трёх |
-| `max3(a, b, c)` | Максимум из трёх |
-| `median3(a, b, c)` | Медиана из трёх |
-| `lerp(lo, hi, t)` | Линейная интерполяция, t в [0..100] |
-| `map_range(val, in_lo, in_hi, out_lo, out_hi)` | Перевод из одного диапазона в другой |
-| `dist(a, b)` | Расстояние: \|a - b\| |
-| `digit_count(x)` | Количество цифр в десятичной записи |
-| `digit_sum(x)` | Сумма цифр |
-| `reverse_digits(x)` | Разворот цифр числа |
-| `is_palindrome_num(x)` | 1 если число — палиндром |
-| `ipow(base, exp)` | Целочисленная степень (быстрое возведение) |
-| `triangle(n)` | Треугольное число T(n) = n*(n+1)/2 |
-| `is_triangle(n)` | 1 если n — треугольное число |
-| `isqrt(n)` | Целочисленный квадратный корень (floor) |
-| `is_square(n)` | 1 если n — точный квадрат |
-| `near(a, b, tol)` | 1 если \|a-b\| <= tol |
-| `cycle(x, delta, n)` | Циклическое смещение: (x + delta) mod n |
+| Function                         | Description |
+|----------------------------------|-------------|
+| `min3(a, b, c)`                  | Minimum of three |
+| `max3(a, b, c)`                  | Maximum of three |
+| `median3(a, b, c)`               | Median of three |
+| `lerp(lo, hi, t)`                | Linear interpolation, t in [0..100] |
+| `map_range(val, in_lo, in_hi, out_lo, out_hi)` | Remap value between ranges |
+| `dist(a, b)`                     | Distance: \|a - b\| |
+| `digit_count(x)`                 | Number of decimal digits |
+| `digit_sum(x)`                   | Sum of digits |
+| `reverse_digits(x)`              | Reverse decimal digits |
+| `is_palindrome_num(x)`           | 1 if number is a palindrome |
+| `ipow(base, exp)`                | Integer exponentiation (fast) |
+| `triangle(n)`                    | Triangular number T(n) = n*(n+1)/2 |
+| `is_triangle(n)`                 | 1 if n is a triangular number |
+| `isqrt(n)`                       | Integer square root (floor) |
+| `is_square(n)`                   | 1 if n is a perfect square |
+| `near(a, b, tol)`                | 1 if \|a-b\| <= tol |
+| `cycle(x, delta, n)`             | Cyclic offset: (x + delta) mod n |
 
 ```orbitron
 import "std/algo";
 
 func main() {
-    println(ipow(2, 10));           // 1024
-    println(isqrt(100));            // 10
+    println(ipow(2, 10));             // 1024
+    println(isqrt(100));              // 10
     println(map_range(50, 0, 100, 0, 255)); // 127
-    println(is_palindrome_num(121)); // 1
-    println(cycle(6, 1, 7));        // 0
+    println(is_palindrome_num(121));  // 1
+    println(cycle(6, 1, 7));          // 0
 }
 ```
 
-### Расположение stdlib
+### stdlib Location
 
-Папка `stdlib/` должна находиться в одном из мест:
-1. Рядом с бинарником `orbitron` (рекомендуется)
-2. В `$ORBITRON_HOME/stdlib/`
+The `stdlib/` directory must be in one of these locations:
+1. Next to the `orbitron` binary (recommended)
+2. At `$ORBITRON_HOME/stdlib/`
 
-### Добавление собственных модулей
+### Adding Your Own Modules
 
-Любой `.ot` файл в папке `src/` проекта можно импортировать:
+Any `.ot` file inside a project's `src/` folder can be imported:
 
 ```orbitron
-import "utils";      // загрузит src/utils.ot
-import "net/http";   // загрузит src/net/http.ot
+import "utils";      // loads src/utils.ot
+import "net/http";   // loads src/net/http.ot
 ```
 
 ---
 
-## 17. Бэкенды компиляции
+## 17. Compilation Backends
 
-### LLVM (по умолчанию)
+### LLVM (default)
 
-Компилирует в нативный бинарник. Требует: `llc`, `clang`, `libm`.
+Compiles to a native binary. Requires: `llc`, `clang`, `libm`.
 
 ```bash
-orbitron build                    # LLVM бэкенд (по умолчанию)
-orbitron hello.ot                 # один файл → ./hello
-orbitron build --emit-llvm        # остановиться на LLVM IR (.ll)
-orbitron build --save-temps       # сохранить .ll и .s
+orbitron build                    # LLVM backend (default)
+orbitron hello.ot                 # single file → ./hello
+orbitron build --emit-llvm        # stop at LLVM IR (.ll)
+orbitron build --save-temps       # keep .ll and .s files
 ```
 
 ### JVM
 
-Компилирует в `.jar`. Требует: `javac`, `jar` (JDK).
+Compiles to `.jar`. Requires: `javac`, `jar` (JDK).
 
 ```bash
 orbitron build --backend jvm      # → bin/myapp.jar
-orbitron run   --backend jvm      # собрать + запустить через java -jar
-orbitron hello.ot --backend jvm   # один файл → hello.jar
-orbitron build --emit-java        # остановиться на Main.java
+orbitron run   --backend jvm      # build + run via java -jar
+orbitron hello.ot --backend jvm   # single file → hello.jar
+orbitron build --emit-java        # stop at Main.java
 ```
 
-Запуск скомпилированного jar:
+Run the compiled jar:
 ```bash
 java -jar bin/myapp.jar
 ```
 
-GraalVM нативный образ:
+GraalVM native image:
 ```bash
 native-image -jar bin/myapp.jar -o bin/myapp
 ```
 
-### Выбор бэкенда
+### Backend Selection Priority
 
-| Способ | Приоритет |
-|--------|-----------|
-| Флаг `--backend llvm\|jvm` | Высший |
-| `[build] backend = "jvm"` в `orbitron.toml` | Средний |
-| По умолчанию: `llvm` | Низший |
-
----
-
-## 18. Приоритет операторов
-
-От низкого к высокому:
-
-| Уровень | Операторы                         | Ассоциативность |
-|---------|-----------------------------------|-----------------|
-| 1       | `\|>`                             | левая           |
-| 2       | `? :`                             | правая          |
-| 3       | `\|\|`                            | левая           |
-| 4       | `&&`                              | левая           |
-| 5       | `== != < <= > >=`                 | —               |
-| 6       | `+ -`                             | левая           |
-| 7       | `* / %`                           | левая           |
-| 8       | `- !` (унарные)                   | правая          |
-| 9       | `**`                              | правая          |
-| 10      | `.field` `.method()` `[idx]`      | левая (постфикс)|
+| Method                                | Priority |
+|---------------------------------------|----------|
+| `--backend llvm\|jvm` flag            | Highest  |
+| `[build] backend = "jvm"` in `orbitron.toml` | Middle |
+| Default: `llvm`                       | Lowest   |
 
 ---
 
-## 19. Грамматика (EBNF, упрощённо)
+## 18. Operator Precedence
+
+From lowest to highest:
+
+| Level | Operators                          | Associativity    |
+|-------|------------------------------------|------------------|
+| 1     | `\|>`                              | left             |
+| 2     | `? :`                              | right            |
+| 3     | `\|\|`                             | left             |
+| 4     | `&&`                               | left             |
+| 5     | `== != < <= > >=`                  | —                |
+| 6     | `+ -`                              | left             |
+| 7     | `* / %`                            | left             |
+| 8     | `- !` (unary)                      | right            |
+| 9     | `**`                               | right            |
+| 10    | `.field` `.method()` `[idx]`       | left (postfix)   |
+
+---
+
+## 19. Grammar (EBNF, simplified)
 
 ```
 program    = (func_decl | struct_decl | impl_decl | class_decl
@@ -740,33 +740,33 @@ primary   = INT | FLOAT | STRING | INTERP_STRING | IDENT | 'self'
 
 ---
 
-## Специальные значения
+## Special Values
 
-| Литерал | Значение  |
+| Literal | Value     |
 |---------|-----------|
 | `true`  | `1` (int) |
 | `false` | `0` (int) |
 
 ---
 
-## Строки
+## Strings
 
-Строковые литералы (`"..."`) допустимы **только** внутри `println()`.
-Для встройки переменных используйте `$"..."`.
+String literals (`"..."`) are only allowed inside `println()`.
+To embed variables, use `$"..."`.
 
 ```orbitron
-println("Любой текст");
-println("Строка с \"кавычками\"");
+println("Any text");
+println("String with \"quotes\"");
 println($"x = {x}");
 ```
 
 ---
 
-## Комментарии
+## Comments
 
 ```orbitron
-// Однострочный комментарий
+// Line comment
 
-/* Многострочный
-   комментарий */
+/* Block
+   comment */
 ```

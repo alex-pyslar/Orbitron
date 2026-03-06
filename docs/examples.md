@@ -1,31 +1,31 @@
-# Примеры программ на Orbitron
+# Orbitron Examples
 
-Все примеры доступны в каталоге `examples/`.
+All examples are available in the `examples/` directory.
 
-## Каталог примеров
+## Example Index
 
-| Путь                       | Режим         | Что демонстрирует                                         |
-|----------------------------|---------------|-----------------------------------------------------------|
-| `examples/hello.ot`        | Одиночный файл | Базовый вывод, переменные, арифметика                    |
-| `examples/fibonacci.ot`    | Одиночный файл | Рекурсия, цикл while, for..in                            |
-| `examples/input_demo.ot`   | Одиночный файл | readInt/readFloat, match                                  |
-| `examples/oop_struct.ot`   | Одиночный файл | struct + impl, многодиапазонный for                       |
-| `examples/oop_class.ot`    | Одиночный файл | class + init, инкапсуляция                               |
-| `examples/features.ot`     | Одиночный файл | **Все 10 новых фич** — const, **, `\|>`, unless, $"", [], enum, defer, repeat, ternary |
-| `examples/stats.ot`        | Одиночный файл | **Комбо**: struct+impl, class, все 10 фич вместе          |
-| `examples/calculator/`     | Проект (multi) | Система сборки, import, многофайловая структура           |
-| `examples/geometry/`       | Проект (multi) | Импорт из двух модулей, struct+impl, enum, все фичи       |
+| Path                          | Mode           | Demonstrates |
+|-------------------------------|----------------|--------------|
+| `examples/hello.ot`           | Single file    | Basic output, variables, arithmetic |
+| `examples/fibonacci.ot`       | Single file    | Recursion, while loop, for..in |
+| `examples/oop_struct.ot`      | Single file    | struct + impl, multi-range for |
+| `examples/oop_class.ot`       | Single file    | class + init, encapsulation |
+| `examples/features.ot`        | Single file    | **All 10 new features** — const, **, `\|>`, unless, $"", [], enum, defer, repeat, ternary |
+| `examples/stats.ot`           | Single file    | **Combined**: struct+impl, class, all 10 features together |
+| `examples/net_demo.ot`        | Single file    | TCP sockets, syscalls, extern func |
+| `examples/calculator/`        | Project (multi)| Build system, import, multi-file structure |
+| `examples/geometry/`          | Project (multi)| Two-module import, struct+impl, enum, all features |
 
 ---
 
-## Запуск примеров
+## Running Examples
 
 ```bash
-# Одиночный файл
+# Single file
 orbitron examples/hello.ot && ./hello
 orbitron -o stats examples/stats.ot && ./stats
 
-# Проект (нужно зайти в директорию)
+# Project (cd into the directory first)
 cd examples/geometry
 orbitron run
 
@@ -35,13 +35,13 @@ orbitron build && ./bin/calculator
 
 ---
 
-## 1. Привет, мир (`examples/hello.ot`)
+## 1. Hello World (`examples/hello.ot`)
 
-Минимальная программа: вывод строки и простая арифметика.
+The minimal program: print a string and do basic arithmetic.
 
 ```orbitron
 func main() {
-    println("Привет, мир!");
+    println("Hello, World!");
 
     var x = 42;
     println(x);          // 42
@@ -54,13 +54,13 @@ func main() {
 }
 ```
 
-**Ключевые концепции:** `println`, `var`, аннотации типов (опциональны).
+**Key concepts:** `println`, `var`, optional type annotations.
 
 ---
 
-## 2. Числа Фибоначчи (`examples/fibonacci.ot`)
+## 2. Fibonacci Numbers (`examples/fibonacci.ot`)
 
-Рекурсия и итерация — два подхода к одной задаче.
+Recursion and iteration — two approaches to the same problem.
 
 ```orbitron
 func fib_rec(n: int): int {
@@ -90,11 +90,11 @@ func main() {
 }
 ```
 
-**Ключевые концепции:** рекурсия, `while`, `for i in 0..=N` (включительный).
+**Key concepts:** recursion, `while`, `for i in 0..=N` (inclusive).
 
 ---
 
-## 3. Структуры — стиль Go/Rust (`examples/oop_struct.ot`)
+## 3. Structs — Go/Rust Style (`examples/oop_struct.ot`)
 
 ```orbitron
 struct Point {
@@ -114,13 +114,13 @@ impl Point {
 }
 
 func main() {
-    var p = Point { x: 3, y: 4 };  // литерал без new
+    var p = Point { x: 3, y: 4 };  // struct literal — no new
     println(p.dist_sq());   // 25
 
     p.move_by(1, -1);
     println(p.x);   // 4
 
-    // Таблица 3×3 квадратов расстояний
+    // 3×3 table of squared distances
     for i in 0..3, j in 0..3 {
         var pt = Point { x: i, y: j };
         println(pt.dist_sq());
@@ -129,11 +129,11 @@ func main() {
 }
 ```
 
-**Ключевые концепции:** `struct`, `impl`, литерал `Name { field: val }`, `for i in ..., j in ...`.
+**Key concepts:** `struct`, `impl`, struct literal `Name { field: val }`, `for i in ..., j in ...`.
 
 ---
 
-## 4. Классы — стиль Java/C# (`examples/oop_class.ot`)
+## 4. Classes — Java/C# Style (`examples/oop_class.ot`)
 
 ```orbitron
 class BankAccount {
@@ -152,9 +152,9 @@ class BankAccount {
     pub func withdraw(self, amount: int): int {
         if (amount > 0 && self.balance >= amount) {
             self.balance = self.balance - amount;
-            return 1;   // успех
+            return 1;   // success
         }
-        return 0;       // отказ
+        return 0;       // insufficient funds
     }
 
     pub func get_balance(self): int {
@@ -165,54 +165,27 @@ class BankAccount {
 func main() {
     var acc = new BankAccount(500);
     acc.deposit(200);
-    println(acc.get_balance());  // 700
+    println(acc.get_balance());   // 700
 
     var ok = acc.withdraw(300);
-    println(ok);                 // 1
-    println(acc.get_balance());  // 400
+    println(ok);                  // 1
+    println(acc.get_balance());   // 400
 
-    println(acc.withdraw(1000)); // 0 (недостаточно средств)
+    println(acc.withdraw(1000));  // 0 (insufficient funds)
 }
 ```
 
-**Ключевые концепции:** `class`, `private`, `init`, `new ClassName(args)`.
+**Key concepts:** `class`, `private`, `init`, `new ClassName(args)`.
 
 ---
 
-## 5. Ввод из консоли (`examples/input_demo.ot`)
+## 5. All 10 New Features (`examples/features.ot`)
 
+Each of the 10 language features shown in a standalone block.
+
+### 1. `const` — Constants *(Rust / C++)*
 ```orbitron
-func main() {
-    println("Enter two integers:");
-    var a = readInt();
-    var b = readInt();
-
-    println(a + b);
-    println(a * b);
-
-    match a {
-        0 => { println("zero"); }
-        1 => { println("one"); }
-        _ => { println("other"); }
-    }
-
-    println("Enter a float:");
-    var f = readFloat();
-    println(f * f);
-}
-```
-
-**Ключевые концепции:** `readInt()`, `readFloat()`, `match`.
-
----
-
-## 6. Все 10 новых фич (`examples/features.ot`)
-
-Каждая из 10 функций языка показана отдельным блоком.
-
-### 1. `const` — константы *(Rust / C++)*
-```orbitron
-const PI: int      = 3;
+const PI: int       = 3;
 const MAX_SIZE: int = 10;
 
 func main() {
@@ -221,47 +194,47 @@ func main() {
 }
 ```
 
-### 2. `**` — возведение в степень *(Python)*
+### 2. `**` — Exponentiation *(Python)*
 ```orbitron
 var p = 2 ** 10;    // 1024
 var q = 3 ** 4;     //   81
 ```
 
-### 3. `|>` — оператор канала *(Elixir / F#)*
+### 3. `|>` — Pipe Operator *(Elixir / F#)*
 ```orbitron
 func double(n: int): int { return n * 2; }
 func inc(n: int):    int { return n + 1; }
 func square(n: int): int { return n * n; }
 
 var result = 3 |> double |> inc |> square;  // 49
-// эквивалентно: square(inc(double(3)))
+// equivalent to: square(inc(double(3)))
 ```
 
-### 4. `unless` — инвертированное условие *(Ruby)*
+### 4. `unless` — Inverted Conditional *(Ruby)*
 ```orbitron
 var x = 0;
 unless (x != 0) {
-    println(42);   // выполнится, т.к. x == 0
+    println(42);   // executes because x == 0
 }
 ```
 
-### 5. `$"..."` — строковая интерполяция *(C# / Kotlin)*
+### 5. `$"..."` — String Interpolation *(C# / Kotlin)*
 ```orbitron
 var score = 100;
 println($"score: {score}");    // score: 100
 println($"2^10 = {p}");        // 2^10 = 1024
 ```
 
-### 6. `[...]` — массивы *(Python / JS)*
+### 6. `[...]` — Arrays *(Python / JS)*
 ```orbitron
 var primes = [2, 3, 5, 7, 11, 13];
 println(primes[4]);   // 11
-primes[0] = 99;       // мутация
+primes[0] = 99;       // mutation
 var sum = 0;
 for i in 0..6 { sum += primes[i]; }
 ```
 
-### 7. `enum` — перечисление *(Rust / Swift)*
+### 7. `enum` — Enumerations *(Rust / Swift)*
 ```orbitron
 enum Season { Spring, Summer, Autumn, Winter }
 var s = Season.Summer;   // s == 1
@@ -273,37 +246,37 @@ match s {
 }
 ```
 
-### 8. `defer` — отложенный вызов *(Go)*
+### 8. `defer` — Deferred Execution *(Go)*
 ```orbitron
 func run() {
-    defer println("Bye!");   // выполнится последним
+    defer println("Bye!");   // runs last
     println("Hello");
     println("World");
     // → Hello, World, Bye!
 }
 ```
 
-### 9. `repeat N` — повтор N раз *(Lua / Pascal)*
+### 9. `repeat N` — Repeat N Times *(Lua / Pascal)*
 ```orbitron
 repeat 5 {
-    println("Hi!");   // 5 раз
+    println("Hi!");   // 5 times
 }
 var counter = 0;
 repeat 10 { counter += 1; }
 // counter == 10
 ```
 
-### 10. `? :` — тернарный оператор *(C / Java)*
+### 10. `? :` — Ternary Operator *(C / Java)*
 ```orbitron
 var max   = a > b ? a : b;
-var label = n > 10 ? 3 : n > 0 ? 2 : 1;   // цепочка
+var label = n > 10 ? 3 : n > 0 ? 2 : 1;   // chained
 ```
 
 ---
 
-## 7. Анализ данных (`examples/stats.ot`)
+## 6. Data Analysis (`examples/stats.ot`)
 
-Комплексный пример, объединяющий **все** возможности языка в одной программе.
+A comprehensive example combining **all** language features in a single program.
 
 ```orbitron
 const N:     int = 6;
@@ -389,18 +362,18 @@ func main() {
 }
 ```
 
-Сборка и запуск:
+Build and run:
 ```bash
 orbitron -o stats examples/stats.ot && ./stats
 ```
 
 ---
 
-## 8. Калькулятор — многофайловый проект (`examples/calculator/`)
+## 7. Calculator — Multi-file Project (`examples/calculator/`)
 
-Демонстрирует систему сборки: `orbitron.toml` + `import`.
+Demonstrates the build system: `orbitron.toml` + `import`.
 
-### Структура
+### Layout
 ```
 examples/calculator/
 ├── orbitron.toml
@@ -408,7 +381,7 @@ examples/calculator/
 │   ├── main.ot      # import "math"
 │   └── math.ot      # add, sub, mul, pow2
 └── bin/
-    └── calculator   # выходной бинарник
+    └── calculator   # output binary
 ```
 
 ### `orbitron.toml`
@@ -444,20 +417,20 @@ func main() {
 }
 ```
 
-Сборка:
+Build:
 ```bash
 cd examples/calculator
 orbitron build     # → bin/calculator
-orbitron run       # собрать + запустить
+orbitron run       # build + run
 ```
 
 ---
 
-## 9. Геометрия — многофайловый проект (`examples/geometry/`)
+## 8. Geometry — Multi-file Project (`examples/geometry/`)
 
-Два модуля (`vectors`, `shapes`) + все возможности языка.
+Two modules (`vectors`, `shapes`) plus all language features.
 
-### Структура
+### Layout
 ```
 examples/geometry/
 ├── orbitron.toml
@@ -468,7 +441,7 @@ examples/geometry/
 └── bin/
 ```
 
-### `src/vectors.ot` (фрагмент)
+### `src/vectors.ot` (excerpt)
 ```orbitron
 const ORIGIN_X: int = 0;
 const ORIGIN_Y: int = 0;
@@ -476,7 +449,7 @@ const ORIGIN_Y: int = 0;
 struct Vec2 { x: int, y: int }
 
 impl Vec2 {
-    pub func len_sq(self): int   { return self.x ** 2 + self.y ** 2; }
+    pub func len_sq(self): int    { return self.x ** 2 + self.y ** 2; }
     pub func manhattan(self): int {
         var ax = self.x > 0 ? self.x : -self.x;
         var ay = self.y > 0 ? self.y : -self.y;
@@ -488,7 +461,7 @@ impl Vec2 {
 }
 ```
 
-### `src/shapes.ot` (фрагмент)
+### `src/shapes.ot` (excerpt)
 ```orbitron
 const PI: int = 3;
 
@@ -496,19 +469,19 @@ func rect_area(w: int, h: int): int  { return w * h; }
 func circle_area(r: int): int        { return PI * r * r; }
 func hyp_sq(a: int, b: int): int     { return a ** 2 + b ** 2; }
 
-// 0=scalene, 1=isoceles, 2=equilateral
+// 0=scalene, 1=isosceles, 2=equilateral
 func triangle_type(a: int, b: int, c: int): int {
     return a == b && b == c ? 2 :
            a == b || b == c || a == c ? 1 : 0;
 }
 ```
 
-### `src/main.ot` (фрагмент)
+### `src/main.ot` (excerpt)
 ```orbitron
 import "vectors";
 import "shapes";
 
-enum TriType  { Scalene, Isoceles, Equilateral }
+enum TriType  { Scalene, Isosceles, Equilateral }
 enum Quadrant { Q1, Q2, Q3, Q4, Origin }
 
 func double(n: int): int { return n * 2; }
@@ -518,13 +491,13 @@ func main() {
     defer println("=== Geometry done ===");
 
     var v1 = Vec2 { x: 3, y: 4 };
-    println($"len_sq={v1.len_sq()}");    // 25
+    println($"len_sq={v1.len_sq()}");       // 25
     println($"manhattan={v1.manhattan()}"); // 7
 
     v1.scale(2);
     println($"scaled=({v1.get_x()},{v1.get_y()})");  // (6,8)
 
-    // |> pipe
+    // pipe operator
     var piped = v1.len_sq() |> double |> inc;
     println($"piped={piped}");
 
@@ -536,7 +509,7 @@ func main() {
     var tt = triangle_type(3, 3, 3);
     match tt {
         TriType.Equilateral => { println("equilateral"); }
-        TriType.Isoceles    => { println("isoceles"); }
+        TriType.Isosceles   => { println("isosceles"); }
         TriType.Scalene     => { println("scalene"); }
         _                   => {}
     }
@@ -553,7 +526,7 @@ func main() {
 }
 ```
 
-Сборка:
+Build:
 ```bash
 cd examples/geometry
 orbitron run
@@ -561,13 +534,13 @@ orbitron run
 
 ---
 
-## Сводная таблица: когда какой стиль ООП выбрать
+## When to Choose Each OOP Style
 
-| Ситуация                                  | Рекомендация      |
-|-------------------------------------------|-------------------|
-| Данные + вычисления, без состояния        | `struct + impl`   |
-| Инкапсулированное изменяемое состояние    | `class + init`    |
-| Геометрия, физика, математика             | `struct + impl`   |
-| Счётчик, очередь, банковский счёт         | `class + init`    |
+| Situation                                    | Recommendation  |
+|----------------------------------------------|-----------------|
+| Data + computations, no mutable state        | `struct + impl` |
+| Encapsulated mutable state                   | `class + init`  |
+| Geometry, physics, math                      | `struct + impl` |
+| Counter, queue, bank account                 | `class + init`  |
 
-Оба стиля генерируют идентичный LLVM IR — разница только в синтаксисе.
+Both styles generate identical LLVM IR — the difference is purely syntactic.

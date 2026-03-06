@@ -8,9 +8,9 @@ impl<'ctx> CodeGen<'ctx> {
         match expr {
             Expr::Number(n)  => Val::Int(self.i64_ty.const_int(*n as u64, true)),
             Expr::Float(f)   => Val::Float(self.f64_ty.const_float(*f)),
-            Expr::Str(_)     => panic!("Строковые литералы разрешены только внутри println()"),
+            Expr::Str(_)     => panic!("String literals are only allowed inside println()"),
             Expr::Interpolated(_) => panic!(
-                "Интерполированные строки разрешены только внутри println()"
+                "Interpolated strings are only allowed inside println()"
             ),
 
             Expr::Ident(name) => {
@@ -23,7 +23,7 @@ impl<'ctx> CodeGen<'ctx> {
                 }
                 let var = self.vars.get(name)
                     .cloned()
-                    .unwrap_or_else(|| panic!("Неопределённая переменная '{}'", name));
+                    .unwrap_or_else(|| panic!("Undefined variable '{}'", name));
                 match var.kind {
                     VarKind::Float =>
                         Val::Float(
@@ -121,12 +121,12 @@ impl<'ctx> CodeGen<'ctx> {
                     let type_name = type_name.clone();
                     let field_info = self.struct_fields.get(&type_name)
                         .cloned()
-                        .unwrap_or_else(|| panic!("Неизвестная структура '{}'", type_name));
+                        .unwrap_or_else(|| panic!("Unknown struct '{}'", type_name));
                     let idx = field_info.iter().position(|(n, _)| n == field)
-                        .unwrap_or_else(|| panic!("Неизвестное поле '{}' в '{}'", field, type_name));
+                        .unwrap_or_else(|| panic!("Unknown field '{}' in '{}'", field, type_name));
                     let (_, is_float) = field_info[idx];
                     let st  = *self.struct_types.get(&type_name)
-                        .unwrap_or_else(|| panic!("Неизвестный тип структуры '{}'", type_name));
+                        .unwrap_or_else(|| panic!("Unknown struct type '{}'", type_name));
                     let gep = self.builder
                         .build_struct_gep(st, ptr, idx as u32, "fget")
                         .unwrap();
@@ -142,7 +142,7 @@ impl<'ctx> CodeGen<'ctx> {
                         )
                     }
                 } else {
-                    panic!("Обращение к полю на не-структурном значении");
+                    panic!("Field access on a non-struct value");
                 }
             }
 
@@ -152,7 +152,7 @@ impl<'ctx> CodeGen<'ctx> {
                 if let Val::Struct(ptr, ref type_name) = obj_val {
                     let func_name = format!("{}_{}", type_name, method);
                     let callee = self.module.get_function(&func_name)
-                        .unwrap_or_else(|| panic!("Неизвестный метод '{}'", func_name));
+                        .unwrap_or_else(|| panic!("Unknown method '{}'", func_name));
                     let mut argv: Vec<BasicMetadataValueEnum> = vec![ptr.into()];
                     argv.extend(args.iter().map(|a| {
                         let v = self.gen_expr(a);
@@ -162,11 +162,11 @@ impl<'ctx> CodeGen<'ctx> {
                         .build_call(callee, &argv, "mcall")
                         .unwrap()
                         .try_as_basic_value()
-                        .expect_basic("метод должен возвращать значение")
+                        .expect_basic("method must return a value")
                         .into_int_value();
                     Val::Int(result)
                 } else {
-                    panic!("Вызов метода на не-структурном значении");
+                    panic!("Method call on a non-struct value");
                 }
             }
 
@@ -174,15 +174,15 @@ impl<'ctx> CodeGen<'ctx> {
             Expr::StructLit { name, fields } => {
                 let field_info = self.struct_fields.get(name)
                     .cloned()
-                    .unwrap_or_else(|| panic!("Неизвестная структура '{}'", name));
+                    .unwrap_or_else(|| panic!("Unknown struct '{}'", name));
                 let st = *self.struct_types.get(name)
-                    .unwrap_or_else(|| panic!("Неизвестный тип структуры '{}'", name));
+                    .unwrap_or_else(|| panic!("Unknown struct type '{}'", name));
                 let alloca = self.builder
                     .build_alloca(st, &format!("{}.new", name))
                     .unwrap();
                 for (fname, fexpr) in fields {
                     let idx = field_info.iter().position(|(n, _)| n == fname)
-                        .unwrap_or_else(|| panic!("Неизвестное поле '{}' в '{}'", fname, name));
+                        .unwrap_or_else(|| panic!("Unknown field '{}' in '{}'", fname, name));
                     let (_, is_float) = field_info[idx];
                     let gep = self.builder
                         .build_struct_gep(st, alloca, idx as u32, "finit")
@@ -200,7 +200,7 @@ impl<'ctx> CodeGen<'ctx> {
             // new ClassName(args)  — allocate struct then call ClassName_new(ptr, args)
             Expr::ConstructorCall { class, args } => {
                 let st = *self.struct_types.get(class)
-                    .unwrap_or_else(|| panic!("Неизвестный класс '{}' в конструкторе", class));
+                    .unwrap_or_else(|| panic!("Unknown class '{}' in constructor", class));
                 let ptr = self.builder
                     .build_alloca(st, &format!("{}.ctor", class))
                     .unwrap();
@@ -215,8 +215,8 @@ impl<'ctx> CodeGen<'ctx> {
                     self.builder.build_call(ctor, &argv, "ctor_call").unwrap();
                 } else if !args.is_empty() {
                     panic!(
-                        "Класс '{}' не имеет конструктора 'init', но вызван с {} аргументом(ами). \
-                         Определите 'init(...)' внутри класса.",
+                        "Class '{}' has no 'init' constructor but was called with {} argument(s). \
+                         Define 'init(...)' inside the class.",
                         class,
                         args.len()
                     );
@@ -262,10 +262,10 @@ impl<'ctx> CodeGen<'ctx> {
                 let raw_ptr = match inner.as_ref() {
                     Expr::Ident(name) => {
                         let var = self.vars.get(name).cloned()
-                            .unwrap_or_else(|| panic!("& : неопределённая переменная '{}'", name));
+                            .unwrap_or_else(|| panic!("&: undefined variable '{}'", name));
                         var.ptr
                     }
-                    _ => panic!("& (address-of) работает только с именем переменной"),
+                    _ => panic!("& (address-of) only works with a variable name"),
                 };
                 let _ = ptr_ty; // suppress unused warning
                 Val::Int(
@@ -306,8 +306,8 @@ impl<'ctx> CodeGen<'ctx> {
                     UnaryOp::Neg => match v {
                         Val::Int(i)       => Val::Int(self.builder.build_int_neg(i, "neg").unwrap()),
                         Val::Float(f)     => Val::Float(self.builder.build_float_neg(f, "fneg").unwrap()),
-                        Val::Struct(_, n) => panic!("Нельзя применить отрицание к struct '{}'", n),
-                        Val::Array(_)     => panic!("Нельзя применить отрицание к массиву"),
+                        Val::Struct(_, n) => panic!("Cannot negate struct '{}'", n),
+                        Val::Array(_)     => panic!("Cannot negate an array"),
                     },
                     UnaryOp::Not => {
                         let i   = self.as_int(v);
@@ -329,7 +329,7 @@ impl<'ctx> CodeGen<'ctx> {
                 // ── ptr_write(addr, val) — store i64 val at raw address addr ──
                 if name == "ptr_write" {
                     if args.len() != 2 {
-                        panic!("ptr_write(addr, val) принимает ровно 2 аргумента");
+                        panic!("ptr_write(addr, val) takes exactly 2 arguments");
                     }
                     let ptr_ty = self.ctx.ptr_type(inkwell::AddressSpace::default());
                     let addr_v = { let v = self.gen_expr(&args[0]); self.as_int(v) };
@@ -342,7 +342,7 @@ impl<'ctx> CodeGen<'ctx> {
                 // ── ptr_write_byte(addr, val) — store i8 at raw address ──
                 if name == "ptr_write_byte" {
                     if args.len() != 2 {
-                        panic!("ptr_write_byte(addr, val) принимает ровно 2 аргумента");
+                        panic!("ptr_write_byte(addr, val) takes exactly 2 arguments");
                     }
                     let ptr_ty  = self.ctx.ptr_type(inkwell::AddressSpace::default());
                     let i8_ty   = self.ctx.i8_type();
@@ -357,7 +357,7 @@ impl<'ctx> CodeGen<'ctx> {
                 // ── ptr_read(addr) — load i64 from raw address ──
                 if name == "ptr_read" {
                     if args.len() != 1 {
-                        panic!("ptr_read(addr) принимает ровно 1 аргумент");
+                        panic!("ptr_read(addr) takes exactly 1 argument");
                     }
                     let ptr_ty = self.ctx.ptr_type(inkwell::AddressSpace::default());
                     let addr_v = { let v = self.gen_expr(&args[0]); self.as_int(v) };
@@ -368,8 +368,24 @@ impl<'ctx> CodeGen<'ctx> {
                     );
                 }
 
+                // ── sign_ext(v) — sign-extend low 32 bits of v to i64 ──
+                // Necessary when extern C functions return int (32-bit) in an i64.
+                // Example: sign_ext(connect(...)) to correctly detect -1.
+                if name == "sign_ext" {
+                    if args.len() != 1 {
+                        panic!("sign_ext(v) takes exactly 1 argument");
+                    }
+                    let i32_ty = self.ctx.i32_type();
+                    let v    = self.gen_expr(&args[0]);
+                    let i64v = self.as_int(v);
+                    let i32v = self.builder.build_int_truncate(i64v, i32_ty, "trunc32").unwrap();
+                    return Val::Int(
+                        self.builder.build_int_s_extend(i32v, self.i64_ty, "sext64").unwrap()
+                    );
+                }
+
                 let callee = self.module.get_function(name)
-                    .unwrap_or_else(|| panic!("Неопределённая функция '{}'", name));
+                    .unwrap_or_else(|| panic!("Undefined function '{}'", name));
                 let argv: Vec<BasicMetadataValueEnum> = args.iter()
                     .map(|a| {
                         let v = self.gen_expr(a);
@@ -380,7 +396,7 @@ impl<'ctx> CodeGen<'ctx> {
                     .build_call(callee, &argv, "call")
                     .unwrap()
                     .try_as_basic_value()
-                    .expect_basic("функция должна возвращать значение")
+                    .expect_basic("function must return a value")
                     .into_int_value();
                 Val::Int(result)
             }
@@ -398,7 +414,7 @@ impl<'ctx> CodeGen<'ctx> {
                 .build_call(pow_fn, &[lf.into(), rf.into()], "pow")
                 .unwrap()
                 .try_as_basic_value()
-                .expect_basic("pow должна возвращать значение")
+                .expect_basic("pow must return a value")
                 .into_float_value();
             return if both_int {
                 Val::Int(self.builder
@@ -477,13 +493,13 @@ impl<'ctx> CodeGen<'ctx> {
         match arr {
             Expr::Ident(name) => {
                 let var = self.vars.get(name).cloned()
-                    .unwrap_or_else(|| panic!("Неопределённая переменная '{}'", name));
+                    .unwrap_or_else(|| panic!("Undefined variable '{}'", name));
                 match var.kind {
                     VarKind::Array => var.ptr,
-                    _ => panic!("'{}' не является массивом", name),
+                    _ => panic!("'{}' is not an array", name),
                 }
             }
-            _ => panic!("Индексируемый объект должен быть именем переменной-массива"),
+            _ => panic!("Indexed object must be an array variable name"),
         }
     }
 }

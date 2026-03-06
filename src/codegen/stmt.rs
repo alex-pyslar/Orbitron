@@ -47,7 +47,7 @@ impl<'ctx> CodeGen<'ctx> {
             Stmt::Assign { name, expr } => {
                 let var = self.vars.get(name)
                     .cloned()
-                    .unwrap_or_else(|| panic!("Неопределённая переменная '{}'", name));
+                    .unwrap_or_else(|| panic!("Undefined variable '{}'", name));
                 let val = self.gen_expr(expr);
                 match var.kind {
                     VarKind::Float     => {
@@ -57,10 +57,10 @@ impl<'ctx> CodeGen<'ctx> {
                         self.builder.build_store(var.ptr, self.as_int(val)).unwrap();
                     }
                     VarKind::Struct(_) => {
-                        panic!("Переприсваивание struct через '=' не поддерживается");
+                        panic!("Reassigning a struct via '=' is not supported");
                     }
                     VarKind::Array => {
-                        panic!("Переприсваивание массива через '=' не поддерживается");
+                        panic!("Reassigning an array via '=' is not supported");
                     }
                 }
             }
@@ -72,12 +72,12 @@ impl<'ctx> CodeGen<'ctx> {
                     let type_name = type_name.clone();
                     let field_info = self.struct_fields.get(&type_name)
                         .cloned()
-                        .unwrap_or_else(|| panic!("Неизвестная структура '{}'", type_name));
+                        .unwrap_or_else(|| panic!("Unknown struct '{}'", type_name));
                     let idx = field_info.iter().position(|(n, _)| n == field)
-                        .unwrap_or_else(|| panic!("Неизвестное поле '{}' в '{}'", field, type_name));
+                        .unwrap_or_else(|| panic!("Unknown field '{}' in '{}'", field, type_name));
                     let (_, is_float) = field_info[idx];
                     let st = *self.struct_types.get(&type_name)
-                        .unwrap_or_else(|| panic!("Неизвестный тип структуры '{}'", type_name));
+                        .unwrap_or_else(|| panic!("Unknown struct type '{}'", type_name));
                     let gep = self.builder
                         .build_struct_gep(st, ptr, idx as u32, "fset")
                         .unwrap();
@@ -88,7 +88,7 @@ impl<'ctx> CodeGen<'ctx> {
                         self.builder.build_store(gep, self.as_int(v)).unwrap();
                     }
                 } else {
-                    panic!("Присваивание поля на не-структурном значении");
+                    panic!("Field assignment on a non-struct value");
                 }
             }
 
@@ -114,8 +114,8 @@ impl<'ctx> CodeGen<'ctx> {
                     _ => match self.gen_expr(e) {
                         Val::Int(i)       => self.print_int(i),
                         Val::Float(f)     => self.print_float(f),
-                        Val::Struct(_, n) => panic!("Нельзя вывести struct '{}' напрямую", n),
-                        Val::Array(_)     => panic!("Нельзя вывести массив напрямую — используйте индекс"),
+                        Val::Struct(_, n) => panic!("Cannot print struct '{}' directly", n),
+                        Val::Array(_)     => panic!("Cannot print an array directly — use an index"),
                     }
                 }
             }
@@ -284,14 +284,14 @@ impl<'ctx> CodeGen<'ctx> {
             // break;
             Stmt::Break => {
                 let (exit_bb, _) = *self.loop_stack.last()
-                    .expect("'break' вне цикла");
+                    .expect("'break' outside of a loop");
                 self.builder.build_unconditional_branch(exit_bb).unwrap();
             }
 
             // continue;
             Stmt::Continue => {
                 let (_, cont_bb) = *self.loop_stack.last()
-                    .expect("'continue' вне цикла");
+                    .expect("'continue' outside of a loop");
                 self.builder.build_unconditional_branch(cont_bb).unwrap();
             }
 
@@ -371,10 +371,10 @@ impl<'ctx> CodeGen<'ctx> {
             }
 
             Stmt::FnDecl { .. } => {
-                panic!("Вложенные объявления функций не поддерживаются");
+                panic!("Nested function declarations are not supported");
             }
             Stmt::StructDecl { .. } | Stmt::ImplDecl { .. } | Stmt::ClassDecl { .. } => {
-                panic!("struct/impl/class должны быть на верхнем уровне");
+                panic!("struct/impl/class must be at the top level");
             }
         }
     }
@@ -399,7 +399,7 @@ impl<'ctx> CodeGen<'ctx> {
                     .and_then(|m| m.get(variant))
                     .copied()
                     .unwrap_or_else(|| panic!(
-                        "Неизвестный вариант enum '{}.{}'", enum_name, variant
+                        "Unknown enum variant '{}.{}'", enum_name, variant
                     ));
                 Some(self.i64_ty.const_int(val as u64, true))
             }

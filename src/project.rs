@@ -36,7 +36,7 @@ fn default_backend() -> String { "llvm".to_string() }
 pub fn load_manifest(root: &Path) -> Result<ProjectManifest, String> {
     let toml_path = root.join("orbitron.toml");
     let text = fs::read_to_string(&toml_path)
-        .map_err(|e| format!("Не удалось прочитать orbitron.toml: {e}"))?;
+        .map_err(|e| format!("Cannot read orbitron.toml: {e}"))?;
     toml::from_str(&text)
-        .map_err(|e| format!("Ошибка в orbitron.toml: {e}"))
+        .map_err(|e| format!("Error in orbitron.toml: {e}"))
 }

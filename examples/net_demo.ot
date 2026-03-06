@@ -1,14 +1,17 @@
 // Orbitron — networking demo
 // Demonstrates TCP client and simple TCP server.
 //
-// To test the client: start a local HTTP server first, e.g.:
+// To test the client (MODE=0): start a local HTTP server first, e.g.:
 //   python3 -m http.server 8080
-// Then:
+// Then compile and run:
 //   orbitron examples/net_demo.ot -o net_demo && ./net_demo
 //
-// To test the server (echo server on port 9000):
-//   change MODE to 1 and rebuild, then:
+// To test the echo server (MODE=1):
 //   nc localhost 9000
+//
+// Note: extern func returns int (32-bit). Use sign_ext() to sign-extend
+// to i64 so that negative error codes (-1 etc.) are correctly detected.
+// The net.ot stdlib wrappers already apply sign_ext internally.
 
 import "std/net";
 import "std/sys";
@@ -23,23 +26,26 @@ func run_client() {
 
     var fd = tcp_socket();
     if (fd < 0) {
-        println(fd);   // error code
+        println(fd);
         return;
     }
+    println(fd);   // print socket fd (usually 3)
 
     var ip = net_ip(127, 0, 0, 1);
     var rc = tcp_connect(fd, ip, 8080);
+    println(rc);   // 0 = connected, negative = error (ECONNREFUSED = -111)
+
     if (rc < 0) {
-        println(rc);
         net_close(fd);
         return;
     }
 
     // Send a minimal HTTP/1.0 GET request
     var req = cstr("GET / HTTP/1.0\r\nHost: localhost\r\nConnection: close\r\n\r\n");
-    net_send(fd, req, 54);
+    var sent = net_send(fd, req, 54);
+    println(sent);
 
-    // Read the response into a heap buffer, 4 KB
+    // Read the response (up to 4 KB)
     var buf = sys_alloc(4096);
     var total = 0;
 
@@ -50,12 +56,14 @@ func run_client() {
         if (total >= 4090) { break; }
     }
 
-    println(total);   // number of bytes received
+    println(total);   // bytes received
 
-    // Write the first 200 bytes to stdout via syscall
+    // Write up to 200 bytes of response to stdout via raw syscall
     var to_show = total;
     if (to_show > 200) { to_show = 200; }
-    syscall(SYS_WRITE, STDOUT, buf, to_show);
+    if (to_show > 0) {
+        syscall(SYS_WRITE, STDOUT, buf, to_show);
+    }
 
     sys_free(buf, 4096);
     net_close(fd);
@@ -82,7 +90,7 @@ func run_server() {
     }
 
     net_listen(server, 5);
-    syscall(SYS_WRITE, STDOUT, cstr("Echo server listening on :9000\n"), 31);
+    syscall(SYS_WRITE, STDOUT, cstr("Echo server on :9000\n"), 21);
 
     var buf = sys_alloc(1024);
 
@@ -103,6 +111,7 @@ func run_server() {
 
     sys_free(buf, 1024);
     net_close(server);
+    println(999);   // done
 }
 
 // ── Entry point ───────────────────────────────────────────────────────────────

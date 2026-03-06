@@ -1,13 +1,13 @@
-// fibonacci.ot — Числа Фибоначчи
-// Демонстрирует: рекурсию, итерацию, цикл for..in
+// fibonacci.ot — Fibonacci numbers
+// Demonstrates: recursion, iteration, for..in loops
 
-// --- Рекурсивный вариант ---
+// --- Recursive variant ---
 func fib_rec(n: int): int {
     if (n <= 1) { return n; }
     return fib_rec(n - 1) + fib_rec(n - 2);
 }
 
-// --- Итеративный вариант (эффективнее) ---
+// --- Iterative variant (more efficient) ---
 func fib_iter(n: int): int {
     if (n <= 1) { return n; }
     var a = 0;
@@ -23,18 +23,18 @@ func fib_iter(n: int): int {
 }
 
 func main() {
-    println("=== Числа Фибоначчи (рекурсия, 0..10) ===");
+    println("=== Fibonacci numbers (recursive, 0..10) ===");
     for i in 0..11 {
         println(fib_rec(i));
     }
 
-    println("=== Числа Фибоначчи (итерация, 0..=15) ===");
+    println("=== Fibonacci numbers (iterative, 0..=15) ===");
     for i in 0..=15 {
         println(fib_iter(i));
     }
 
-    // Накопленная сумма первых 10 чисел Фибоначчи
-    println("=== Сумма первых 10 чисел Фибоначчи ===");
+    // Cumulative sum of the first 10 Fibonacci numbers
+    println("=== Sum of first 10 Fibonacci numbers ===");
     var sum = 0;
     for i in 0..10 {
         sum += fib_iter(i);

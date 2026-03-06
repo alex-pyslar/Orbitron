@@ -1,8 +1,7 @@
-// hello.ot — Самая простая программа на языке Orbitron
-// Выводит приветствие и демонстрирует базовые переменные.
+// hello.ot — The simplest Orbitron program
+// Prints a greeting and demonstrates basic variables.
 
 func main() {
-    println("Привет, мир!");
     println("Hello, World!");
 
     var x = 42;

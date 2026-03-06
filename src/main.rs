@@ -48,18 +48,18 @@ fn dispatch(args: &[String]) -> Result<(), String> {
 
 fn cmd_new(args: &[String]) -> Result<(), String> {
     let name = args.get(2)
-        .ok_or_else(|| "Использование: orbitron new <имя-проекта>".to_string())?;
+        .ok_or_else(|| "Usage: orbitron new <project-name>".to_string())?;
 
     let root = PathBuf::from(name);
     if root.exists() {
-        return Err(format!("Директория '{}' уже существует", name));
+        return Err(format!("Directory '{}' already exists", name));
     }
 
     let src_dir = root.join("src");
     fs::create_dir_all(&src_dir)
-        .map_err(|e| format!("Не удалось создать директорию: {e}"))?;
+        .map_err(|e| format!("Failed to create directory: {e}"))?;
     fs::create_dir_all(root.join("bin"))
-        .map_err(|e| format!("Не удалось создать директорию: {e}"))?;
+        .map_err(|e| format!("Failed to create directory: {e}"))?;
 
     let toml_content = format!(
 r#"[project]
@@ -73,18 +73,18 @@ backend = "llvm"
 "#
     );
     fs::write(root.join("orbitron.toml"), toml_content)
-        .map_err(|e| format!("Не удалось создать orbitron.toml: {e}"))?;
+        .map_err(|e| format!("Failed to create orbitron.toml: {e}"))?;
 
     let main_content = format!(
 r#"func main() {{
-    println("Привет из {name}!");
+    println("Hello from {name}!");
 }}
 "#
     );
     fs::write(src_dir.join("main.ot"), main_content)
-        .map_err(|e| format!("Не удалось создать src/main.ot: {e}"))?;
+        .map_err(|e| format!("Failed to create src/main.ot: {e}"))?;
 
-    println!("Создан проект '{}'. Попробуйте:", name);
+    println!("Created project '{}'. Next steps:", name);
     println!("  cd {}", name);
     println!("  orbitron run");
     Ok(())
@@ -96,12 +96,12 @@ fn cmd_build_or_run(args: &[String], run_after: bool) -> Result<(), String> {
     let opts = parse_build_opts(&args[2..])?;
 
     let cwd = env::current_dir()
-        .map_err(|e| format!("Не удалось получить рабочую директорию: {e}"))?;
+        .map_err(|e| format!("Cannot get current directory: {e}"))?;
     let root = find_project_root(&cwd)
         .ok_or_else(|| {
-            "Файл orbitron.toml не найден.\n\
-             Запустите 'orbitron new <имя>' для создания проекта, \
-             или укажите файл .ot напрямую.".to_string()
+            "orbitron.toml not found.\n\
+             Run 'orbitron new <name>' to create a project, \
+             or pass a .ot file directly.".to_string()
         })?;
 
     let manifest = load_manifest(&root)?;
@@ -120,15 +120,15 @@ fn cmd_build_or_run(args: &[String], run_after: bool) -> Result<(), String> {
     let output_path = root.join(&raw_output);
     if let Some(parent) = output_path.parent() {
         fs::create_dir_all(parent)
-            .map_err(|e| format!("Не удалось создать директорию вывода: {e}"))?;
+            .map_err(|e| format!("Cannot create output directory: {e}"))?;
     }
     let output_str = output_path.to_string_lossy().to_string();
 
     if opts.verbose {
-        eprintln!("[проект] Корень: {}", root.display());
-        eprintln!("[проект] Точка входа: {}", entry.display());
-        eprintln!("[проект] Бэкенд: {}", backend.name());
-        eprintln!("[проект] Вывод: {}", output_str);
+        eprintln!("[project] Root:    {}", root.display());
+        eprintln!("[project] Entry:   {}", entry.display());
+        eprintln!("[project] Backend: {}", backend.name());
+        eprintln!("[project] Output:  {}", output_str);
     }
 
     match &backend {
@@ -139,7 +139,7 @@ fn cmd_build_or_run(args: &[String], run_after: bool) -> Result<(), String> {
             if run_after {
                 let status = process::Command::new(&output_str)
                     .status()
-                    .map_err(|e| format!("Не удалось запустить '{}': {e}", output_str))?;
+                    .map_err(|e| format!("Failed to run '{}': {e}", output_str))?;
                 process::exit(status.code().unwrap_or(0));
             }
         }
@@ -151,7 +151,7 @@ fn cmd_build_or_run(args: &[String], run_after: bool) -> Result<(), String> {
                 let status = process::Command::new("java")
                     .args(["-jar", &jar])
                     .status()
-                    .map_err(|e| format!("java не найден: {e}"))?;
+                    .map_err(|e| format!("java not found: {e}"))?;
                 process::exit(status.code().unwrap_or(0));
             }
         }
@@ -177,27 +177,27 @@ fn cmd_file(args: &[String]) -> Result<(), String> {
             "--version"     => { println!("orbitron {}", VERSION); process::exit(0); }
             "-o" => {
                 i += 1;
-                if i >= args.len() { return Err("Флаг -o требует аргумент".into()); }
+                if i >= args.len() { return Err("-o flag requires an argument".into()); }
                 output = Some(args[i].clone());
             }
             "--backend" => {
                 i += 1;
-                if i >= args.len() { return Err("--backend требует аргумент: llvm | jvm".into()); }
+                if i >= args.len() { return Err("--backend requires an argument: llvm | jvm".into()); }
                 backend = Some(Backend::from_str(&args[i])
-                    .ok_or_else(|| format!("Неизвестный бэкенд '{}'. Используйте llvm или jvm", args[i]))?);
+                    .ok_or_else(|| format!("Unknown backend '{}'. Use llvm or jvm", args[i]))?);
             }
             "--emit-llvm"      => emit_llvm  = true,
             "--emit-java"      => emit_java   = true,
             "--save-temps"     => save_temps  = true,
             "-v" | "--verbose" => verbose     = true,
             flag if flag.starts_with('-') => {
-                return Err(format!("Неизвестный флаг '{}'\n       Используйте -h для справки", flag));
+                return Err(format!("Unknown flag '{}'\n       Use -h for help", flag));
             }
             _ => {
                 if input.is_some() {
                     return Err(
-                        "Несколько входных файлов не поддерживаются.\n\
-                         Используйте 'orbitron build' для проектов.".into()
+                        "Multiple input files are not supported.\n\
+                         Use 'orbitron build' for multi-file projects.".into()
                     );
                 }
                 input = Some(args[i].clone());
@@ -207,7 +207,7 @@ fn cmd_file(args: &[String]) -> Result<(), String> {
     }
 
     let input = input.ok_or_else(||
-        "Не указан входной файл.\n       Используйте -h для справки".to_string()
+        "No input file specified.\n       Use -h for help".to_string()
     )?;
 
     let output = output.unwrap_or_else(|| {

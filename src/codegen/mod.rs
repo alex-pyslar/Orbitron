@@ -218,7 +218,7 @@ impl<'ctx> CodeGen<'ctx> {
                 | Stmt::Const     { .. }
                 | Stmt::Import    { .. }
                 | Stmt::ExternFn  { .. } => {}
-                s => panic!("Неожиданный оператор верхнего уровня: {:?}", s),
+                s => panic!("Unexpected top-level statement: {:?}", s),
             }
         }
     }
@@ -232,9 +232,9 @@ impl<'ctx> CodeGen<'ctx> {
             Expr::Unary(UnaryOp::Neg, inner) => match inner.as_ref() {
                 Expr::Number(n) => { self.consts.insert(name.to_string(), ConstVal::Int(-n)); }
                 Expr::Float(f)  => { self.consts.insert(name.to_string(), ConstVal::Float(-f)); }
-                _ => panic!("const '{}' должна быть литеральным значением", name),
+                _ => panic!("const '{}' must be a literal value", name),
             },
-            _ => panic!("const '{}' должна быть литеральным значением (число или число с плавающей точкой)", name),
+            _ => panic!("const '{}' must be a literal value (integer or float)", name),
         }
     }
 
@@ -277,7 +277,7 @@ impl<'ctx> CodeGen<'ctx> {
 
     fn gen_fn(&mut self, name: &str, params: &[String], body: &[Stmt]) {
         let func = self.module.get_function(name)
-            .unwrap_or_else(|| panic!("BUG: функция '{}' не была объявлена заранее", name));
+            .unwrap_or_else(|| panic!("BUG: function '{}' was not forward-declared", name));
 
         let entry = self.ctx.append_basic_block(func, "entry");
         self.builder.position_at_end(entry);
@@ -312,7 +312,7 @@ impl<'ctx> CodeGen<'ctx> {
     fn gen_method(&mut self, struct_name: &str, method: &MethodDecl) {
         let func_name = format!("{}_{}", struct_name, method.name);
         let func = self.module.get_function(&func_name)
-            .unwrap_or_else(|| panic!("BUG: метод '{}' не был объявлен заранее", func_name));
+            .unwrap_or_else(|| panic!("BUG: method '{}' was not forward-declared", func_name));
 
         let entry = self.ctx.append_basic_block(func, "entry");
         self.builder.position_at_end(entry);
@@ -387,8 +387,8 @@ impl<'ctx> CodeGen<'ctx> {
             Val::Float(f)    => self.builder
                 .build_float_to_signed_int(f, self.i64_ty, "f2i")
                 .unwrap(),
-            Val::Struct(_, n) => panic!("Нельзя привести struct '{}' к int", n),
-            Val::Array(_)     => panic!("Нельзя привести массив к int"),
+            Val::Struct(_, n) => panic!("Cannot cast struct '{}' to int", n),
+            Val::Array(_)     => panic!("Cannot cast array to int"),
         }
     }
 
@@ -398,8 +398,8 @@ impl<'ctx> CodeGen<'ctx> {
             Val::Int(i)      => self.builder
                 .build_signed_int_to_float(i, self.f64_ty, "i2f")
                 .unwrap(),
-            Val::Struct(_, n) => panic!("Нельзя привести struct '{}' к float", n),
-            Val::Array(_)     => panic!("Нельзя привести массив к float"),
+            Val::Struct(_, n) => panic!("Cannot cast struct '{}' to float", n),
+            Val::Array(_)     => panic!("Cannot cast array to float"),
         }
     }
 
@@ -470,10 +470,10 @@ impl<'ctx> CodeGen<'ctx> {
                                 args.push(iv.into());
                             }
                             VarKind::Array => {
-                                panic!("Массивы не могут быть интерполированы в строке");
+                                panic!("Arrays cannot be used in string interpolation");
                             }
                             VarKind::Struct(n) => {
-                                panic!("Структуры ('{}') не могут быть интерполированы в строке", n);
+                                panic!("Structs ('{}') cannot be used in string interpolation", n);
                             }
                         }
                     } else if let Some(cv) = self.consts.get(name).cloned() {
@@ -488,7 +488,7 @@ impl<'ctx> CodeGen<'ctx> {
                             }
                         }
                     } else {
-                        panic!("Неопределённая переменная '{}' в интерполяции строки", name);
+                        panic!("Undefined variable '{}' in string interpolation", name);
                     }
                 }
             }
@@ -524,13 +524,13 @@ impl<'ctx> CodeGen<'ctx> {
         let s  = format!("{}.s",  output);
 
         // Write LLVM IR
-        if opts.verbose { eprintln!("  → Запись LLVM IR: {}", ll); }
+        if opts.verbose { eprintln!("  → Writing LLVM IR: {}", ll); }
         self.module
             .print_to_file(Path::new(&ll))
-            .map_err(|e: LLVMString| format!("Запись IR не удалась: {}", e.to_string_lossy()))?;
+            .map_err(|e: LLVMString| format!("Failed to write IR: {}", e.to_string_lossy()))?;
 
         if opts.emit_llvm {
-            println!("IR записан: {}", ll);
+            println!("IR written: {}", ll);
             return Ok(());
         }
 
@@ -539,9 +539,9 @@ impl<'ctx> CodeGen<'ctx> {
         let llc_ok = Command::new("llc")
             .args([&ll, "-o", &s, "-relocation-model=pic"])
             .status()
-            .map_err(|e| format!("llc не найден: {}", e))?;
+            .map_err(|e| format!("llc not found: {}", e))?;
         if !llc_ok.success() {
-            return Err("llc завершился с ошибкой".into());
+            return Err("llc failed".into());
         }
 
         // assembly → binary
@@ -549,9 +549,9 @@ impl<'ctx> CodeGen<'ctx> {
         let cc_ok = Command::new("clang")
             .args([&s, "-o", output, "-lm"])
             .status()
-            .map_err(|e| format!("clang не найден: {}", e))?;
+            .map_err(|e| format!("clang not found: {}", e))?;
         if !cc_ok.success() {
-            return Err("clang завершился с ошибкой".into());
+            return Err("clang failed".into());
         }
 
         // Clean up intermediate files unless --save-temps
@@ -560,7 +560,7 @@ impl<'ctx> CodeGen<'ctx> {
             let _ = std::fs::remove_file(&s);
         }
 
-        println!("Скомпилировано: {}", output);
+        println!("Compiled: {}", output);
         Ok(())
     }
 }

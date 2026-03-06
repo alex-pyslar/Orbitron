@@ -29,7 +29,7 @@ pub fn resolve(
 ) -> Result<Vec<Stmt>, String> {
     // Canonicalise to detect duplicates robustly.
     let canonical = fs::canonicalize(entry)
-        .map_err(|e| format!("Не удалось найти файл '{}': {e}", entry.display()))?;
+        .map_err(|e| format!("Cannot find file '{}': {e}", entry.display()))?;
 
     if visited.contains(&canonical) {
         return Ok(vec![]); // already included — skip
@@ -38,13 +38,13 @@ pub fn resolve(
     visited.insert(canonical);
 
     let raw = fs::read_to_string(entry)
-        .map_err(|e| format!("Не удалось прочитать '{}': {e}", entry.display()))?;
+        .map_err(|e| format!("Cannot read '{}': {e}", entry.display()))?;
     let src = raw.replace("\r\n", "\n").replace('\r', "\n");
 
     let tokens = Lexer::tokenize(&src)
-        .map_err(|e| format!("Лексическая ошибка в '{}': {e}", entry.display()))?;
+        .map_err(|e| format!("Lexer error in '{}': {e}", entry.display()))?;
     let stmts = Parser::new(tokens).parse_program()
-        .map_err(|e| format!("Синтаксическая ошибка в '{}': {e}", entry.display()))?;
+        .map_err(|e| format!("Parse error in '{}': {e}", entry.display()))?;
 
     let mut result = Vec::new();
     for stmt in stmts {
@@ -53,10 +53,9 @@ pub fn resolve(
                 let import_file = if let Some(lib_name) = path.strip_prefix("std/") {
                     // Standard library import: `import "std/math"` → stdlib_root/math.ot
                     let sr = stdlib_root.ok_or_else(|| format!(
-                        "Стандартная библиотека не найдена. \
-                         Установите переменную ORBITRON_HOME или расположите папку 'stdlib/' \
-                         рядом с исполняемым файлом orbitron.\n\
-                         Импорт: \"{}\"", path
+                        "Standard library not found. \
+                         Set ORBITRON_HOME or place 'stdlib/' next to the orbitron binary.\n\
+                         Import: \"{}\"", path
                     ))?;
                     sr.join(format!("{lib_name}.ot"))
                 } else {
@@ -65,7 +64,7 @@ pub fn resolve(
                 };
 
                 let imported = resolve(&import_file, src_root, stdlib_root, visited)
-                    .map_err(|e| format!("  (импортировано из '{}')\n{e}", entry.display()))?;
+                    .map_err(|e| format!("  (imported from '{}')\n{e}", entry.display()))?;
                 result.extend(imported);
             }
             _ => result.push(stmt),

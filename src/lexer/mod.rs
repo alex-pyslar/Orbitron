@@ -65,10 +65,10 @@ impl Lexer {
                     Some('\\') => s.push('\\'),
                     Some('"')  => s.push('"'),
                     Some(c)    => { s.push('\\'); s.push(c); }
-                    None       => return Err("Незакрытый escape в строке".into()),
+                    None       => return Err("Unterminated escape in string".into()),
                 },
                 Some(c) => s.push(c),
-                None    => return Err(format!("Незакрытая строка на строке {}", self.line)),
+                None    => return Err(format!("Unterminated string at line {}", self.line)),
             }
         }
     }
@@ -78,7 +78,7 @@ impl Lexer {
     fn read_interp_string(&mut self) -> Result<Token, String> {
         self.advance(); // consume '$'
         if self.peek() != Some('"') {
-            return Err(format!("Ожидалась '\"' после '$' на строке {}", self.line));
+            return Err(format!("Expected '\"' after '$' at line {}", self.line));
         }
         self.advance(); // consume '"'
 
@@ -100,14 +100,14 @@ impl Lexer {
                             Some('}') => break,
                             Some(c) if c.is_alphanumeric() || c == '_' => ident.push(c),
                             Some(c) => return Err(format!(
-                                "Неожиданный символ '{}' в интерполяции строки (строка {})",
+                                "Unexpected character '{}' in string interpolation (line {})",
                                 c, self.line
                             )),
-                            None => return Err("Незакрытая интерполяция строки".into()),
+                            None => return Err("Unterminated string interpolation".into()),
                         }
                     }
                     if ident.is_empty() {
-                        return Err("Пустая интерполяция '{}' в строке".into());
+                        return Err("Empty interpolation '{}' in string".into());
                     }
                     parts.push(InterpolPart::Var(ident));
                 }
@@ -118,10 +118,10 @@ impl Lexer {
                     Some('"')  => lit.push('"'),
                     Some('{')  => lit.push('{'),
                     Some(c)    => { lit.push('\\'); lit.push(c); }
-                    None       => return Err("Незакрытый escape в интерполированной строке".into()),
+                    None       => return Err("Unterminated escape in interpolated string".into()),
                 },
                 Some(c) => lit.push(c),
-                None    => return Err(format!("Незакрытая интерполированная строка на строке {}", self.line)),
+                None    => return Err(format!("Unterminated interpolated string at line {}", self.line)),
             }
         }
     }
@@ -152,18 +152,18 @@ impl Lexer {
         }
         match s.as_str() {
             "var"      => Token::Var,
-            "const"    => Token::Const,     // NEW: Rust/C++
+            "const"    => Token::Const,     // Rust/C++
             "func"     => Token::Func,
             "return"   => Token::Return,
             "if"       => Token::If,
             "else"     => Token::Else,
-            "unless"   => Token::Unless,    // NEW: Ruby
+            "unless"   => Token::Unless,    // Ruby
             "while"    => Token::While,
             "do"       => Token::Do,
             "for"      => Token::For,
             "in"       => Token::In,
             "loop"     => Token::Loop,
-            "repeat"   => Token::Repeat,    // NEW
+            "repeat"   => Token::Repeat,    // Lua/Pascal
             "match"    => Token::Match,
             "println"  => Token::Println,
             "true"     => Token::True,
@@ -178,10 +178,10 @@ impl Lexer {
             "init"     => Token::Init,
             "pub"      => Token::Pub,
             "private"  => Token::Private,
-            "enum"     => Token::Enum,      // NEW: Rust/Swift
-            "defer"    => Token::Defer,     // NEW: Go
-            "import"   => Token::Import,    // NEW: multi-file import
-            "extern"   => Token::Extern,    // NEW: external C declaration
+            "enum"     => Token::Enum,      // Rust/Swift
+            "defer"    => Token::Defer,     // Go
+            "import"   => Token::Import,    // multi-file import
+            "extern"   => Token::Extern,    // external C declaration
             _          => Token::Ident(s),
         }
     }
@@ -277,9 +277,9 @@ impl Lexer {
                     self.advance();
                     if self.peek() == Some('|') { self.advance(); Ok(Token::OrOr) }
                     else if self.peek() == Some('>') { self.advance(); Ok(Token::PipeGt) }
-                    else { Err(format!("Одиночный '|' недопустим (строка {})", self.line)) }
+                    else { Err(format!("Single '|' is not valid (line {})", self.line)) }
                 }
-                other => Err(format!("Неожиданный символ '{}' на строке {}:{}", other, self.line, self.col)),
+                other => Err(format!("Unexpected character '{}' at line {}:{}", other, self.line, self.col)),
             }
         }
     }

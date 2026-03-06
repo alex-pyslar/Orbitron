@@ -1,14 +1,14 @@
-// bits_demo.ot — Демонстрация std/bits: битовые операции
+// bits_demo.ot — std/bits: bitwise operations
 //
-// Показывает: bit_count, bit_len, is_pow2, next/prev_pow2,
-//             shl/shr, floor_log2, reverse_bits
+// Demonstrates: bit_count, bit_len, is_pow2, next/prev_pow2,
+//               shl/shr, floor_log2, reverse_bits
 //
-// Запуск:
+// Run:
 //   orbitron examples/bits_demo.ot
 
 import "std/bits";
 
-// Выводим "yes" или "no" вместо 1/0 через match
+// Print "yes" or "no" instead of 1/0
 func yesno(v: int): int {
     if (v != 0) { println("yes"); }
     if (v == 0) { println("no"); }
@@ -17,15 +17,15 @@ func yesno(v: int): int {
 
 func main() {
 
-    // ── Подсчёт установленных битов ───────────────────────────────────────────
+    // ── Count set bits ────────────────────────────────────────────────────────
     println("=== bit_count ===");
     var b1 = bit_count(0);      println(b1);   // 0
     var b2 = bit_count(1);      println(b2);   // 1
     var b3 = bit_count(7);      println(b3);   // 3  (0b111)
     var b4 = bit_count(255);    println(b4);   // 8
-    var b5 = bit_count(1024);   println(b5);   // 1  (2^10 — одна единица)
+    var b5 = bit_count(1024);   println(b5);   // 1  (2^10 — single set bit)
 
-    // ── Длина числа в битах ───────────────────────────────────────────────────
+    // ── Bit length of a number ────────────────────────────────────────────────
     println("=== bit_len ===");
     println(bit_len(0));    // 0
     println(bit_len(1));    // 1
@@ -35,7 +35,7 @@ func main() {
     println(bit_len(255));  // 8
     println(bit_len(256));  // 9
 
-    // ── Степень двойки ────────────────────────────────────────────────────────
+    // ── Power of two check ────────────────────────────────────────────────────
     println("=== is_pow2 ===");
     var checks = [1, 2, 3, 4, 7, 8, 15, 16, 32, 100, 128];
     for i in 0..11 {
@@ -43,7 +43,7 @@ func main() {
     }
     // 1 1 0 1 0 1 0 1 1 0 1
 
-    // ── Следующая/предыдущая степень ─────────────────────────────────────────
+    // ── Next/previous power of two ───────────────────────────────────────────
     println("=== next_pow2 / prev_pow2 ===");
     println(next_pow2(1));   // 1
     println(next_pow2(3));   // 4
@@ -57,7 +57,7 @@ func main() {
     println(prev_pow2(9));   // 8
     println(prev_pow2(16));  // 16
 
-    // ── Сдвиги ────────────────────────────────────────────────────────────────
+    // ── Bit shifts ────────────────────────────────────────────────────────────
     println("=== shl / shr ===");
     println(shl(1, 0));    // 1
     println(shl(1, 8));    // 256
@@ -65,7 +65,7 @@ func main() {
     println(shr(256, 8));  // 1
     println(shr(100, 2));  // 25
 
-    // ── Целочисленный log2 ────────────────────────────────────────────────────
+    // ── Integer log2 ──────────────────────────────────────────────────────────
     println("=== floor_log2 ===");
     println(floor_log2(1));   // 0
     println(floor_log2(2));   // 1
@@ -74,19 +74,19 @@ func main() {
     println(floor_log2(8));   // 3
     println(floor_log2(100)); // 6
 
-    // ── Обращение битов ───────────────────────────────────────────────────────
+    // ── Bit reversal ──────────────────────────────────────────────────────────
     println("=== reverse_bits ===");
     // 0b1011 (11) in 4 bits → 0b1101 (13)
     println(reverse_bits(11, 4));  // 13
     // 0b0001 (1) in 4 bits → 0b1000 (8)
     println(reverse_bits(1, 4));   // 8
-    // 0b11111111 (255) in 8 bits → 255 (симметрично)
+    // 0b11111111 (255) in 8 bits → 255 (symmetric)
     println(reverse_bits(255, 8)); // 255
     // 0b10000000 (128) in 8 bits → 0b00000001 (1)
     println(reverse_bits(128, 8)); // 1
 
-    // ── Практический пример: выравнивание размера буфера до степени двойки ───
-    println("=== практика: выравнивание буфера ===");
+    // ── Practical example: align a buffer size to the next power of two ───────
+    println("=== practical: buffer alignment ===");
     var sizes = [100, 500, 1000, 1024, 2000];
     for i in 0..5 {
         var aligned = next_pow2(sizes[i]);

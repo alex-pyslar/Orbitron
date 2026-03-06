@@ -1,5 +1,5 @@
-// oop_struct.ot — ООП в стиле Go/Rust: struct + impl
-// Демонстрирует: структуры, методы, литерал структуры без new
+// oop_struct.ot — OOP Go/Rust style: struct + impl
+// Demonstrates: structs, methods, struct literals (no new)
 
 struct Point {
     x: int,
@@ -7,12 +7,12 @@ struct Point {
 }
 
 impl Point {
-    // Квадрат расстояния от начала координат
+    // Squared distance from the origin
     pub func dist_sq(self): int {
         return self.x * self.x + self.y * self.y;
     }
 
-    // Манхэттенское расстояние
+    // Manhattan distance
     pub func manhattan(self): int {
         var ax = self.x;
         var ay = self.y;
@@ -21,13 +21,13 @@ impl Point {
         return ax + ay;
     }
 
-    // Сдвиг точки
+    // Translate the point
     pub func move_by(self, dx: int, dy: int) {
         self.x = self.x + dx;
         self.y = self.y + dy;
     }
 
-    // Масштабирование
+    // Scale the point
     pub func scale(self, factor: int) {
         self.x = self.x * factor;
         self.y = self.y * factor;
@@ -42,7 +42,7 @@ struct Segment {
 }
 
 impl Segment {
-    // Квадрат длины отрезка
+    // Squared length of the segment
     pub func len_sq(self): int {
         var dx = self.bx - self.ax;
         var dy = self.by - self.ay;
@@ -51,37 +51,37 @@ impl Segment {
 }
 
 func main() {
-    // Литерал структуры (без new)
+    // Struct literal (no new keyword)
     var p = Point { x: 3, y: 4 };
-    println("Точка p:");
+    println("Point p:");
     println(p.x);           // 3
     println(p.y);           // 4
     println(p.dist_sq());   // 25
     println(p.manhattan()); // 7
 
     p.move_by(-1, 2);
-    println("После move_by(-1, 2):");
+    println("After move_by(-1, 2):");
     println(p.x);   // 2
     println(p.y);   // 6
 
     p.scale(3);
-    println("После scale(3):");
+    println("After scale(3):");
     println(p.x);   // 6
     println(p.y);   // 18
 
-    // Несколько точек — демонстрация независимости
+    // Multiple points — each is independent
     var q = Point { x: 0, y: 5 };
-    println("Точка q:");
+    println("Point q:");
     println(q.dist_sq());   // 25
     println(q.manhattan()); // 5
 
-    // Отрезок
+    // Segment
     var seg = Segment { ax: 0, ay: 0, bx: 3, by: 4 };
-    println("Квадрат длины отрезка:");
+    println("Squared segment length:");
     println(seg.len_sq()); // 25
 
-    // Цикл с объектами
-    println("=== Сетка точек 3x3 ===");
+    // Loop over a grid of points
+    println("=== 3x3 point grid ===");
     for i in 0..3, j in 0..3 {
         var pt = Point { x: i, y: j };
         println(pt.dist_sq());

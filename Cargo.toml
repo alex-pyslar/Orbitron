@@ -2,6 +2,12 @@
 name = "orbitron"
 version = "0.1.1"
 edition = "2021"
+description = "A compiled, multi-backend programming language — targets LLVM IR (native) and JVM bytecode"
+keywords = ["compiler", "language", "llvm", "jvm", "programming-language"]
+categories = ["compilers", "command-line-utilities"]
+license = "MIT"
+repository = "https://github.com/alex-pyslar/Orbitron"
+readme = "README.md"
 
 [dependencies]
 inkwell = { git = "https://github.com/TheDan64/inkwell", branch = "master", features = ["llvm18-1-prefer-dynamic"] }

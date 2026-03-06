@@ -37,31 +37,31 @@ pub struct BuildOpts {
 
 pub fn print_help() {
     println!(
-"Orbitron {ver} — компилятор языка .ot
+"Orbitron {ver} — compiler for the .ot language
 
-ИСПОЛЬЗОВАНИЕ:
-  orbitron new <имя>                  Создать новый проект
-  orbitron build [опции]              Собрать проект (ищет orbitron.toml)
-  orbitron run   [опции]              Собрать и запустить проект
-  orbitron [опции] <файл.ot>          Скомпилировать один файл
+USAGE:
+  orbitron new <name>            Create a new project
+  orbitron build [options]       Build the project (searches for orbitron.toml)
+  orbitron run   [options]       Build and run the project
+  orbitron [options] <file.ot>   Compile a single file
 
-ОПЦИИ:
-  -h, --help              Вывести справку и выйти
-      --version           Вывести версию и выйти
-  -o <файл>               Имя выходного файла
-      --backend llvm|jvm  Бэкенд компиляции (по умолчанию: llvm)
-      --emit-llvm         Сохранить LLVM IR и не компилировать дальше (llvm)
-      --emit-java         Сохранить Java источник и не компилировать дальше (jvm)
-      --save-temps        Сохранить промежуточные файлы
-  -v, --verbose           Выводить шаги компиляции
+OPTIONS:
+  -h, --help              Show this help and exit
+      --version           Show version and exit
+  -o <file>               Output file name
+      --backend llvm|jvm  Compilation backend (default: llvm)
+      --emit-llvm         Save LLVM IR and stop (llvm backend)
+      --emit-java         Save Java source and stop (jvm backend)
+      --save-temps        Keep intermediate files (.ll, .s)
+  -v, --verbose           Print compilation steps
 
-БЭКЕНДЫ:
-  llvm   → нативный бинарник (через llc + clang)
-  jvm    → байткод JVM (через javac + jar, запуск: java -jar ...)
-           Работает на стандартной JVM и GraalVM JDK.
-           GraalVM нативный образ: native-image -jar <файл>.jar
+BACKENDS:
+  llvm   -> native binary (via llc + clang)
+  jvm    -> JVM bytecode  (via javac + jar, run with: java -jar ...)
+             Works on standard JVM and GraalVM JDK.
+             GraalVM native image: native-image -jar <file>.jar
 
-КОНФИГУРАЦИЯ ПРОЕКТА (orbitron.toml):
+PROJECT CONFIG (orbitron.toml):
   [project]
   name = \"myapp\"
   version = \"0.1.0\"
@@ -69,38 +69,40 @@ pub fn print_help() {
   [build]
   main    = \"src/main.ot\"
   output  = \"bin/myapp\"
-  backend = \"llvm\"    # или \"jvm\"
+  backend = \"llvm\"    # or \"jvm\"
 
-СТАНДАРТНАЯ БИБЛИОТЕКА:
-  import \"std/math\";   # математические функции (abs, max, min, gcd, ...)
-  import \"std/bits\";   # битовые операции (bit_count, is_pow2, ...)
-  import \"std/algo\";   # вспомогательные алгоритмы (min3, max3, lerp, ...)
+STANDARD LIBRARY:
+  import \"std/math\";   # math functions (abs, max, min, gcd, ...)
+  import \"std/bits\";   # bit operations (bit_count, is_pow2, ...)
+  import \"std/algo\";   # algorithms (min3, max3, lerp, ipow, ...)
+  import \"std/sys\";    # Linux syscalls (sys_alloc, sys_write, ...)
+  import \"std/net\";    # networking (tcp_socket, tcp_connect, ...)
 
-  Папка stdlib/ должна лежать рядом с бинарником orbitron,
-  либо установите переменную окружения ORBITRON_HOME.
+  stdlib/ must be next to the orbitron binary,
+  or set the ORBITRON_HOME environment variable.
 
-ПРИМЕРЫ:
-  orbitron new mycalc                     # создать проект
-  cd mycalc && orbitron build             # собрать (llvm)
-  cd mycalc && orbitron run               # запустить
-  orbitron hello.ot                       # один файл (llvm)
-  orbitron hello.ot --backend jvm         # один файл (jvm)
-  orbitron build --backend jvm            # проект (jvm)
-  orbitron build --emit-llvm              # только LLVM IR
-  orbitron build -v                       # подробный вывод
+EXAMPLES:
+  orbitron new mycalc                # create a project
+  cd mycalc && orbitron build        # build (llvm)
+  cd mycalc && orbitron run          # build and run
+  orbitron hello.ot                  # single file (llvm)
+  orbitron hello.ot --backend jvm    # single file (jvm)
+  orbitron build --backend jvm       # project (jvm)
+  orbitron build --emit-llvm         # generate LLVM IR only
+  orbitron build -v                  # verbose output
 
-СТРУКТУРА ПРОЕКТА:
+PROJECT LAYOUT:
   myproject/
   ├── orbitron.toml
   └── src/
       ├── main.ot
       └── utils.ot
 
-ПАЙПЛАЙН (llvm):
-  .ot → Лексер → Парсер → Резолвер → AST → CodeGen → LLVM IR → llc → clang → бинарник
+PIPELINE (llvm):
+  .ot -> Lexer -> Parser -> Resolver -> AST -> CodeGen -> LLVM IR -> llc -> clang -> binary
 
-ПАЙПЛАЙН (jvm):
-  .ot → Лексер → Парсер → Резолвер → AST → JvmCodeGen → Main.java → javac → .jar",
+PIPELINE (jvm):
+  .ot -> Lexer -> Parser -> Resolver -> AST -> JvmCodeGen -> Main.java -> javac -> .jar",
         ver = VERSION
     );
 }
@@ -120,21 +122,21 @@ pub fn parse_build_opts(args: &[String]) -> Result<BuildOpts, String> {
         match args[i].as_str() {
             "-o" => {
                 i += 1;
-                if i >= args.len() { return Err("Флаг -o требует аргумент".into()); }
+                if i >= args.len() { return Err("-o flag requires an argument".into()); }
                 output = Some(args[i].clone());
             }
             "--backend" => {
                 i += 1;
-                if i >= args.len() { return Err("--backend требует аргумент: llvm | jvm".into()); }
+                if i >= args.len() { return Err("--backend requires an argument: llvm | jvm".into()); }
                 backend = Some(Backend::from_str(&args[i])
-                    .ok_or_else(|| format!("Неизвестный бэкенд '{}'. Используйте llvm или jvm", args[i]))?);
+                    .ok_or_else(|| format!("Unknown backend '{}'. Use llvm or jvm", args[i]))?);
             }
             "--emit-llvm"      => emit_llvm  = true,
             "--emit-java"      => emit_java   = true,
             "--save-temps"     => save_temps  = true,
             "-v" | "--verbose" => verbose     = true,
             flag if flag.starts_with('-') => {
-                return Err(format!("Неизвестный флаг '{}'. Используйте -h для справки", flag));
+                return Err(format!("Unknown flag '{}'. Use -h for help", flag));
             }
             _ => {}
         }

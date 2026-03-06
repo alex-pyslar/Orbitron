@@ -5,8 +5,9 @@
 // The underlying C functions are declared with `extern func` and
 // linked automatically (they are part of glibc).
 //
-// Addresses are stored as plain i64 integers (sockaddr_in struct on heap).
-// Use sys_alloc() from std/sys to allocate buffers for send/recv.
+// IMPORTANT: libc socket functions return int (32-bit). Use sign_ext()
+// built-in on results to correctly detect negative error codes (-1).
+// Example:  var rc = sign_ext(connect(fd, addr, 16));
 
 // ── External C socket functions ───────────────────────────────────────────────
 
@@ -49,29 +50,21 @@ const INADDR_LOOPBACK: int = 2130706433;
 const INVALID_SOCKET: int = -1;
 
 // ── sockaddr_in layout (16 bytes) ─────────────────────────────────────────────
-// Offset  Size  Field
-//   0       2   sin_family  (AF_INET = 2)
-//   2       2   sin_port    (big-endian / network byte order)
-//   4       4   sin_addr    (big-endian / network byte order)
-//   8       8   sin_zero    (padding, must be 0)
 const SOCKADDR_IN_SIZE: int = 16;
 
 // Build a sockaddr_in struct at `addr_ptr` (must be 16 bytes allocated).
-// `ip` is the IPv4 address in HOST byte order built with net_ip().
-// `port` is in HOST byte order (e.g., 8080).
 func net_fill_sockaddr(addr_ptr: int, ip: int, port: int): int {
     memset(addr_ptr, 0, 16);
 
-    // sin_family = AF_INET (2) as little-endian 16-bit at offset 0
+    // sin_family = AF_INET (2) at offset 0
     ptr_write_byte(addr_ptr + 0, 2);
     ptr_write_byte(addr_ptr + 1, 0);
 
-    // sin_port in big-endian (network byte order) at offset 2
+    // sin_port in big-endian at offset 2
     ptr_write_byte(addr_ptr + 2, port / 256);
     ptr_write_byte(addr_ptr + 3, port % 256);
 
     // sin_addr in big-endian at offset 4
-    // net_ip(a,b,c,d) = a*16777216 + b*65536 + c*256 + d
     var byte_a = ip / 16777216;
     var byte_b = (ip / 65536) % 256;
     var byte_c = (ip / 256) % 256;
@@ -84,28 +77,28 @@ func net_fill_sockaddr(addr_ptr: int, ip: int, port: int): int {
     return 0;
 }
 
-// Encode IPv4 dotted-decimal as integer: net_ip(127, 0, 0, 1) = 2130706433
+// Encode IPv4 from octets: net_ip(127, 0, 0, 1) = 2130706433
 func net_ip(a: int, b: int, c: int, d: int): int {
     return (a * 16777216) + (b * 65536) + (c * 256) + d;
 }
 
 // ── TCP/UDP helpers ───────────────────────────────────────────────────────────
 
-// Create a TCP socket. Returns fd or -1 on error.
+// Create a TCP socket. Returns fd or negative error.
 func tcp_socket(): int {
-    return socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    return sign_ext(socket(AF_INET, SOCK_STREAM, IPPROTO_TCP));
 }
 
-// Create a UDP socket. Returns fd or -1 on error.
+// Create a UDP socket. Returns fd or negative error.
 func udp_socket(): int {
-    return socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    return sign_ext(socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP));
 }
 
 // Set SO_REUSEADDR on socket. Returns 0 on success.
 func net_reuseaddr(fd: int): int {
     var opt_ptr = syscall(9, 0, 8, 3, 34, -1, 0);
     ptr_write(opt_ptr, 1);
-    var r = setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, opt_ptr, 4);
+    var r = sign_ext(setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, opt_ptr, 4));
     syscall(11, opt_ptr, 8);
     return r;
 }
@@ -114,7 +107,7 @@ func net_reuseaddr(fd: int): int {
 func tcp_connect(fd: int, ip: int, port: int): int {
     var addr = syscall(9, 0, 16, 3, 34, -1, 0);
     net_fill_sockaddr(addr, ip, port);
-    var r = connect(fd, addr, 16);
+    var r = sign_ext(connect(fd, addr, 16));
     syscall(11, addr, 16);
     return r;
 }
@@ -123,32 +116,32 @@ func tcp_connect(fd: int, ip: int, port: int): int {
 func net_bind(fd: int, ip: int, port: int): int {
     var addr = syscall(9, 0, 16, 3, 34, -1, 0);
     net_fill_sockaddr(addr, ip, port);
-    var r = bind(fd, addr, 16);
+    var r = sign_ext(bind(fd, addr, 16));
     syscall(11, addr, 16);
     return r;
 }
 
-// Start listening on a bound socket. Returns 0 on success.
+// Start listening. Returns 0 on success.
 func net_listen(fd: int, backlog: int): int {
-    return listen(fd, backlog);
+    return sign_ext(listen(fd, backlog));
 }
 
-// Accept one connection. Returns the new client fd.
+// Accept one connection. Returns the new client fd or negative error.
 func net_accept(fd: int): int {
-    return accept(fd, 0, 0);
+    return sign_ext(accept(fd, 0, 0));
 }
 
-// Send data from buffer at `buf_addr` (length `len`). Returns bytes sent.
+// Send data. Returns bytes sent or negative error.
 func net_send(fd: int, buf_addr: int, len: int): int {
-    return send(fd, buf_addr, len, 0);
+    return sign_ext(send(fd, buf_addr, len, 0));
 }
 
-// Receive data into buffer at `buf_addr` (up to `len` bytes). Returns bytes received.
+// Receive data. Returns bytes received (0 = closed, negative = error).
 func net_recv(fd: int, buf_addr: int, len: int): int {
-    return recv(fd, buf_addr, len, 0);
+    return sign_ext(recv(fd, buf_addr, len, 0));
 }
 
 // Close a socket.
 func net_close(fd: int): int {
-    return close(fd);
+    return sign_ext(close(fd));
 }

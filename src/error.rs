@@ -10,10 +10,10 @@ pub enum CompileError {
 impl std::fmt::Display for CompileError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            CompileError::Lex(msg)     => write!(f, "Ошибка лексера: {}", msg),
-            CompileError::Parse(msg)   => write!(f, "Ошибка парсера: {}", msg),
-            CompileError::Codegen(msg) => write!(f, "Ошибка кодогенерации: {}", msg),
-            CompileError::Io(msg)      => write!(f, "Ошибка ввода/вывода: {}", msg),
+            CompileError::Lex(msg)     => write!(f, "Lexer error: {}", msg),
+            CompileError::Parse(msg)   => write!(f, "Parse error: {}", msg),
+            CompileError::Codegen(msg) => write!(f, "Codegen error: {}", msg),
+            CompileError::Io(msg)      => write!(f, "I/O error: {}", msg),
         }
     }
 }

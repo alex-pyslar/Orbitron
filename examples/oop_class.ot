@@ -1,12 +1,12 @@
-// oop_class.ot — ООП в стиле Java/C#/Kotlin: class + init
-// Демонстрирует: классы, конструктор init, инкапсуляцию, полиморфизм логики
+// oop_class.ot — OOP Java/C#/Kotlin style: class + init
+// Demonstrates: classes, init constructor, encapsulation, logic polymorphism
 
 class Stack {
     private top:  int,
     private size: int,
 
-    // Стек фиксированного максимального размера
-    // (данные не хранятся — просто счётчик для демонстрации)
+    // Fixed-capacity stack
+    // (no data stored — counter-only for demonstration)
     init(max_size: int) {
         self.top  = 0;
         self.size = max_size;
@@ -109,7 +109,7 @@ func main() {
     println(s.height());   // 4
 
     // --- Timer ---
-    println("=== Timer (шаг 100 мс) ===");
+    println("=== Timer (step 100 ms) ===");
     var t = new Timer(100);
     for i in 0..5 {
         t.tick();
@@ -126,15 +126,15 @@ func main() {
     println(acc.balance()); // 700
 
     var ok = acc.withdraw(300);
-    println(ok);            // 1  (успех)
+    println(ok);            // 1  (success)
     println(acc.balance()); // 400
 
     var fail = acc.withdraw(1000);
-    println(fail);          // 0  (отказ — недостаточно средств)
+    println(fail);          // 0  (rejected — insufficient funds)
     println(acc.balance()); // 400
 
-    // --- Несколько таймеров, разные шаги ---
-    println("=== Два таймера ===");
+    // --- Multiple timers with different step sizes ---
+    println("=== Two timers ===");
     var t1 = new Timer(10);
     var t2 = new Timer(33);
     for i in 0..3 {

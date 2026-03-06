@@ -53,10 +53,10 @@ pub fn compile_llvm(
     let stdlib = find_stdlib();
 
     if opts.verbose {
-        eprintln!("[1/3] Резолвер импортов: {}", entry.display());
+        eprintln!("[1/3] Resolving imports: {}", entry.display());
         match &stdlib {
             Some(p) => eprintln!("[stdlib] {}", p.display()),
-            None    => eprintln!("[stdlib] не найдена"),
+            None    => eprintln!("[stdlib] not found"),
         }
     }
 
@@ -64,12 +64,12 @@ pub fn compile_llvm(
     let program = resolver::resolve(entry, src_root, stdlib.as_deref(), &mut visited)
         .map_err(CompileError::Parse)?;
 
-    if opts.verbose { eprintln!("[2/3] Генерация LLVM IR → {}", output); }
+    if opts.verbose { eprintln!("[2/3] Generating LLVM IR -> {}", output); }
     let ctx = Context::create();
     let mut cg = CodeGen::new("orbitron", &ctx);
     cg.generate_program(&program);
 
-    if opts.verbose { eprintln!("[3/3] Компиляция → {}", output); }
+    if opts.verbose { eprintln!("[3/3] Compiling -> {}", output); }
     cg.save_and_compile(output, opts).map_err(CompileError::Codegen)
 }
 
@@ -84,16 +84,16 @@ pub fn compile_jvm(
     let stdlib = find_stdlib();
 
     if opts.verbose {
-        eprintln!("[1/2] Резолвер импортов: {}", entry.display());
+        eprintln!("[1/2] Resolving imports: {}", entry.display());
         match &stdlib {
             Some(p) => eprintln!("[stdlib] {}", p.display()),
-            None    => eprintln!("[stdlib] не найдена"),
+            None    => eprintln!("[stdlib] not found"),
         }
     }
 
     let mut visited = HashSet::new();
     let program = resolver::resolve(entry, src_root, stdlib.as_deref(), &mut visited)?;
 
-    if opts.verbose { eprintln!("[2/2] JVM кодогенерация → {}.jar", output); }
+    if opts.verbose { eprintln!("[2/2] JVM codegen -> {}.jar", output); }
     crate::jvm::generate_and_compile(&program, output, opts)
 }
