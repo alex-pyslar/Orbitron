@@ -1,0 +1,109 @@
+// examples/06_stdlib/math_demo.ot
+// Демонстрирует все функции и константы модуля std/math.
+
+import "std/math";
+
+func main() {
+    println("=== std/math — Математика ===");
+
+    // --- Константы ---
+    println("\n-- Константы --");
+    println(PI);          // 3.141593 (float)
+    println(E);           // 2.718282 (float)
+    println(INT_MAX);     // 9223372036854775807
+
+    // --- abs: абсолютное значение ---
+    println("\n-- abs --");
+    println(abs(42));     // 42
+    println(abs(-42));    // 42
+    println(abs(0));      // 0
+
+    // --- max, min ---
+    println("\n-- max, min --");
+    println(max(10, 20));    // 20
+    println(max(-5, -3));    // -3
+    println(min(10, 20));    // 10
+    println(min(-5, -3));    // -5
+
+    // --- clamp ---
+    println("\n-- clamp(val, lo, hi) --");
+    println(clamp(50, 0, 100));    // 50
+    println(clamp(150, 0, 100));   // 100
+    println(clamp(-10, 0, 100));   // 0
+    println(clamp(0, 0, 100));     // 0
+    println(clamp(100, 0, 100));   // 100
+
+    // --- factorial ---
+    println("\n-- factorial --");
+    for i in 0..=10 {
+        println(factorial(i));
+    }
+    // 1 1 2 6 24 120 720 5040 40320 362880 3628800
+
+    // --- fib ---
+    println("\n-- fib (числа Фибоначчи) --");
+    for i in 0..15 {
+        println(fib(i));
+    }
+    // 0 1 1 2 3 5 8 13 21 34 55 89 144 233 377
+
+    // --- gcd, lcm ---
+    println("\n-- gcd, lcm --");
+    println(gcd(48, 18));       // 6
+    println(gcd(100, 75));      // 25
+    println(gcd(17, 13));       // 1 (взаимно простые)
+    println(gcd(0, 5));         // 5
+    println(lcm(4, 6));         // 12
+    println(lcm(15, 10));       // 30
+    println(lcm(7, 11));        // 77
+
+    // --- sum_range ---
+    println("\n-- sum_range(a, b) --");
+    println(sum_range(1, 10));      // 55
+    println(sum_range(1, 100));     // 5050
+    println(sum_range(0, 0));       // 0
+    println(sum_range(5, 5));       // 5
+    println(sum_range(-5, 5));      // 0
+
+    // --- sign ---
+    println("\n-- sign --");
+    println(sign(-100));    // -1
+    println(sign(0));       //  0
+    println(sign(100));     //  1
+
+    // --- is_prime ---
+    println("\n-- is_prime --");
+    println(is_prime(1));    // 0 — 1 не является простым
+    println(is_prime(2));    // 1
+    println(is_prime(3));    // 1
+    println(is_prime(4));    // 0
+    println(is_prime(97));   // 1
+    println(is_prime(100));  // 0
+
+    // Простые числа до 50
+    println("\nПростые числа до 50:");
+    for i in 2..=50 {
+        if (is_prime(i)) {
+            println(i);
+        }
+    }
+
+    // --- Практический пример ---
+    println("\n-- Пример: НОД и НОК для набора чисел --");
+    var a = 12;
+    var b = 18;
+    var c = 24;
+
+    var g = gcd(gcd(a, b), c);
+    println($"НОД({a},{b},{c}) = {g}");   // 6
+
+    var l = lcm(lcm(a, b), c);
+    println($"НОК({a},{b},{c}) = {l}");   // 72
+
+    // --- Использование PI ---
+    println("\n-- Вычисления с PI --");
+    // Площадь круга: π * r^2 (float)
+    var r = 5;
+    var area_float = PI * r * r;   // PI — float, r повышается
+    println($"Площадь круга r={r}: {area_float}");   // ≈ 78.54
+}

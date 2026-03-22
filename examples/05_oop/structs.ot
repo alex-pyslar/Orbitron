@@ -1,0 +1,218 @@
+// examples/05_oop/structs.ot
+// Демонстрирует стиль ООП в духе Go/Rust: struct + impl.
+// Несколько структур: Vec2, Circle, Rectangle, Complex.
+
+// === Двумерный вектор ===
+struct Vec2 {
+    x: int,
+    y: int,
+}
+
+impl Vec2 {
+    pub func len_sq(self): int {
+        return self.x * self.x + self.y * self.y;
+    }
+
+    pub func dot(self, ox: int, oy: int): int {
+        return self.x * ox + self.y * oy;
+    }
+
+    pub func add(self, ox: int, oy: int) {
+        self.x += ox;
+        self.y += oy;
+    }
+
+    pub func scale(self, factor: int) {
+        self.x *= factor;
+        self.y *= factor;
+    }
+
+    pub func manhattan(self): int {
+        var ax = self.x >= 0 ? self.x : -self.x;
+        var ay = self.y >= 0 ? self.y : -self.y;
+        return ax + ay;
+    }
+
+    pub func is_zero(self): int {
+        return self.x == 0 && self.y == 0 ? 1 : 0;
+    }
+
+    pub func describe(self) {
+        println($"Vec2({self.x}, {self.y})");
+    }
+}
+
+// === Окружность ===
+struct Circle {
+    cx: int,
+    cy: int,
+    r:  int,
+}
+
+impl Circle {
+    // Площадь * 100 (без float, π ≈ 3.14)
+    pub func area_x100(self): int {
+        return 314 * self.r * self.r / 100;
+    }
+
+    // Длина окружности * 10 (2π ≈ 6.28)
+    pub func perim_x10(self): int {
+        return 628 * self.r / 100;
+    }
+
+    pub func contains(self, px: int, py: int): int {
+        var dx = px - self.cx;
+        var dy = py - self.cy;
+        return dx*dx + dy*dy <= self.r * self.r ? 1 : 0;
+    }
+
+    pub func area_approx(self): int {
+        return self.area_x100() / 100;
+    }
+
+    pub func describe(self) {
+        var a = self.area_approx();
+        println($"Circle(cx={self.cx}, cy={self.cy}, r={self.r}, area≈{a})");
+    }
+}
+
+// === Прямоугольник ===
+struct Rect {
+    x: int,
+    y: int,
+    w: int,
+    h: int,
+}
+
+impl Rect {
+    pub func area(self):      int { return self.w * self.h; }
+    pub func perimeter(self): int { return 2 * (self.w + self.h); }
+    pub func is_square(self): int { return self.w == self.h ? 1 : 0; }
+
+    pub func contains(self, px: int, py: int): int {
+        if (px < self.x || px > self.x + self.w) { return 0; }
+        if (py < self.y || py > self.y + self.h) { return 0; }
+        return 1;
+    }
+
+    pub func scale(self, factor: int) {
+        self.w *= factor;
+        self.h *= factor;
+    }
+
+    pub func describe(self) {
+        var a = self.area();
+        var p = self.perimeter();
+        println($"Rect({self.x},{self.y}) {self.w}x{self.h}: area={a}, perim={p}");
+    }
+}
+
+// === Комплексное число (целочисленная часть) ===
+struct Complex {
+    re: int,
+    im: int,
+}
+
+impl Complex {
+    pub func add(self, ore: int, oim: int) {
+        self.re += ore;
+        self.im += oim;
+    }
+
+    pub func mul(self, ore: int, oim: int) {
+        var new_re = self.re * ore - self.im * oim;
+        var new_im = self.re * oim + self.im * ore;
+        self.re = new_re;
+        self.im = new_im;
+    }
+
+    pub func abs_sq(self): int {
+        return self.re * self.re + self.im * self.im;
+    }
+
+    pub func conjugate(self) {
+        self.im = -self.im;
+    }
+
+    pub func describe(self) {
+        if (self.im >= 0) {
+            println($"({self.re} + {self.im}i)");
+        } else {
+            var abs_im = -self.im;
+            println($"({self.re} - {abs_im}i)");
+        }
+    }
+}
+
+func main() {
+    println("=== struct + impl (стиль Go/Rust) ===");
+
+    // --- Vec2 ---
+    println("\n-- Vec2 --");
+    var v = Vec2 { x: 3, y: 4 };
+    v.describe();
+    println($"  len_sq = {v.len_sq()}");     // 25
+    println($"  manhattan = {v.manhattan()}");  // 7
+    println($"  dot(1,0) = {v.dot(1, 0)}");  // 3
+
+    v.add(1, -1);
+    v.describe();                             // Vec2(4, 3)
+
+    v.scale(2);
+    v.describe();                             // Vec2(8, 6)
+
+    println($"  is_zero = {v.is_zero()}");    // 0
+
+    var zero = Vec2 { x: 0, y: 0 };
+    println($"  is_zero (нулевой) = {zero.is_zero()}");  // 1
+
+    // --- Circle ---
+    println("\n-- Circle --");
+    var c = Circle { cx: 0, cy: 0, r: 5 };
+    c.describe();
+    println($"  contains(3,4) = {c.contains(3, 4)}");    // 1 (3^2+4^2=25)
+    println($"  contains(4,4) = {c.contains(4, 4)}");    // 0 (4^2+4^2=32>25)
+    println($"  contains(0,5) = {c.contains(0, 5)}");    // 1 (граница)
+
+    // --- Rect ---
+    println("\n-- Rect --");
+    var r = Rect { x: 0, y: 0, w: 5, h: 3 };
+    r.describe();
+    println($"  is_square = {r.is_square()}");     // 0
+    println($"  contains(3,2) = {r.contains(3,2)}");  // 1
+    println($"  contains(6,2) = {r.contains(6,2)}");  // 0
+
+    r.scale(2);
+    r.describe();    // 10x6
+
+    var sq = Rect { x: 1, y: 1, w: 7, h: 7 };
+    println($"  квадрат? {sq.is_square()}");      // 1
+
+    // --- Complex ---
+    println("\n-- Complex --");
+    var z = Complex { re: 3, im: 4 };
+    z.describe();                               // (3 + 4i)
+    println($"  |z|^2 = {z.abs_sq()}");         // 25
+
+    z.conjugate();
+    z.describe();                               // (3 - 4i)
+
+    var w = Complex { re: 1, im: 2 };
+    w.mul(3, 4);    // (1+2i)*(3+4i) = (3-8)+(4+6)i = (-5+10i)
+    w.describe();
+
+    // --- Несколько экземпляров ---
+    println("\n-- Массив из Vec2 (через несколько переменных) --");
+    var v1 = Vec2 { x: 1,  y: 0 };
+    var v2 = Vec2 { x: 0,  y: 1 };
+    var v3 = Vec2 { x: -1, y: 0 };
+    var v4 = Vec2 { x: 0,  y: -1 };
+
+    v1.describe();
+    v2.describe();
+    v3.describe();
+    v4.describe();
+
+    println($"len_sq всех = {v1.len_sq()}, {v2.len_sq()}, {v3.len_sq()}, {v4.len_sq()}");
+    // 1 1 1 1 (единичные векторы)
+}

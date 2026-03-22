@@ -1,0 +1,104 @@
+// src/shapes.ot — геометрические фигуры
+
+import "vectors";
+
+enum ShapeType { Circle, Rectangle, Triangle }
+
+struct Circle {
+    cx: int,
+    cy: int,
+    r:  int,
+}
+
+impl Circle {
+    pub func area_x100(self): int {
+        return 314 * self.r * self.r / 100;
+    }
+
+    pub func perimeter_x10(self): int {
+        return 628 * self.r / 100;
+    }
+
+    pub func contains(self, px: int, py: int): int {
+        var dx = px - self.cx;
+        var dy = py - self.cy;
+        return dx*dx + dy*dy <= self.r*self.r ? 1 : 0;
+    }
+
+    pub func describe(self) {
+        var a = self.area_x100();
+        println($"Окружность: центр=({self.cx},{self.cy}), r={self.r}, площадь≈{a}/100");
+    }
+}
+
+struct Rect {
+    x: int,
+    y: int,
+    w: int,
+    h: int,
+}
+
+impl Rect {
+    pub func area(self): int      { return self.w * self.h; }
+    pub func perimeter(self): int { return 2*(self.w + self.h); }
+    pub func is_square(self): int { return self.w == self.h ? 1 : 0; }
+
+    pub func contains(self, px: int, py: int): int {
+        if (px < self.x || px > self.x + self.w) { return 0; }
+        if (py < self.y || py > self.y + self.h) { return 0; }
+        return 1;
+    }
+
+    pub func scale(self, f: int) {
+        self.w *= f;
+        self.h *= f;
+    }
+
+    pub func describe(self) {
+        var a = self.area();
+        var p = self.perimeter();
+        println($"Прямоугольник: ({self.x},{self.y}) {self.w}x{self.h}, площадь={a}, периметр={p}");
+    }
+}
+
+struct Triangle {
+    a: int,
+    b: int,
+    c: int,
+}
+
+impl Triangle {
+    pub func is_valid(self): int {
+        if (self.a + self.b <= self.c) { return 0; }
+        if (self.b + self.c <= self.a) { return 0; }
+        if (self.a + self.c <= self.b) { return 0; }
+        return 1;
+    }
+
+    pub func perimeter(self): int { return self.a + self.b + self.c; }
+
+    pub func is_equilateral(self): int {
+        return self.a == self.b && self.b == self.c ? 1 : 0;
+    }
+
+    pub func is_isosceles(self): int {
+        return (self.a == self.b || self.b == self.c || self.a == self.c) ? 1 : 0;
+    }
+
+    pub func is_right(self): int {
+        // Проверка теоремы Пифагора (a^2 + b^2 == c^2 или перестановки)
+        var a2 = self.a * self.a;
+        var b2 = self.b * self.b;
+        var c2 = self.c * self.c;
+        if (a2 + b2 == c2) { return 1; }
+        if (a2 + c2 == b2) { return 1; }
+        if (b2 + c2 == a2) { return 1; }
+        return 0;
+    }
+
+    pub func describe(self) {
+        var p = self.perimeter();
+        var v = self.is_valid();
+        println($"Треугольник: ({self.a},{self.b},{self.c}), периметр={p}, допустим={v}");
+    }
+}

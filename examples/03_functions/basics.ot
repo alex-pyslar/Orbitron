@@ -1,0 +1,138 @@
+// examples/03_functions/basics.ot
+// Демонстрирует: объявление и вызов функций, параметры,
+// возвращаемые значения, область видимости, взаимная рекурсия.
+
+const PI_INT: int = 3;   // приближение
+
+// --- Функции без возвращаемого значения ---
+func greet() {
+    println("Привет из функции!");
+}
+
+func greet_n(n: int) {
+    println($"Привет {n} раз!");
+}
+
+// --- Функции с возвращаемым значением ---
+func square(n: int): int  { return n * n; }
+func cube(n: int):   int  { return n * n * n; }
+func abs(n: int):    int  { return n >= 0 ? n : -n; }
+
+// --- Несколько параметров ---
+func add(a: int, b: int): int { return a + b; }
+func mul(a: int, b: int): int { return a * b; }
+
+func max2(a: int, b: int): int { return a > b ? a : b; }
+func min2(a: int, b: int): int { return a < b ? a : b; }
+
+func clamp(x: int, lo: int, hi: int): int {
+    if (x < lo) { return lo; }
+    if (x > hi) { return hi; }
+    return x;
+}
+
+// --- Ранний return ---
+func classify(n: int): int {
+    if (n > 0) { return 1; }    // положительное
+    if (n < 0) { return -1; }   // отрицательное
+    return 0;                    // ноль
+}
+
+// --- Сумма от 1 до n ---
+func sum_to(n: int): int {
+    var total = 0;
+    for i in 1..=n { total += i; }
+    return total;
+}
+
+// --- Площадь трапеции ---
+func trapezoid_area(a: int, b: int, h: int): int {
+    return (a + b) * h / 2;
+}
+
+// --- Високосный год ---
+func is_leap(year: int): int {
+    if (year % 400 == 0) { return 1; }
+    if (year % 100 == 0) { return 0; }
+    if (year % 4   == 0) { return 1; }
+    return 0;
+}
+
+// --- Взаимная рекурсия ---
+func is_even(n: int): int {
+    if (n == 0) { return 1; }
+    return is_odd(n - 1);
+}
+
+func is_odd(n: int): int {
+    if (n == 0) { return 0; }
+    return is_even(n - 1);
+}
+
+// --- Простое ли число ---
+func is_prime(n: int): int {
+    if (n < 2)    { return 0; }
+    if (n == 2)   { return 1; }
+    if (n % 2 == 0) { return 0; }
+    var i = 3;
+    while (i * i <= n) {
+        if (n % i == 0) { return 0; }
+        i += 2;
+    }
+    return 1;
+}
+
+func main() {
+    println("=== Функции ===");
+
+    // Вызов без возвращаемого значения
+    greet();
+    greet_n(3);
+
+    // Вызов с захватом результата
+    var s = square(7);
+    var c = cube(3);
+    println($"7^2 = {s}");       // 49
+    println($"3^3 = {c}");       // 27
+    println($"|{-42}| = {abs(-42)}");   // 42
+
+    println("");
+    println("=== Несколько параметров ===");
+    println(add(10, 20));         // 30
+    println(mul(6, 7));           // 42
+    println(max2(15, 8));         // 15
+    println(min2(15, 8));         // 8
+    println(clamp(150, 0, 100));  // 100
+    println(clamp(-5, 0, 100));   // 0
+    println(clamp(50, 0, 100));   // 50
+
+    println("");
+    println("=== Classify ===");
+    println(classify(42));    // 1
+    println(classify(-7));    // -1
+    println(classify(0));     // 0
+
+    println("");
+    println("=== Накопление ===");
+    println(sum_to(10));     // 55
+    println(sum_to(100));    // 5050
+    println(trapezoid_area(5, 7, 4));  // 24
+
+    println("");
+    println("=== Функции — условная логика ===");
+    println(is_leap(2024));   // 1
+    println(is_leap(1900));   // 0
+    println(is_leap(2000));   // 1
+
+    println("");
+    println("=== Взаимная рекурсия ===");
+    println(is_even(10));    // 1
+    println(is_even(7));     // 0
+    println(is_odd(7));      // 1
+
+    println("");
+    println("=== Простые числа до 30 ===");
+    for i in 2..=30 {
+        if (is_prime(i)) { println(i); }
+    }
+}

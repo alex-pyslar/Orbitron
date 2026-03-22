@@ -1,0 +1,120 @@
+// examples/02_control_flow/conditionals.ot
+// Демонстрирует: if/else if/else, unless, тернарный оператор.
+
+func main() {
+    println("=== Условные операторы ===");
+
+    // --- if / else ---
+    println("\n-- if / else --");
+    var x = 42;
+
+    if (x > 0) {
+        println("x положительное");
+    } else if (x < 0) {
+        println("x отрицательное");
+    } else {
+        println("x равно нулю");
+    }
+
+    // --- Цепочка else if ---
+    println("\n-- Оценка по баллу --");
+    var score = 78;
+
+    if (score >= 90) {
+        println("Отлично (A)");
+    } else if (score >= 80) {
+        println("Хорошо (B)");
+    } else if (score >= 70) {
+        println("Удовлетворительно (C)");
+    } else if (score >= 60) {
+        println("Ниже среднего (D)");
+    } else {
+        println("Не сдано (F)");
+    }
+
+    println($"Балл: {score}");
+
+    // --- Вложенные if ---
+    println("\n-- Вложенные условия --");
+    var age    = 20;
+    var income = 45000;
+
+    if (age >= 18) {
+        println("Совершеннолетний");
+        if (income >= 30000) {
+            println("Может оформить кредит");
+        } else {
+            println("Доход слишком низкий");
+        }
+    } else {
+        println("Несовершеннолетний — кредит недоступен");
+    }
+
+    // --- Логические операторы в условии ---
+    println("\n-- Логика в условиях --");
+    var a = 5;
+    var b = 10;
+    var c = 3;
+
+    if (a > 0 && b > 0 && c > 0) {
+        println("Все три положительные");
+    }
+
+    if (a > b || a > c) {
+        println("a больше хотя бы одного");
+    }
+
+    if (!(a == b)) {
+        println("a не равно b");
+    }
+
+    // --- unless ---
+    println("\n-- unless (Ruby-стиль) --");
+    var divisor = 7;
+
+    unless (divisor == 0) {
+        println($"100 / {divisor} = {100 / divisor}");
+    }
+
+    var is_error = false;
+    unless (is_error) {
+        println("Ошибок нет — продолжаем");
+    }
+
+    var count = 0;
+    unless (count > 0) {
+        println("Список пуст");
+    }
+
+    // --- Тернарный оператор ---
+    println("\n-- Тернарный оператор ? : --");
+
+    var n = -9;
+    var abs_n = n >= 0 ? n : -n;
+    println($"|{n}| = {abs_n}");
+
+    var temp = 25;
+    var weather = temp >= 20 ? 1 : 0;   // 1 = тепло, 0 = холодно
+    println($"temp={temp}, тепло={weather}");
+
+    // Цепочка тернарных операторов
+    var s = 85;
+    var grade = s >= 90 ? 4 :
+                s >= 80 ? 3 :
+                s >= 70 ? 2 :
+                s >= 60 ? 1 : 0;
+    println($"s={s} → оценка={grade}");
+
+    // --- Тернарный в вычислениях ---
+    println("\n-- Тернарный в вычислениях --");
+    var m = 7;
+    var k = 4;
+
+    var max = m > k ? m : k;
+    var min = m < k ? m : k;
+    var sign = m > 0 ? 1 : m < 0 ? -1 : 0;
+
+    println($"max({m},{k}) = {max}");   // 7
+    println($"min({m},{k}) = {min}");   // 4
+    println($"sign({m})    = {sign}");  // 1
+}

@@ -1,82 +1,82 @@
 # Orbitron
 
-**A compiled, multi-backend programming language with clean, expressive syntax.**
+**Компилируемый язык программирования с двумя бэкендами и чистым выразительным синтаксисом.**
 
-Orbitron compiles `.ot` source files to native binaries via LLVM IR, or to cross-platform JVM bytecode (`.jar`). Its syntax blends the best ideas from Go, Rust, Python, Ruby, Elixir, C#, Kotlin, and Java into a single coherent language.
+Orbitron компилирует файлы `.ot` в нативные бинарники через LLVM IR или в кросс-платформенный байткод JVM (`.jar`). Синтаксис сочетает лучшие идеи из Go, Rust, Python, Ruby, Elixir, C#, Kotlin и Java в единой системе.
 
 ```orbitron
 func main() {
     var name = "Orbitron";
     var version = 2;
-    println($"Welcome to {name} v{version}!");
+    println($"Добро пожаловать в {name} v{version}!");
 
     var primes = [2, 3, 5, 7, 11];
     var sum = 0;
     for i in 0..5 { sum += primes[i]; }
-    println($"Sum of first 5 primes: {sum}");
+    println($"Сумма первых 5 простых: {sum}");
 }
 ```
 
 ---
 
-## Features
+## Особенности языка
 
-| Feature | Syntax | Origin |
-|---------|--------|--------|
-| Variables | `var x = 42;` | |
-| Constants | `const MAX: int = 100;` | Rust, C++ |
-| String interpolation | `$"val = {x}"` | C#, Kotlin |
-| Power operator | `2 ** 10` | Python |
-| Pipe operator | `x \|> double \|> inc` | Elixir, F# |
-| `unless` conditional | `unless (x == 0) { }` | Ruby |
-| Arrays | `var a = [1, 2, 3];` | Python, JS |
-| Enums | `enum Dir { North, South }` | Rust, Swift |
-| Deferred execution | `defer println("done");` | Go |
-| Repeat N times | `repeat 5 { }` | Lua, Pascal |
-| Ternary operator | `a > b ? a : b` | C, Java |
-| Structs + methods | `struct Foo { } impl Foo { }` | Go, Rust |
-| Classes | `class Foo { init() { } }` | Java, Kotlin |
-| Raw syscalls | `syscall(SYS_WRITE, STDOUT, buf, n);` | C |
-| Extern C | `extern func socket(...): int;` | C |
+| Возможность | Синтаксис | Источник вдохновения |
+|-------------|-----------|----------------------|
+| Переменные | `var x = 42;` | |
+| Константы | `const MAX: int = 100;` | Rust, C++ |
+| Интерполяция строк | `$"val = {x}"` | C#, Kotlin |
+| Оператор степени | `2 ** 10` | Python |
+| Оператор конвейера | `x \|> double \|> inc` | Elixir, F# |
+| `unless` — инверсный if | `unless (x == 0) { }` | Ruby |
+| Массивы | `var a = [1, 2, 3];` | Python, JS |
+| Перечисления (enum) | `enum Dir { North, South }` | Rust, Swift |
+| Отложенное выполнение | `defer println("готово");` | Go |
+| Повтор N раз | `repeat 5 { }` | Lua, Pascal |
+| Тернарный оператор | `a > b ? a : b` | C, Java |
+| Структуры + методы | `struct Foo { } impl Foo { }` | Go, Rust |
+| Классы | `class Foo { init() { } }` | Java, Kotlin |
+| Прямые системные вызовы | `syscall(SYS_WRITE, STDOUT, buf, n);` | C |
+| Внешние C-функции | `extern func socket(...): int;` | C |
 
 ---
 
-## Quick Start
+## Быстрый старт
 
 ```bash
-# Build the compiler (requires Rust + LLVM 18)
+# Сборка компилятора (требует Rust + LLVM 18)
 cargo build --release
 
-# Compile and run a single file
-./target/release/orbitron examples/hello.ot && ./hello
+# Компиляция и запуск одного файла
+./target/release/orbitron examples/01_basics/hello.ot && ./hello
 
-# Create a new project
+# Создание нового проекта
 ./target/release/orbitron new myapp
 cd myapp
 ../target/release/orbitron run
 ```
 
-**On Windows — use WSL:**
+**На Windows — через WSL:**
 
 ```bash
 wsl -e bash -c "cd /mnt/c/source/Orbitron && cargo build --release 2>&1"
-wsl -e bash -c "cd /mnt/c/source/Orbitron && ./target/release/orbitron examples/hello.ot && ./hello"
+wsl -e bash -c "cd /mnt/c/source/Orbitron && ./target/release/orbitron examples/01_basics/hello.ot && ./hello"
 ```
 
 ---
 
-## Installation
+## Установка
 
-### Prerequisites
+### Требования
 
-| Tool | Purpose |
-|------|---------|
-| Rust + Cargo | Build the compiler |
-| LLVM 18 (`llc`, `clang`) | LLVM backend — native binary output |
-| JDK 11+ (`javac`, `jar`) | JVM backend — `.jar` output |
-| `libm` | Math operations (`**` operator) |
+| Инструмент | Назначение |
+|-----------|-----------|
+| Rust + Cargo | Сборка компилятора |
+| LLVM 18 (`llc`, `clang`) | Бэкенд LLVM — нативный бинарник |
+| JDK 11+ (`javac`, `jar`) | Бэкенд JVM — выходной `.jar` |
+| `libm` | Математические операции (оператор `**`) |
 
-### Build from Source
+### Сборка из исходников
 
 ```bash
 git clone https://github.com/alex-pyslar/Orbitron
@@ -84,9 +84,9 @@ cd Orbitron
 cargo build --release
 ```
 
-The compiler binary is `target/release/orbitron`.
+Бинарник компилятора: `target/release/orbitron`.
 
-The standard library is in `stdlib/`. It must be next to the binary, or set `ORBITRON_HOME`:
+Стандартная библиотека находится в `stdlib/` рядом с бинарником, или задайте переменную окружения:
 
 ```bash
 export ORBITRON_HOME=/path/to/Orbitron
@@ -94,20 +94,20 @@ export ORBITRON_HOME=/path/to/Orbitron
 
 ---
 
-## Language Tour
+## Краткий тур по языку
 
-### Variables and Types
+### Переменные и типы
 
 ```orbitron
 var x = 42;           // int (i64)
-var pi: float = 3.14; // float (f64) — type annotation optional
+var pi: float = 3.14; // float (f64) — аннотация типа необязательна
 var flag = true;      // true == 1, false == 0
 
 const MAX: int   = 1000;
 const TAX: float = 0.2;
 ```
 
-### Functions
+### Функции
 
 ```orbitron
 func add(a: int, b: int): int {
@@ -119,40 +119,40 @@ func main() {
 }
 ```
 
-### Control Flow
+### Управление потоком
 
 ```orbitron
 if (score >= 90) {
-    println("Excellent");
+    println("Отлично");
 } else if (score >= 70) {
-    println("Good");
+    println("Хорошо");
 } else {
-    println("Keep going");
+    println("Продолжай");
 }
 
-// unless — runs when condition is FALSE (inspired by Ruby)
+// unless — выполняется когда условие ЛОЖНО (вдохновлён Ruby)
 unless (x == 0) {
-    println(100 / x);  // safe division
+    println(100 / x);  // безопасное деление
 }
 
-// match — pattern matching on integers and enums
+// match — сопоставление по целым числам и enum
 enum Status { Ok, Error, Pending }
 var s = Status.Ok;
 
 match s {
-    Status.Ok      => { println("all good"); }
-    Status.Error   => { println("error!");   }
-    Status.Pending => { println("waiting");  }
-    _              => { println("unknown");  }
+    Status.Ok      => { println("всё хорошо"); }
+    Status.Error   => { println("ошибка!");    }
+    Status.Pending => { println("ожидание");   }
+    _              => { println("неизвестно"); }
 }
 ```
 
-### Loops
+### Циклы
 
 ```orbitron
-for i in 0..10 { }         // exclusive range: 0 to 9
-for i in 0..=10 { }        // inclusive range: 0 to 10
-for i in 0..3, j in 0..3 { }   // nested loops in one line
+for i in 0..10 { }             // исключающий диапазон: 0–9
+for i in 0..=10 { }            // включающий диапазон: 0–10
+for i in 0..3, j in 0..3 { }   // вложенные циклы в одну строку
 
 while (n > 0) { n -= 1; }
 
@@ -160,43 +160,43 @@ do { n += 1; } while (n < 10);
 
 loop { if (done) { break; } }
 
-repeat 5 { counter += 1; }   // exactly 5 times (from Lua / Pascal)
+repeat 5 { counter += 1; }     // ровно 5 раз (из Lua / Pascal)
 ```
 
-### Arrays
+### Массивы
 
 ```orbitron
 var primes = [2, 3, 5, 7, 11, 13];
 
 println(primes[0]);    // 2
-primes[0] = 99;        // mutate
+primes[0] = 99;        // изменение
 
 var sum = 0;
 for i in 0..6 { sum += primes[i]; }
 println(sum);          // 138
 ```
 
-### String Interpolation
+### Интерполяция строк
 
 ```orbitron
 var score = 95;
-var name = 42;
-println($"Score for player {name}: {score}");
+var player = 42;
+println($"Счёт игрока {player}: {score}");
 ```
 
-### Pipe Operator
+### Оператор конвейера `|>`
 
 ```orbitron
 func double(n: int): int { return n * 2; }
 func inc(n: int):    int { return n + 1; }
 func square(n: int): int { return n * n; }
 
-// left-to-right function composition
+// Композиция функций слева направо
 var result = 3 |> double |> inc |> square;  // ((3*2)+1)^2 = 49
 println(result);
 ```
 
-### Structs — Go / Rust Style
+### Структуры — стиль Go/Rust
 
 ```orbitron
 struct Point {
@@ -215,14 +215,14 @@ impl Point {
     }
 }
 
-// struct literal — no `new` keyword
+// Литерал структуры — без ключевого слова new!
 var p = Point { x: 3, y: 4 };
 println(p.dist_sq());   // 25
 p.move_by(1, -1);
 println(p.dist_sq());   // 13
 ```
 
-### Classes — Java / Kotlin Style
+### Классы — стиль Java/Kotlin
 
 ```orbitron
 class BankAccount {
@@ -241,7 +241,7 @@ class BankAccount {
             self.balance -= amount;
             return 1;
         }
-        return 0;  // insufficient funds
+        return 0;  // недостаточно средств
     }
 
     pub func get_balance(self): int {
@@ -252,7 +252,7 @@ class BankAccount {
 var acc = new BankAccount(500);
 acc.deposit(200);
 println(acc.get_balance());   // 700
-println(acc.withdraw(300));   // 1 (success)
+println(acc.withdraw(300));   // 1 (успех)
 println(acc.get_balance());   // 400
 ```
 
@@ -260,15 +260,15 @@ println(acc.get_balance());   // 400
 
 ```orbitron
 func process() {
-    defer println("cleanup");   // always runs last (LIFO order)
-    defer println("closing");   // runs second-to-last
+    defer println("очистка");   // выполняется последним (порядок LIFO)
+    defer println("закрытие");  // выполняется предпоследним
 
-    println("working...");
-    // Output order: working... → closing → cleanup
+    println("работа...");
+    // Порядок вывода: работа... → закрытие → очистка
 }
 ```
 
-### Standard Library
+### Стандартная библиотека
 
 ```orbitron
 import "std/math";
@@ -293,52 +293,52 @@ func main() {
 
 ---
 
-## CLI Reference
+## Справочник CLI
 
 ```
-USAGE:
-  orbitron new <name>            Create a new project
-  orbitron build [options]       Build project (reads orbitron.toml)
-  orbitron run   [options]       Build and run project
-  orbitron <file.ot> [options]   Compile a single file
+ИСПОЛЬЗОВАНИЕ:
+  orbitron new <имя>             Создать новый проект
+  orbitron build [опции]         Собрать проект (читает orbitron.toml)
+  orbitron run   [опции]         Собрать и запустить проект
+  orbitron <file.ot> [опции]     Компилировать один файл
 
-OPTIONS:
-  -h, --help              Show help and exit
-      --version           Show version and exit
-  -o <file>               Output file name
-      --backend llvm|jvm  Compilation backend (default: llvm)
-      --emit-llvm         Save LLVM IR (.ll) and stop
-      --emit-java         Save Java source (.java) and stop
-      --save-temps        Keep intermediate files (.ll, .s)
-  -v, --verbose           Print compilation steps
+ОПЦИИ:
+  -h, --help              Показать справку и выйти
+      --version           Показать версию и выйти
+  -o <файл>               Имя выходного файла
+      --backend llvm|jvm  Бэкенд компиляции (по умолчанию: llvm)
+      --emit-llvm         Сохранить LLVM IR (.ll) и остановиться
+      --emit-java         Сохранить Java-исходник (.java) и остановиться
+      --save-temps        Сохранить промежуточные файлы (.ll, .s)
+  -v, --verbose           Подробный вывод шагов компиляции
 
-BACKENDS:
-  llvm   -> native binary  (requires llc + clang + libm)
-  jvm    -> .jar file      (requires javac + jar; run with java -jar)
+БЭКЕНДЫ:
+  llvm  -> нативный бинарник  (требует llc + clang + libm)
+  jvm   -> файл .jar           (требует javac + jar; запуск: java -jar)
 ```
 
-**Examples:**
+**Примеры:**
 
 ```bash
-orbitron new myapp                # scaffold project
-cd myapp && orbitron run          # build + run (LLVM)
-orbitron hello.ot                 # single file (LLVM)
-orbitron hello.ot --backend jvm   # single file (JVM)
-orbitron build --emit-llvm        # inspect LLVM IR
-orbitron build -v                 # verbose output
+orbitron new myapp                   # создать проект
+cd myapp && orbitron run             # собрать + запустить (LLVM)
+orbitron hello.ot                    # один файл (LLVM)
+orbitron hello.ot --backend jvm      # один файл (JVM)
+orbitron build --emit-llvm           # посмотреть LLVM IR
+orbitron build -v                    # подробный вывод
 ```
 
 ---
 
-## Project Configuration
+## Конфигурация проекта
 
 ```
 myproject/
 ├── orbitron.toml
 ├── src/
-│   ├── main.ot       # entry point — must contain func main()
-│   └── utils.ot      # module (import "utils";)
-└── bin/              # compiled output
+│   ├── main.ot       # точка входа — должна содержать func main()
+│   └── utils.ot      # модуль (import "utils";)
+└── bin/              # скомпилированный вывод
 ```
 
 **orbitron.toml:**
@@ -351,41 +351,42 @@ version = "0.1.0"
 [build]
 main    = "src/main.ot"
 output  = "bin/myapp"
-backend = "llvm"          # or "jvm"
+backend = "llvm"          # или "jvm"
 ```
 
 ---
 
-## Standard Library
+## Стандартная библиотека
 
-| Module | Import | What's inside |
-|--------|--------|--------------|
+| Модуль | Импорт | Содержимое |
+|--------|--------|-----------|
 | math | `import "std/math"` | `abs`, `max`, `min`, `clamp`, `factorial`, `fib`, `gcd`, `lcm`, `sign`, `is_prime`, `PI`, `E`, `INT_MAX` |
 | bits | `import "std/bits"` | `bit_count`, `bit_len`, `is_pow2`, `next_pow2`, `prev_pow2`, `shl`, `shr`, `floor_log2`, `reverse_bits` |
 | algo | `import "std/algo"` | `min3`, `max3`, `median3`, `lerp`, `map_range`, `dist`, `ipow`, `isqrt`, `digit_sum`, `is_palindrome_num`, `cycle` |
-| sys  | `import "std/sys"` | Linux syscall constants, `sys_alloc`, `sys_free`, `sys_write`, `sys_sleep`, `sys_getpid` |
-| net  | `import "std/net"` | `tcp_socket`, `tcp_connect`, `net_send`, `net_recv`, `net_bind`, `net_listen`, `net_accept` |
+| sys  | `import "std/sys"` | Константы системных вызовов Linux, `sys_alloc`, `sys_free`, `sys_write`, `sys_sleep`, `sys_getpid` |
+| net  | `import "std/net"` | `net_socket_tcp/udp`, `tcp_connect`, `net_send`, `net_recv`, `tcp_bind`, `tcp_listen`, `tcp_accept` |
+| db   | `import "std/db"` | Объявления SQLite3 (требует флага `-lsqlite3`) |
 
 ---
 
-## Low-Level Programming
+## Низкоуровневое программирование
 
-Orbitron gives you pointer arithmetic, raw Linux syscalls, and extern C function declarations:
+Orbitron предоставляет арифметику указателей, прямые системные вызовы Linux и объявления внешних C-функций:
 
 ```orbitron
 import "std/sys";
 
 func main() {
-    // Heap allocation
+    // Выделение памяти
     var buf = sys_alloc(64);
 
-    // Write bytes by address
+    // Побайтовая запись по адресу
     ptr_write_byte(buf,     79);   // 'O'
     ptr_write_byte(buf + 1, 114);  // 'r'
     ptr_write_byte(buf + 2, 98);   // 'b'
     ptr_write_byte(buf + 3, 10);   // '\n'
 
-    // Raw Linux syscall: write(stdout, buf, 4)
+    // Прямой системный вызов Linux: write(stdout, buf, 4)
     syscall(SYS_WRITE, STDOUT, buf, 4);
 
     sys_free(buf, 64);
@@ -393,7 +394,7 @@ func main() {
 ```
 
 ```orbitron
-// Declare external C functions
+// Объявление внешних C-функций
 extern func open(path: int, flags: int): int;
 extern func read(fd: int, buf: int, n: int): int;
 extern func close(fd: int): int;
@@ -401,100 +402,156 @@ extern func close(fd: int): int;
 
 ---
 
-## Examples
+## Документация
 
-| File | Topic |
-|------|-------|
-| [`examples/hello.ot`](examples/hello.ot) | Hello World |
-| [`examples/variables.ot`](examples/variables.ot) | Variables, types, constants, interpolation |
-| [`examples/control_flow.ot`](examples/control_flow.ot) | if / else / unless / match |
-| [`examples/loops.ot`](examples/loops.ot) | All loop constructs |
-| [`examples/functions.ot`](examples/functions.ot) | Functions, recursion, pipe operator |
-| [`examples/arrays.ot`](examples/arrays.ot) | Arrays — creation, mutation, iteration |
-| [`examples/structs.ot`](examples/structs.ot) | struct + impl (Go/Rust OOP) |
-| [`examples/classes.ot`](examples/classes.ot) | class + init (Java/Kotlin OOP) |
-| [`examples/enums.ot`](examples/enums.ot) | Enums and pattern matching |
-| [`examples/features.ot`](examples/features.ot) | All 10 language features |
-| [`examples/fibonacci.ot`](examples/fibonacci.ot) | Recursion and iteration |
-| [`examples/sorting.ot`](examples/sorting.ot) | Bubble sort with arrays |
-| [`examples/stdlib_demo.ot`](examples/stdlib_demo.ot) | Standard library showcase |
-| [`examples/syscall_demo.ot`](examples/syscall_demo.ot) | Pointers and raw syscalls |
-| [`examples/net_demo.ot`](examples/net_demo.ot) | TCP networking |
-| [`examples/projects/calculator/`](examples/projects/calculator/) | Multi-file project |
-| [`examples/projects/geometry/`](examples/projects/geometry/) | Multi-file project with imports |
+Полная документация в виде книги расположена в папке `docs/`:
 
----
-
-## Compilation Pipeline
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                         LLVM Backend                         │
-│                                                             │
-│  source.ot  ─►  Lexer  ─►  Parser  ─►  Resolver           │
-│                                            │                │
-│                              Merged AST ◄──┘                │
-│                                  │                          │
-│                              CodeGen  ─►  LLVM IR (.ll)     │
-│                                               │             │
-│                                  llc ◄────────┘             │
-│                                   │                         │
-│                                Assembly (.s)                │
-│                                   │                         │
-│                               clang -lm                     │
-│                                   │                         │
-│                             Native Binary                   │
-└─────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────┐
-│                         JVM Backend                          │
-│                                                             │
-│  source.ot ─► Lexer ─► Parser ─► Resolver ─► JvmCodeGen    │
-│                                                    │        │
-│                              Main.java ◄───────────┘        │
-│                                  │                          │
-│                              javac + jar                    │
-│                                  │                          │
-│                             output.jar                      │
-└─────────────────────────────────────────────────────────────┘
-```
+| Глава | Файл | Содержание |
+|-------|------|-----------|
+| 1 | [`docs/ch01_introduction.md`](docs/ch01_introduction.md) | Введение в Orbitron |
+| 2 | [`docs/ch02_getting_started.md`](docs/ch02_getting_started.md) | Быстрый старт |
+| 3 | [`docs/ch03_basics.md`](docs/ch03_basics.md) | Основы языка |
+| 4 | [`docs/ch04_control_flow.md`](docs/ch04_control_flow.md) | Управление потоком |
+| 5 | [`docs/ch05_functions.md`](docs/ch05_functions.md) | Функции |
+| 6 | [`docs/ch06_collections.md`](docs/ch06_collections.md) | Коллекции: массивы и enum |
+| 7 | [`docs/ch07_oop.md`](docs/ch07_oop.md) | ООП: структуры и классы |
+| 8 | [`docs/ch08_features.md`](docs/ch08_features.md) | 10 особых возможностей |
+| 9 | [`docs/ch09_stdlib.md`](docs/ch09_stdlib.md) | Стандартная библиотека |
+| 10 | [`docs/ch10_projects.md`](docs/ch10_projects.md) | Проекты и модули |
+| 11 | [`docs/ch11_lowlevel.md`](docs/ch11_lowlevel.md) | Низкоуровневое программирование |
+| 12 | [`docs/ch12_backends.md`](docs/ch12_backends.md) | Бэкенды компиляции |
+| — | [`docs/reference.md`](docs/reference.md) | Краткий справочник (шпаргалка) |
+| — | [`docs/SUMMARY.md`](docs/SUMMARY.md) | Оглавление книги |
 
 ---
 
-## Repository Layout
+## Примеры
+
+Примеры организованы по темам в пронумерованных папках:
+
+### 01 — Основы
+| Файл | Тема |
+|------|------|
+| [`examples/01_basics/hello.ot`](examples/01_basics/hello.ot) | Hello World, переменные, интерполяция |
+| [`examples/01_basics/variables.ot`](examples/01_basics/variables.ot) | Типы, константы, операторы |
+| [`examples/01_basics/operators.ot`](examples/01_basics/operators.ot) | Все операторы: арифм., лог., конвейер |
+| [`examples/01_basics/input.ot`](examples/01_basics/input.ot) | Ввод с клавиатуры `readInt` / `readFloat` |
+
+### 02 — Управление потоком
+| Файл | Тема |
+|------|------|
+| [`examples/02_control_flow/conditionals.ot`](examples/02_control_flow/conditionals.ot) | if / else / unless / тернарный |
+| [`examples/02_control_flow/loops.ot`](examples/02_control_flow/loops.ot) | Все виды циклов |
+| [`examples/02_control_flow/match.ot`](examples/02_control_flow/match.ot) | match на числах и enum |
+
+### 03 — Функции
+| Файл | Тема |
+|------|------|
+| [`examples/03_functions/basics.ot`](examples/03_functions/basics.ot) | Объявление, параметры, рекурсия |
+| [`examples/03_functions/recursion.ot`](examples/03_functions/recursion.ot) | Факториал, Фибоначчи, НОД, степень |
+| [`examples/03_functions/pipe.ot`](examples/03_functions/pipe.ot) | Оператор конвейера `\|>` |
+
+### 04 — Коллекции
+| Файл | Тема |
+|------|------|
+| [`examples/04_collections/arrays.ot`](examples/04_collections/arrays.ot) | Массивы, сортировка, поиск |
+| [`examples/04_collections/enums.ot`](examples/04_collections/enums.ot) | Enum: состояния, индексы, match |
+| [`examples/04_collections/sorting.ot`](examples/04_collections/sorting.ot) | Пузырьковая, выборочная, вставка |
+
+### 05 — ООП
+| Файл | Тема |
+|------|------|
+| [`examples/05_oop/structs.ot`](examples/05_oop/structs.ot) | struct + impl (Vec2, Circle, Rect) |
+| [`examples/05_oop/classes.ot`](examples/05_oop/classes.ot) | class + init (счёт, стек, матрица) |
+
+### 06 — Стандартная библиотека
+| Файл | Тема |
+|------|------|
+| [`examples/06_stdlib/math_demo.ot`](examples/06_stdlib/math_demo.ot) | Все функции `std/math` |
+| [`examples/06_stdlib/bits_demo.ot`](examples/06_stdlib/bits_demo.ot) | Все функции `std/bits` |
+| [`examples/06_stdlib/algo_demo.ot`](examples/06_stdlib/algo_demo.ot) | Все функции `std/algo` |
+
+### 07 — Продвинутые темы
+| Файл | Тема |
+|------|------|
+| [`examples/07_advanced/features.ot`](examples/07_advanced/features.ot) | Все 10 особых возможностей |
+| [`examples/07_advanced/syscall_demo.ot`](examples/07_advanced/syscall_demo.ot) | Указатели и прямые системные вызовы |
+| [`examples/07_advanced/net_demo.ot`](examples/07_advanced/net_demo.ot) | TCP/UDP сетевое программирование |
+
+### 08 — Многофайловые проекты
+| Проект | Описание |
+|--------|---------|
+| [`examples/08_projects/calculator/`](examples/08_projects/calculator/) | Калькулятор: main.ot + math.ot |
+| [`examples/08_projects/geometry/`](examples/08_projects/geometry/) | Геометрия: main.ot + vectors.ot + shapes.ot |
+
+---
+
+## Конвейер компиляции
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│                        Бэкенд LLVM                           │
+│                                                              │
+│  source.ot  ─►  Lexer  ─►  Parser  ─►  Resolver             │
+│                                             │                │
+│                              Слитый AST ◄───┘                │
+│                                  │                           │
+│                              CodeGen  ─►  LLVM IR (.ll)      │
+│                                               │              │
+│                                  llc ◄────────┘              │
+│                                   │                          │
+│                              Ассемблер (.s)                  │
+│                                   │                          │
+│                              clang -lm                       │
+│                                   │                          │
+│                           Нативный бинарник                  │
+└──────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────┐
+│                        Бэкенд JVM                            │
+│                                                              │
+│  source.ot ─► Lexer ─► Parser ─► Resolver ─► JvmCodeGen     │
+│                                                   │          │
+│                             Main.java ◄───────────┘          │
+│                                  │                           │
+│                             javac + jar                      │
+│                                  │                           │
+│                            output.jar                        │
+└──────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Структура репозитория
 
 ```
 src/
-├── main.rs          CLI dispatcher
-├── cli.rs           Argument parser, help text, Backend enum
-├── pipeline.rs      LLVM and JVM compilation pipelines
-├── error.rs         CompileError type
-├── project.rs       orbitron.toml manifest reader
-├── resolver.rs      Recursive import resolver and AST merger
+├── main.rs          Диспетчер CLI
+├── cli.rs           Разбор аргументов, справка, enum Backend
+├── pipeline.rs      Конвейеры компиляции LLVM и JVM
+├── error.rs         Тип CompileError
+├── project.rs       Чтение манифеста orbitron.toml
+├── resolver.rs      Рекурсивный резолвер импортов и слияние AST
 ├── lexer/
-│   ├── mod.rs       Lexer — tokenizes .ot source
-│   └── token.rs     Token enum and keyword table
+│   ├── mod.rs       Лексер — токенизация .ot исходников
+│   └── token.rs     Перечисление токенов и таблица ключевых слов
 ├── parser/
-│   ├── mod.rs       Recursive descent parser
-│   └── ast.rs       AST node types (Expr, Stmt, ...)
+│   ├── mod.rs       Рекурсивный нисходящий парсер
+│   └── ast.rs       Типы узлов AST (Expr, Stmt, ...)
 ├── codegen/
-│   ├── mod.rs       CodeGen struct, 3-pass code generation
-│   ├── expr.rs      Expression → LLVM IR
-│   └── stmt.rs      Statement → LLVM IR
+│   ├── mod.rs       Структура CodeGen, трёхпроходная кодогенерация
+│   ├── expr.rs      Выражение → LLVM IR
+│   └── stmt.rs      Инструкция → LLVM IR
 └── jvm/
-    └── mod.rs       AST → Java source → javac → jar
+    └── mod.rs       AST → Java-исходник → javac → jar
 
-stdlib/               Standard library (written in Orbitron itself)
-docs/                 Language reference and guides
-examples/             Example programs, organized by topic
+stdlib/              Стандартная библиотека (на самом Orbitron)
+docs/                Документация в виде книги (12 глав, по-русски)
+examples/            Примеры программ, организованные по темам
 ```
 
 ---
 
-## Contributing
+## Лицензия
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for how to add language features, fix bugs, or extend the standard library.
-
-## License
-
-MIT — see [LICENSE](LICENSE) for details.
+MIT — смотрите [LICENSE](LICENSE).

@@ -1,0 +1,78 @@
+// src/vectors.ot — 2D и 3D векторы
+
+struct Vec2 {
+    x: int,
+    y: int,
+}
+
+impl Vec2 {
+    pub func len_sq(self): int {
+        return self.x * self.x + self.y * self.y;
+    }
+
+    pub func dot(self, ox: int, oy: int): int {
+        return self.x * ox + self.y * oy;
+    }
+
+    pub func add(self, ox: int, oy: int) {
+        self.x += ox;
+        self.y += oy;
+    }
+
+    pub func scale(self, f: int) {
+        self.x *= f;
+        self.y *= f;
+    }
+
+    pub func manhattan(self): int {
+        var ax = self.x >= 0 ? self.x : -self.x;
+        var ay = self.y >= 0 ? self.y : -self.y;
+        return ax + ay;
+    }
+
+    pub func negate(self) {
+        self.x = -self.x;
+        self.y = -self.y;
+    }
+
+    pub func describe(self) {
+        println($"Vec2({self.x}, {self.y})");
+    }
+}
+
+struct Vec3 {
+    x: int,
+    y: int,
+    z: int,
+}
+
+impl Vec3 {
+    pub func len_sq(self): int {
+        return self.x*self.x + self.y*self.y + self.z*self.z;
+    }
+
+    pub func dot(self, ox: int, oy: int, oz: int): int {
+        return self.x*ox + self.y*oy + self.z*oz;
+    }
+
+    pub func add(self, ox: int, oy: int, oz: int) {
+        self.x += ox;
+        self.y += oy;
+        self.z += oz;
+    }
+
+    pub func scale(self, f: int) {
+        self.x *= f;
+        self.y *= f;
+        self.z *= f;
+    }
+
+    // Скалярное произведение (cross product z-компонента для 2D случая)
+    pub func cross_z(self, ox: int, oy: int): int {
+        return self.x * oy - self.y * ox;
+    }
+
+    pub func describe(self) {
+        println($"Vec3({self.x}, {self.y}, {self.z})");
+    }
+}

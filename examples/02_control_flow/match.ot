@@ -1,0 +1,145 @@
+// examples/02_control_flow/match.ot
+// Демонстрирует: оператор match — сопоставление с образцом.
+// Работает с целыми числами и перечислениями.
+
+enum Direction { North, South, East, West }
+enum Season    { Spring, Summer, Autumn, Winter }
+enum Status    { Active, Inactive, Banned, Deleted }
+enum DayType   { Weekday, Weekend }
+
+// Преобразование дня недели в тип
+func day_type(day: int): int {
+    if (day >= 1 && day <= 5) { return DayType.Weekday; }
+    return DayType.Weekend;
+}
+
+// Описание направления движения
+func describe_dir(d: int) {
+    match d {
+        Direction.North => { println("Движение на север ↑"); }
+        Direction.South => { println("Движение на юг ↓"); }
+        Direction.East  => { println("Движение на восток →"); }
+        Direction.West  => { println("Движение на запад ←"); }
+        _               => { println("Неизвестное направление"); }
+    }
+}
+
+// Температура по сезону
+func season_temp(s: int): int {
+    var temp = 0;
+    match s {
+        Season.Spring => { temp = 15; }
+        Season.Summer => { temp = 30; }
+        Season.Autumn => { temp = 10; }
+        Season.Winter => { temp = -5; }
+    }
+    return temp;
+}
+
+func main() {
+    println("=== Сопоставление с образцом (match) ===");
+
+    // --- Сопоставление с целыми числами ---
+    println("\n-- Сопоставление с числом --");
+
+    var day = 3;
+    match day {
+        1 => { println("Понедельник"); }
+        2 => { println("Вторник"); }
+        3 => { println("Среда"); }
+        4 => { println("Четверг"); }
+        5 => { println("Пятница"); }
+        6 => { println("Суббота"); }
+        7 => { println("Воскресенье"); }
+        _ => { println("Неверный день"); }
+    }
+
+    // --- Сопоставление с перечислением ---
+    println("\n-- Сопоставление с enum --");
+
+    var dir = Direction.East;
+    describe_dir(dir);
+
+    for d in 0..4 {
+        describe_dir(d);
+    }
+
+    // --- Переменная внутри match ---
+    println("\n-- Переменная внутри ветви --");
+
+    var s = Season.Winter;
+    var t = season_temp(s);
+    println($"Зима: {t} °C");
+
+    for season in 0..4 {
+        var temp = season_temp(season);
+        match season {
+            Season.Spring => { println($"Весна: {temp} °C"); }
+            Season.Summer => { println($"Лето:  {temp} °C"); }
+            Season.Autumn => { println($"Осень: {temp} °C"); }
+            Season.Winter => { println($"Зима:  {temp} °C"); }
+        }
+    }
+
+    // --- Джокер _ ---
+    println("\n-- Джокер _ (catch-all) --");
+
+    var st = Status.Banned;
+
+    match st {
+        Status.Active   => { println("Пользователь активен"); }
+        Status.Inactive => { println("Пользователь неактивен"); }
+        _               => { println("Пользователь не может войти"); }
+    }
+
+    // --- Match как функция выбора значения ---
+    println("\n-- match для выбора значения --");
+
+    for score in 0..5 {
+        var multiplied = score * 20;
+        var label = 0;
+        match multiplied {
+            0  => { label = 0; }
+            20 => { label = 1; }
+            40 => { label = 2; }
+            60 => { label = 3; }
+            80 => { label = 4; }
+            _  => { label = 5; }
+        }
+        println($"  {multiplied} → {label}");
+    }
+
+    // --- Машина состояний ---
+    println("\n-- Машина состояний (светофор) --");
+
+    const RED:    int = 0;
+    const YELLOW: int = 1;
+    const GREEN:  int = 2;
+
+    var light = RED;
+    repeat 6 {
+        match light {
+            RED    => { println("СТОП"); }
+            YELLOW => { println("ВНИМАНИЕ"); }
+            GREEN  => { println("ЕЗЖАЙ"); }
+        }
+        // Переключаем: RED→GREEN→YELLOW→RED
+        match light {
+            RED    => { light = GREEN; }
+            GREEN  => { light = YELLOW; }
+            YELLOW => { light = RED; }
+        }
+    }
+
+    // --- Перебор enum через цикл ---
+    println("\n-- Перебор значений enum --");
+
+    for d in 0..4 {
+        match d {
+            Direction.North => { println("Север"); }
+            Direction.South => { println("Юг"); }
+            Direction.East  => { println("Восток"); }
+            Direction.West  => { println("Запад"); }
+        }
+    }
+}

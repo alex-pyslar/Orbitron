@@ -1,0 +1,59 @@
+// src/math.ot — математический модуль калькулятора
+
+func calc_add(a: int, b: int): int { return a + b; }
+func calc_sub(a: int, b: int): int { return a - b; }
+func calc_mul(a: int, b: int): int { return a * b; }
+
+func calc_div(a: int, b: int): int {
+    unless (b == 0) { return a / b; }
+    return 0;
+}
+
+func calc_mod(a: int, b: int): int {
+    unless (b == 0) { return a % b; }
+    return 0;
+}
+
+func calc_pow(base: int, exp: int): int {
+    if (exp < 0)  { return 0; }
+    if (exp == 0) { return 1; }
+    var result = 1;
+    for i in 0..exp { result = result * base; }
+    return result;
+}
+
+func calc_abs(n: int): int {
+    return n >= 0 ? n : -n;
+}
+
+func calc_gcd(a: int, b: int): int {
+    a = calc_abs(a);
+    b = calc_abs(b);
+    while (b != 0) {
+        var tmp = b;
+        b = a % b;
+        a = tmp;
+    }
+    return a;
+}
+
+func calc_lcm(a: int, b: int): int {
+    var g = calc_gcd(a, b);
+    unless (g == 0) { return a / g * b; }
+    return 0;
+}
+
+func calc_factorial(n: int): int {
+    if (n <= 1) { return 1; }
+    return n * calc_factorial(n - 1);
+}
+
+func calc_is_prime(n: int): int {
+    if (n < 2) { return 0; }
+    var i = 2;
+    while (i * i <= n) {
+        if (n % i == 0) { return 0; }
+        i += 1;
+    }
+    return 1;
+}

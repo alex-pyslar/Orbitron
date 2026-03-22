@@ -1,0 +1,168 @@
+// examples/04_collections/enums.ot
+// Демонстрирует: объявление enum, использование с match,
+// как индексы массива, машины состояний.
+
+// --- Объявления перечислений ---
+enum Color     { Red, Green, Blue, Yellow, White, Black }
+enum Direction { North, South, East, West }
+enum Season    { Spring, Summer, Autumn, Winter }
+enum Planet    { Mercury, Venus, Earth, Mars, Jupiter, Saturn, Uranus, Neptune }
+enum Status    { Active, Inactive, Banned, Deleted }
+
+// --- Описать цвет ---
+func color_name(c: int) {
+    match c {
+        Color.Red    => { println("Красный"); }
+        Color.Green  => { println("Зелёный"); }
+        Color.Blue   => { println("Синий"); }
+        Color.Yellow => { println("Жёлтый"); }
+        Color.White  => { println("Белый"); }
+        Color.Black  => { println("Чёрный"); }
+        _            => { println("Неизвестный"); }
+    }
+}
+
+// --- Температура по сезону ---
+func season_temp(s: int): int {
+    match s {
+        Season.Spring => { return 15; }
+        Season.Summer => { return 30; }
+        Season.Autumn => { return 10; }
+        Season.Winter => { return -5; }
+        _             => { return 0; }
+    }
+}
+
+// --- Следующее направление (по часовой) ---
+func next_dir(d: int): int {
+    match d {
+        Direction.North => { return Direction.East;  }
+        Direction.East  => { return Direction.South; }
+        Direction.South => { return Direction.West;  }
+        Direction.West  => { return Direction.North; }
+        _               => { return Direction.North; }
+    }
+}
+
+// --- Расстояние от Земли (планеты) ---
+func dist_from_earth(p: int): int {
+    match p {
+        Planet.Mercury => { return 77; }
+        Planet.Venus   => { return 42; }
+        Planet.Earth   => { return 0;  }
+        Planet.Mars    => { return 78; }
+        Planet.Jupiter => { return 628; }
+        Planet.Saturn  => { return 1275; }
+        Planet.Uranus  => { return 2724; }
+        Planet.Neptune => { return 4347; }
+        _              => { return -1; }
+    }
+}
+
+func main() {
+    println("=== Перечисления (enum) ===");
+
+    // --- Варианты как целые числа ---
+    println("\n-- Числовые значения вариантов --");
+
+    println($"Color.Red    = {Color.Red}");      // 0
+    println($"Color.Green  = {Color.Green}");    // 1
+    println($"Color.Blue   = {Color.Blue}");     // 2
+    println($"Direction.North = {Direction.North}");  // 0
+    println($"Planet.Earth   = {Planet.Earth}");      // 2
+
+    // --- Сопоставление с образцом ---
+    println("\n-- match с enum --");
+
+    var c = Color.Green;
+    color_name(c);    // Зелёный
+
+    var dir = Direction.West;
+    match dir {
+        Direction.North => { println("Север"); }
+        Direction.South => { println("Юг"); }
+        Direction.East  => { println("Восток"); }
+        Direction.West  => { println("Запад"); }
+    }
+
+    // --- Перебор всех вариантов ---
+    println("\n-- Все цвета --");
+    for i in 0..6 {
+        color_name(i);
+    }
+
+    // --- Температура по сезону ---
+    println("\n-- Температура по сезонам --");
+    for s in 0..4 {
+        var t = season_temp(s);
+        match s {
+            Season.Spring => { println($"Весна: {t}°C"); }
+            Season.Summer => { println($"Лето: {t}°C"); }
+            Season.Autumn => { println($"Осень: {t}°C"); }
+            Season.Winter => { println($"Зима: {t}°C"); }
+        }
+    }
+
+    // --- Enum как индекс массива ---
+    println("\n-- enum как индекс массива --");
+
+    var day_hours = [8, 8, 8, 8, 8, 0, 0];
+    enum Day { Mon, Tue, Wed, Thu, Fri, Sat, Sun }
+
+    var today = Day.Wed;
+    var hours = day_hours[today];
+    println($"Среда — рабочих часов: {hours}");   // 8
+
+    var weekend = Day.Sat;
+    println($"Суббота — рабочих часов: {day_hours[weekend]}");  // 0
+
+    // --- Машина состояний: направление ---
+    println("\n-- Машина состояний: компас --");
+
+    var heading = Direction.North;
+    repeat 8 {
+        match heading {
+            Direction.North => { println("↑ Север"); }
+            Direction.East  => { println("→ Восток"); }
+            Direction.South => { println("↓ Юг"); }
+            Direction.West  => { println("← Запад"); }
+        }
+        heading = next_dir(heading);
+    }
+
+    // --- Планеты ---
+    println("\n-- Расстояние планет от Земли (млн км) --");
+    for p in 0..8 {
+        var d = dist_from_earth(p);
+        match p {
+            Planet.Mercury => { println($"Меркурий: {d} млн км"); }
+            Planet.Venus   => { println($"Венера:   {d} млн км"); }
+            Planet.Earth   => { println($"Земля:    {d} млн км"); }
+            Planet.Mars    => { println($"Марс:     {d} млн км"); }
+            Planet.Jupiter => { println($"Юпитер:   {d} млн км"); }
+            Planet.Saturn  => { println($"Сатурн:   {d} млн км"); }
+            Planet.Uranus  => { println($"Уран:     {d} млн км"); }
+            Planet.Neptune => { println($"Нептун:   {d} млн км"); }
+        }
+    }
+
+    // --- Условия с enum ---
+    println("\n-- Условия с enum --");
+
+    var st = Status.Active;
+
+    if (st == Status.Active) {
+        println("Пользователь активен");
+    }
+
+    unless (st == Status.Banned) {
+        println("Пользователь не заблокирован");
+    }
+
+    match st {
+        Status.Active   => { println("Разрешён вход"); }
+        Status.Inactive => { println("Требуется активация"); }
+        Status.Banned   => { println("Заблокирован"); }
+        Status.Deleted  => { println("Аккаунт удалён"); }
+    }
+}

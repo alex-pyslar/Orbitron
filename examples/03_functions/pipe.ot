@@ -1,0 +1,121 @@
+// examples/03_functions/pipe.ot
+// Демонстрирует оператор конвейера |> — функциональный стиль в Orbitron.
+
+// --- Базовые функции-преобразования ---
+func double(n: int): int  { return n * 2; }
+func triple(n: int): int  { return n * 3; }
+func inc(n: int):    int  { return n + 1; }
+func dec(n: int):    int  { return n - 1; }
+func square(n: int): int  { return n * n; }
+func negate(n: int): int  { return -n; }
+func abs_val(n: int): int { return n >= 0 ? n : -n; }
+func half(n: int):   int  { return n / 2; }
+
+// --- Функции с дополнительными параметрами ---
+func add(a: int, b: int): int    { return a + b; }
+func mul(a: int, b: int): int    { return a * b; }
+func clamp(x: int, lo: int, hi: int): int {
+    if (x < lo) { return lo; }
+    if (x > hi) { return hi; }
+    return x;
+}
+func max2(a: int, b: int): int { return a > b ? a : b; }
+
+// --- Сложные функции для цепочек ---
+func to_percent(score: int): int { return score; }
+func bonus(n: int): int { return n + 10; }
+func penalty(n: int): int { return n - 5; }
+func normalize(n: int): int { return n > 0 ? 1 : n < 0 ? -1 : 0; }
+
+func main() {
+    println("=== Оператор конвейера |> ===");
+
+    // --- Базовые цепочки ---
+    println("\n-- Базовые цепочки --");
+
+    var r1 = 3 |> double;
+    println($"3 |> double = {r1}");                     // 6
+
+    var r2 = 3 |> double |> inc;
+    println($"3 |> double |> inc = {r2}");              // 7
+
+    var r3 = 3 |> double |> inc |> square;
+    println($"3 |> double |> inc |> square = {r3}");    // 49
+
+    var r4 = 5 |> triple |> dec |> half;
+    println($"5 |> triple |> dec |> half = {r4}");      // (15-1)/2 = 7
+
+    // --- Конвейер vs вложенные вызовы (они эквивалентны) ---
+    println("\n-- Конвейер vs вложенные вызовы --");
+
+    var nested = square(inc(double(4)));
+    var piped  = 4 |> double |> inc |> square;
+
+    println($"nested: square(inc(double(4))) = {nested}");   // (4*2+1)^2 = 81
+    println($"piped:  4 |> double |> inc |> square = {piped}");
+
+    // --- Обработка отрицательных чисел ---
+    println("\n-- Конвейер с abs_val --");
+
+    var r5 = -42 |> abs_val |> double;
+    println($"-42 |> abs_val |> double = {r5}");     // 84
+
+    var r6 = -7 |> abs_val |> square |> inc;
+    println($"-7 |> abs_val |> square |> inc = {r6}"); // 50
+
+    // --- С дополнительными аргументами ---
+    println("\n-- Конвейер с доп. аргументами --");
+
+    var r7 = 5 |> add(3);
+    println($"5 |> add(3) = {r7}");                  // 8
+
+    var r8 = 5 |> add(3) |> mul(2);
+    println($"5 |> add(3) |> mul(2) = {r8}");        // 16
+
+    var r9 = 150 |> clamp(0, 100);
+    println($"150 |> clamp(0, 100) = {r9}");          // 100
+
+    var r10 = -10 |> clamp(0, 100);
+    println($"-10 |> clamp(0, 100) = {r10}");         // 0
+
+    var r11 = 5 |> max2(8);
+    println($"5 |> max2(8) = {r11}");                 // 8
+
+    // --- Практический пример: обработка оценки ---
+    println("\n-- Пример: обработка оценки --");
+
+    var raw_score = 85;
+
+    var final_score = raw_score |> bonus |> clamp(0, 100);
+    println($"Исходный балл: {raw_score}");
+    println($"С бонусом и ограничением: {final_score}");    // 95
+
+    var penalized = 85 |> penalty |> penalty |> clamp(0, 100);
+    println($"С двумя штрафами: {penalized}");               // 75
+
+    // --- Длинная цепочка ---
+    println("\n-- Длинная цепочка преобразований --");
+
+    var result = 1 |> double    // 2
+                   |> double    // 4
+                   |> double    // 8
+                   |> double    // 16
+                   |> double    // 32
+                   |> double    // 64
+                   |> double    // 128
+                   |> double    // 256
+                   |> double    // 512
+                   |> double;   // 1024
+
+    println($"1 |> double × 10 = {result}");   // 1024 = 2^10
+
+    // --- Нормализация ---
+    println("\n-- Нормализация через конвейер --");
+
+    var values = [-50, 0, 75, -3, 100];
+    for i in 0..5 {
+        var v = values[i];
+        var normed = v |> normalize;
+        println($"normalize({v}) = {normed}");
+    }
+}

@@ -1,0 +1,79 @@
+// examples/01_basics/variables.ot
+// Демонстрирует: переменные, типы, константы, переприсвоение,
+// составное присваивание, оператор **.
+
+// Константы верхнего уровня — доступны всем функциям
+const GRAVITY:   int   = 10;     // м/с²
+const MASS:      int   = 75;     // кг
+const MAX_SPEED: int   = 300;    // км/ч
+const PI_INT:    int   = 3;      // приближение π
+
+func main() {
+    println("=== Переменные и типы ===");
+
+    // --- Целые числа ---
+    var height:   int = 100;   // метры
+    var velocity: int = 0;
+    var count         = 10;    // тип выводится как int
+
+    println($"height = {height}");
+    println($"count  = {count}");
+
+    // --- Числа с плавающей точкой ---
+    var ratio: float = 1.618;
+    var temp         = 36.6;   // тип выводится как float
+
+    println($"ratio = {ratio}");
+    println($"temp  = {temp}");
+
+    // --- Булевы значения (true=1, false=0) ---
+    var is_positive = true;    // == 1
+    var is_done     = false;   // == 0
+
+    println($"is_positive = {is_positive}");
+    println($"is_done     = {is_done}");
+
+    // --- Переприсвоение ---
+    velocity = 30;
+    height   = height - 10;
+    println($"velocity = {velocity}");
+    println($"height   = {height}");
+
+    // --- Составное присваивание ---
+    var total = 0;
+    total += 10;   // total == 10
+    total += 20;   // total == 30
+    total -= 5;    // total == 25
+    total *= 2;    // total == 50
+    total /= 5;    // total == 10
+    println($"total = {total}");
+
+    // --- Оператор ** (степень) ---
+    var v_sq    = velocity ** 2;    // 900
+    var kb      = 2 ** 10;          // 1024 = 1 килобайт
+    var mb      = 2 ** 20;          // 1048576 = 1 мегабайт
+
+    println($"velocity^2 = {v_sq}");
+    println($"1 KB = {kb} байт");
+    println($"1 MB = {mb} байт");
+
+    // --- Использование констант ---
+    var force  = MASS * GRAVITY;            // 750 Н
+    var energy = MASS * GRAVITY * height;   // J
+
+    println($"Сила: {force} Н");
+    println($"Потенциальная энергия: {energy} Дж");
+
+    // --- Деление ---
+    var a = 10;
+    var b = 3;
+    var q = a / b;     // 3 (целочисленное)
+    var r = a % b;     // 1 (остаток)
+
+    println($"{a} / {b} = {q} (остаток {r})");
+
+    // --- Смешанная арифметика (int → float) ---
+    var fd: float = 10.0;
+    var result = fd / 3.0;    // 3.333...
+    println($"10.0 / 3.0 = {result}");
+}
