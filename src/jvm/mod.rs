@@ -181,7 +181,7 @@ impl JvmCodeGen {
 
         // Classes (class + init) as static inner classes
         for s in program {
-            if let Stmt::ClassDecl { name, fields, methods } = s {
+            if let Stmt::ClassDecl { name, fields, methods, .. } = s {
                 self.emit_class_class(&mut out, name, fields, methods);
             }
         }
@@ -189,7 +189,8 @@ impl JvmCodeGen {
         // Top-level functions as static methods
         for s in program {
             if let Stmt::FnDecl { name, params, body } = s {
-                self.emit_fn(&mut out, name, params, body);
+                let param_names: Vec<String> = params.iter().map(|(n, _)| n.clone()).collect();
+                self.emit_fn(&mut out, name, &param_names, body);
             }
         }
 
@@ -256,7 +257,7 @@ impl JvmCodeGen {
             if m.name == "new" {
                 // init(...) → constructor
                 let params: String = m.params.iter()
-                    .map(|p| format!("long {}", p))
+                    .map(|(p, _)| format!("long {}", p))
                     .collect::<Vec<_>>()
                     .join(", ");
                 writeln!(out, "        {}({}) {{", name, params).unwrap();
@@ -278,7 +279,7 @@ impl JvmCodeGen {
         let indent  = "    ".repeat(depth);
         let static_ = if m.has_self { "" } else { "static " };
         let params: String = m.params.iter()
-            .map(|p| format!("long {}", p))
+            .map(|(p, _)| format!("long {}", p))
             .collect::<Vec<_>>()
             .join(", ");
         writeln!(out, "{}{}long {}({}) {{", indent, static_, m.name, params).unwrap();
@@ -494,6 +495,26 @@ impl JvmCodeGen {
                 }
                 writeln!(out, "{}}}", indent).unwrap();
             }
+            // var (a, b) = expr;  — tuple destructuring  (Python / Rust)
+            Stmt::LetTuple { names, expr } => {
+                let e_s = self.emit_expr(expr);
+                writeln!(out, "{}long[] __tup_{} = {};", indent, self.match_counter, e_s).unwrap();
+                for (i, name) in names.iter().enumerate() {
+                    writeln!(out, "{}long {} = __tup_{}[{}];", indent, name, self.match_counter, i).unwrap();
+                }
+                self.match_counter += 1;
+            }
+            // for x in array { body }  — array iteration  (Python)
+            Stmt::ForIn { var, iter, body } => {
+                let iter_s = self.emit_expr(iter);
+                writeln!(out, "{}for (long {} : {}) {{", indent, var, iter_s).unwrap();
+                out.push_str(&self.emit_body(body, depth));
+                writeln!(out, "{}}}", indent).unwrap();
+            }
+            // @annotation — no-op in JVM backend
+            Stmt::Annotation { .. } => {}
+            // trait / impl Trait — no-op (methods are emitted via ImplDecl)
+            Stmt::TraitDecl { .. } | Stmt::ImplTrait { .. } => {}
             // Already handled at top level or structurally irrelevant here
             Stmt::FnDecl { .. }
             | Stmt::StructDecl { .. }
@@ -528,8 +549,9 @@ impl JvmCodeGen {
             Expr::Unary(op, inner) => {
                 let s = self.emit_expr(inner);
                 match op {
-                    UnaryOp::Neg => format!("(-{})", s),
-                    UnaryOp::Not => format!("(({}) == 0L ? 1L : 0L)", s),
+                    UnaryOp::Neg    => format!("(-{})", s),
+                    UnaryOp::Not    => format!("(({}) == 0L ? 1L : 0L)", s),
+                    UnaryOp::BitNot => format!("(~({}))", s),  // bitwise NOT  (C / Java)
                 }
             }
             Expr::Ternary { cond, then, els } => {
@@ -589,6 +611,39 @@ impl JvmCodeGen {
             }
             Expr::Input      => "__sc.nextLong()".to_string(),
             Expr::InputFloat => "__sc.nextDouble()".to_string(),
+            // Type::method(args)  — static call  (C++ / Rust)
+            Expr::StaticCall { type_name, method, args } => {
+                let args_s = self.emit_args(args);
+                format!("{}.{}({})", type_name, method, args_s)
+            }
+            // (a, b)  — tuple literal emitted as long[]  (Python / Rust)
+            Expr::Tuple(exprs) => {
+                let elems_s = self.emit_args(exprs);
+                format!("new long[]{{ {} }}", elems_s)
+            }
+            // |params| expr  — lambda as Java lambda  (Rust / Python)
+            Expr::Lambda { params, body } => {
+                let ps = params.join(", ");
+                let b  = self.emit_expr(body);
+                format!("(({}) -> {})", ps, b)
+            }
+            // match expr { pat => val, ... }  — ternary chain  (Rust)
+            Expr::MatchExpr { expr, arms } => {
+                let e_s = self.emit_expr(expr);
+                let mut result = String::new();
+                // Build a nested ternary: (e == pat ? val : (e == pat2 ? val2 : default))
+                let mut chain = String::from("0L");
+                for arm in arms.iter().rev() {
+                    let v_s = self.emit_expr(&arm.val);
+                    chain = match &arm.pat {
+                        MatchPat::Wildcard                    => v_s,
+                        MatchPat::Int(n)                      => format!("(({}) == {}L ? {} : {})", e_s, n, v_s, chain),
+                        MatchPat::EnumVariant(en, var)        => format!("(({}) == {}_{} ? {} : {})", e_s, en, var, v_s, chain),
+                    };
+                }
+                result.push_str(&chain);
+                result
+            }
             // Low-level features not supported in the JVM backend
             Expr::AddrOf(_) =>
                 panic!("&addr_of не поддерживается в JVM-бекенде (используйте --backend llvm)"),
@@ -624,6 +679,7 @@ impl JvmCodeGen {
             BinOp::Le  => format!("(({}) <= ({}) ? 1L : 0L)", l_s, r_s),
             BinOp::And => format!("(({}) != 0L && ({}) != 0L ? 1L : 0L)", l_s, r_s),
             BinOp::Or  => format!("(({}) != 0L || ({}) != 0L ? 1L : 0L)", l_s, r_s),
+            BinOp::Xor => format!("(({}) ^ ({}))", l_s, r_s),  // bitwise XOR  (C / Java)
         }
     }
 

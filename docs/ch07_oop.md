@@ -1,20 +1,23 @@
 # Глава 7 — Объектно-ориентированное программирование
 
-Orbitron поддерживает два различных стиля ООП, каждый вдохновлён разной традицией.
-Вы можете использовать любой стиль — или оба в одной программе.
+Orbitron поддерживает несколько стилей ООП, вдохновлённых разными традициями.
+Вы можете использовать любой стиль — или несколько в одной программе.
 
 ---
 
-## 7.1 — Два подхода к ООП
+## 7.1 — Обзор стилей ООП
 
 | Стиль | Источник вдохновения | Данные + методы | Создание |
 |-------|---------------------|-----------------|---------|
 | `struct + impl` | Go, Rust | Раздельно | Структурный литерал (без `new`) |
 | `class + init` | Java, C#, Kotlin | Вместе | `new ИмяКласса(аргументы)` |
+| `class extends` | Java, Python | Наследование | `new Дочерний(аргументы)` |
+| `trait` | Rust, Swift | Интерфейс | `impl Trait for Type` |
 
-Оба стиля поддерживают:
+Оба основных стиля поддерживают:
 - Именованные поля (данные)
 - Методы (функции, работающие с данными)
+- Статические методы (`static func`)
 - Модификаторы доступа `pub` и `private`
 - Явный параметр `self`
 
@@ -277,7 +280,365 @@ func main() {
 
 ---
 
-## 7.4 — Модификаторы доступа
+## 7.4 — Статические методы (`static func`)
+
+Статические методы принадлежат **типу**, а не конкретному экземпляру.
+Они не принимают `self` и вызываются через синтаксис `Тип::метод(аргументы)`.
+
+```orbitron
+struct Vector {
+    x: int,
+    y: int,
+}
+
+impl Vector {
+    // Обычный метод — принимает self
+    pub func len_sq(self): int {
+        return self.x * self.x + self.y * self.y;
+    }
+
+    // Статический метод — не принимает self
+    static func zero() -> int {
+        return 0;
+    }
+
+    static func from_angle(deg: int): int {
+        // упрощение: возвращает код направления
+        return deg / 90;
+    }
+}
+
+func main() {
+    var v = Vector { x: 3, y: 4 };
+    println(v.len_sq());              // 25 — вызов обычного метода
+
+    var z = Vector::zero();           // 0  — статический вызов
+    var dir = Vector::from_angle(90); // 1  — статический вызов
+    println(z);
+    println(dir);
+}
+```
+
+### Статические методы в классах
+
+```orbitron
+class Config {
+    private max_users: int,
+    private timeout:   int,
+
+    init(mu: int, t: int) {
+        self.max_users = mu;
+        self.timeout   = t;
+    }
+
+    pub func get_max(self): int { return self.max_users; }
+    pub func get_timeout(self): int { return self.timeout; }
+
+    // Фабричный статический метод — создаёт «дефолтный» экземпляр
+    static func default_timeout(): int {
+        return 30;
+    }
+
+    static func default_max(): int {
+        return 100;
+    }
+}
+
+func main() {
+    var t = Config::default_timeout();   // 30
+    var m = Config::default_max();       // 100
+    var cfg = new Config(m, t);
+
+    println(cfg.get_max());      // 100
+    println(cfg.get_timeout());  // 30
+}
+```
+
+---
+
+## 7.5 — Трейты (trait)
+
+Трейт — это объявление интерфейса: набор сигнатур методов, которые обязан
+реализовать любой тип, объявляющий поддержку трейта. Вдохновлён Rust и Swift:
+
+```orbitron
+trait Printable {
+    func print_info(self);
+}
+
+trait Measurable {
+    func area(self): int;
+    func perimeter(self): int;
+}
+```
+
+### impl Trait for Type
+
+Чтобы реализовать трейт для конкретного типа, используйте синтаксис
+`impl ИмяТрейта for ИмяТипа`:
+
+```orbitron
+struct Circle {
+    radius: int,
+}
+
+impl Measurable for Circle {
+    func area(self): int {
+        // приближение: PI ≈ 314/100
+        return 314 * self.radius * self.radius / 100;
+    }
+
+    func perimeter(self): int {
+        return 628 * self.radius / 100;
+    }
+}
+
+struct Square {
+    side: int,
+}
+
+impl Measurable for Square {
+    func area(self): int {
+        return self.side * self.side;
+    }
+
+    func perimeter(self): int {
+        return 4 * self.side;
+    }
+}
+
+func main() {
+    var c = Circle { radius: 5 };
+    println(c.area());       // 78 (≈ π·25)
+    println(c.perimeter());  // 31 (≈ 2π·5)
+
+    var s = Square { side: 4 };
+    println(s.area());       // 16
+    println(s.perimeter());  // 16
+}
+```
+
+### Трейт с несколькими методами
+
+```orbitron
+trait Comparable {
+    func less_than(self, other: int): int;
+    func equal_to(self, other: int): int;
+}
+
+struct Score {
+    value: int,
+}
+
+impl Comparable for Score {
+    func less_than(self, other: int): int {
+        return self.value < other ? 1 : 0;
+    }
+
+    func equal_to(self, other: int): int {
+        return self.value == other ? 1 : 0;
+    }
+}
+
+func main() {
+    var s1 = Score { value: 75 };
+    var s2 = Score { value: 90 };
+
+    println(s1.less_than(s2.value));   // 1 (75 < 90)
+    println(s1.equal_to(75));          // 1
+    println(s2.less_than(s1.value));   // 0
+}
+```
+
+---
+
+## 7.6 — Реализация операторов (`impl Add for Type`)
+
+Orbitron позволяет переопределить операторы для своих типов, реализовав
+специальный трейт-оператор. Используется тот же синтаксис `impl Trait for Type`:
+
+```orbitron
+struct Vec2 {
+    x: int,
+    y: int,
+}
+
+impl Add for Vec2 {
+    func add(self, other_x: int, other_y: int): int {
+        // Возвращает суммарный вектор — здесь выводим результат
+        println($"Vec2({self.x + other_x}, {self.y + other_y})");
+        return 0;
+    }
+}
+
+impl Sub for Vec2 {
+    func sub(self, other_x: int, other_y: int): int {
+        println($"Vec2({self.x - other_x}, {self.y - other_y})");
+        return 0;
+    }
+}
+
+func main() {
+    var a = Vec2 { x: 3, y: 4 };
+    var b = Vec2 { x: 1, y: 2 };
+
+    a.add(b.x, b.y);   // Vec2(4, 6)
+    a.sub(b.x, b.y);   // Vec2(2, 2)
+}
+```
+
+### Доступные трейты-операторы
+
+| Трейт | Метод | Оператор |
+|-------|-------|---------|
+| `Add` | `func add(self, ...)` | `+` |
+| `Sub` | `func sub(self, ...)` | `-` |
+| `Mul` | `func mul(self, ...)` | `*` |
+| `Div` | `func div(self, ...)` | `/` |
+| `Neg` | `func neg(self)` | унарный `-` |
+| `Eq`  | `func eq(self, ...)` | `==` |
+| `Ord` | `func cmp(self, ...)` | `<`, `>`, `<=`, `>=` |
+
+---
+
+## 7.7 — Наследование классов (`class extends`)
+
+Класс может наследовать от другого класса с помощью ключевого слова `extends`.
+Дочерний класс получает все поля и методы родителя и может добавлять свои:
+
+```orbitron
+class Animal {
+    private name: int,
+    private age:  int,
+
+    init(n: int, a: int) {
+        self.name = n;
+        self.age  = a;
+    }
+
+    pub func get_name(self): int { return self.name; }
+    pub func get_age(self): int  { return self.age; }
+
+    pub func speak(self) {
+        println("...");
+    }
+
+    pub func describe(self) {
+        var n = self.name;
+        var a = self.age;
+        println($"Животное #{n}, возраст {a}");
+    }
+}
+
+class Dog extends Animal {
+    private breed: int,
+
+    init(n: int, a: int, b: int) {
+        self.name  = n;
+        self.age   = a;
+        self.breed = b;
+    }
+
+    @override
+    pub func speak(self) {
+        println("Гав!");
+    }
+
+    pub func get_breed(self): int {
+        return self.breed;
+    }
+}
+
+class Cat extends Animal {
+    private indoor: int,
+
+    init(n: int, a: int, i: int) {
+        self.name   = n;
+        self.age    = a;
+        self.indoor = i;
+    }
+
+    @override
+    pub func speak(self) {
+        println("Мяу!");
+    }
+
+    pub func is_indoor(self): int {
+        return self.indoor;
+    }
+}
+
+func main() {
+    var dog = new Dog(1, 3, 42);   // name=1, age=3, breed=42
+    var cat = new Cat(2, 5, 1);    // name=2, age=5, indoor=true
+
+    dog.describe();     // Животное #1, возраст 3
+    dog.speak();        // Гав!
+    println(dog.get_breed());  // 42
+
+    cat.describe();     // Животное #2, возраст 5
+    cat.speak();        // Мяу!
+    println(cat.is_indoor());  // 1
+}
+```
+
+### Правила наследования
+
+- Дочерний класс наследует все **публичные** методы родителя
+- Поля родителя доступны через `self` (если объявлены в дочернем `init`)
+- `@override` — рекомендуется для переопределяемых методов (аннотация)
+- Поддерживается одиночное наследование (один родитель)
+- Нельзя переопределить `init` — у каждого класса свой конструктор
+
+### Многоуровневое наследование
+
+```orbitron
+class Shape {
+    private color: int,
+
+    init(c: int) {
+        self.color = c;
+    }
+
+    pub func get_color(self): int { return self.color; }
+}
+
+class Polygon extends Shape {
+    private sides: int,
+
+    init(c: int, s: int) {
+        self.color = c;
+        self.sides = s;
+    }
+
+    pub func get_sides(self): int { return self.sides; }
+}
+
+class RegularPolygon extends Polygon {
+    private side_len: int,
+
+    init(c: int, s: int, l: int) {
+        self.color    = c;
+        self.sides    = s;
+        self.side_len = l;
+    }
+
+    pub func perimeter(self): int {
+        return self.sides * self.side_len;
+    }
+}
+
+func main() {
+    var hex = new RegularPolygon(3, 6, 10);   // color=3, sides=6, len=10
+    println(hex.get_color());    // 3
+    println(hex.get_sides());    // 6
+    println(hex.perimeter());    // 60
+}
+```
+
+---
+
+## 7.8 — Модификаторы доступа
 
 Оба стиля (struct+impl и class) поддерживают модификаторы доступа:
 
@@ -336,7 +697,7 @@ func main() {
 
 ---
 
-## 7.5 — Когда использовать какой стиль
+## 7.9 — Когда использовать какой стиль
 
 ### Используйте `struct + impl`, когда:
 - Ваши данные — это чистый тип значений (точка, вектор, размер, цвет)
@@ -350,26 +711,41 @@ func main() {
 - Объект имеет инварианты, которые нужно установить при создании
 - Вы пришли из Java/C# и предпочитаете такой стиль
 
----
+### Используйте `trait`, когда:
+- Нужно описать интерфейс без реализации
+- Несколько типов должны поддерживать одни и те же методы
+- Реализуете обобщённые алгоритмы (паттерн «утиная типизация»)
 
-## 7.6 — Таблица сравнения стилей ООП
-
-| Аспект | `struct + impl` | `class + init` |
-|--------|----------------|----------------|
-| Источник вдохновения | Go, Rust | Java, C#, Kotlin |
-| Объявление полей | `struct Name { field: type }` | `class Name { field: type, }` |
-| Объявление методов | `impl Name { pub func f(self) {} }` | Внутри `class Name { pub func f(self) {} }` |
-| Конструктор | Не нужен | `init(params) { self.field = ...; }` |
-| Создание экземпляра | `Name { field: val }` | `new Name(args)` |
-| `self` | Явный параметр | Явный параметр |
-| Модификаторы доступа | `pub` / `private` | `pub` / `private` |
+### Используйте `extends`, когда:
+- Один тип является специализацией другого («собака — это животное»)
+- Хотите переиспользовать код родителя и добавить дополнительное поведение
 
 ---
 
-## 7.7 — Полный пример ООП: Геометрическая библиотека
+## 7.10 — Таблица сравнения стилей ООП
+
+| Аспект | `struct + impl` | `class + init` | `class extends` | `trait` |
+|--------|----------------|----------------|-----------------|---------|
+| Источник | Go, Rust | Java, C# | Java, Python | Rust, Swift |
+| Объявление полей | `struct Name {}` | `class Name {}` | `class Dog extends Animal {}` | — |
+| Методы | `impl Name {}` | Внутри `class {}` | Внутри `class {}` | Сигнатуры |
+| Конструктор | Структурный литерал | `init(params)` | `init(params)` | — |
+| Создание | `Name { field: val }` | `new Name(args)` | `new Dog(args)` | — |
+| Реализация | — | — | — | `impl Trait for Type` |
+| `self` | Явный параметр | Явный параметр | Явный параметр | Явный параметр |
+| Статические | `static func f()` | `static func f()` | `static func f()` | — |
+
+---
+
+## 7.11 — Полный пример ООП: Геометрическая библиотека
 
 ```orbitron
 // examples/05_oop/structs.ot
+
+trait Shape {
+    func area(self): int;
+    func perimeter(self): int;
+}
 
 struct Circle {
     radius: int,
@@ -377,12 +753,17 @@ struct Circle {
     cy:     int,
 }
 
-impl Circle {
-    // Площадь * 100 (чтобы избежать float) ≈ 314 * r^2 / 100
-    pub func area_x100(self): int {
+impl Shape for Circle {
+    func area(self): int {
         return 314 * self.radius * self.radius / 100;
     }
 
+    func perimeter(self): int {
+        return 628 * self.radius / 100;
+    }
+}
+
+impl Circle {
     pub func contains(self, x: int, y: int): int {
         var dx = x - self.cx;
         var dy = y - self.cy;
@@ -390,8 +771,8 @@ impl Circle {
     }
 
     pub func describe(self) {
-        var a = self.area_x100();
-        println($"Окружность r={self.radius} в ({self.cx},{self.cy}), приближ. площадь={a}/100");
+        var a = self.area();
+        println($"Окружность r={self.radius} в ({self.cx},{self.cy}), площадь≈{a}");
     }
 }
 
@@ -401,16 +782,23 @@ struct Triangle {
     c: int,
 }
 
+impl Shape for Triangle {
+    func area(self): int {
+        // Формула Герона: s*(s-a)*(s-b)*(s-c), приблизительно через периметр
+        return self.a * self.b / 2;   // упрощение для прямоугольного треугольника
+    }
+
+    func perimeter(self): int {
+        return self.a + self.b + self.c;
+    }
+}
+
 impl Triangle {
     pub func is_valid(self): int {
         if (self.a + self.b <= self.c) { return 0; }
         if (self.b + self.c <= self.a) { return 0; }
         if (self.a + self.c <= self.b) { return 0; }
         return 1;
-    }
-
-    pub func perimeter(self): int {
-        return self.a + self.b + self.c;
     }
 
     pub func is_equilateral(self): int {
@@ -425,8 +813,9 @@ impl Triangle {
 func main() {
     var c = Circle { radius: 5, cx: 0, cy: 0 };
     c.describe();
-    println(c.contains(3, 4));    // 1 (внутри: 3^2+4^2=25 <= 25)
-    println(c.contains(4, 4));    // 0 (снаружи: 4^2+4^2=32 > 25)
+    println(c.area());           // 78
+    println(c.contains(3, 4));   // 1 (внутри: 3^2+4^2=25 <= 25)
+    println(c.contains(4, 4));   // 0 (снаружи: 4^2+4^2=32 > 25)
 
     var t1 = Triangle { a: 3, b: 4, c: 5 };
     println(t1.is_valid());       // 1

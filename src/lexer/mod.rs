@@ -74,7 +74,7 @@ impl Lexer {
     }
 
     /// Lex a `$"..."` interpolated string.
-    /// Supports `{ident}` holes for variable interpolation (from C# / Kotlin).
+    /// Supports `{ident}` holes for variable interpolation  (C# / Kotlin).
     fn read_interp_string(&mut self) -> Result<Token, String> {
         self.advance(); // consume '$'
         if self.peek() != Some('"') {
@@ -178,6 +178,9 @@ impl Lexer {
             "init"     => Token::Init,
             "pub"      => Token::Pub,
             "private"  => Token::Private,
+            "static"   => Token::Static,    // Java/C++
+            "trait"    => Token::Trait,     // Rust/Swift
+            "extends"  => Token::Extends,   // Java/Kotlin
             "enum"     => Token::Enum,      // Rust/Swift
             "defer"    => Token::Defer,     // Go
             "import"   => Token::Import,    // multi-file import
@@ -191,11 +194,13 @@ impl Lexer {
         match self.peek() {
             None    => Ok(Token::Eof),
             Some(c) => match c {
-                // Interpolated string: $"Hello {name}!"  (from C# / Kotlin)
+                // Interpolated string: $"Hello {name}!"  (C# / Kotlin)
                 '$'                          => self.read_interp_string(),
                 '"'                          => self.read_string(),
                 '0'..='9'                    => Ok(self.read_number()),
                 'a'..='z' | 'A'..='Z' | '_' => Ok(self.read_ident()),
+                // Annotation: @name
+                '@' => { self.advance(); Ok(Token::At) }
                 // Range operators: ..= and ..
                 '.' => {
                     self.advance();
@@ -219,9 +224,10 @@ impl Lexer {
                 '-' => {
                     self.advance();
                     if self.peek() == Some('=') { self.advance(); Ok(Token::MinusAssign) }
+                    else if self.peek() == Some('>') { self.advance(); Ok(Token::Arrow) }
                     else { Ok(Token::Minus) }
                 }
-                // ** power operator (from Python), *= compound assign, * multiply
+                // ** power (Python), *= compound, * multiply
                 '*' => {
                     self.advance();
                     if self.peek() == Some('*') { self.advance(); Ok(Token::StarStar) }
@@ -233,18 +239,35 @@ impl Lexer {
                     if self.peek() == Some('=') { self.advance(); Ok(Token::SlashAssign) }
                     else { Ok(Token::Slash) }
                 }
-                '%' => { self.advance(); Ok(Token::Percent) }
+                '%' => {
+                    self.advance();
+                    if self.peek() == Some('=') { self.advance(); Ok(Token::PercentAssign) }
+                    else { Ok(Token::Percent) }
+                }
+                // ^ XOR (C / Java), ^= compound
+                '^' => {
+                    self.advance();
+                    if self.peek() == Some('=') { self.advance(); Ok(Token::CaretAssign) }
+                    else { Ok(Token::Caret) }
+                }
+                // ~ bitwise NOT (C / Java)
+                '~' => { self.advance(); Ok(Token::Tilde) }
                 '(' => { self.advance(); Ok(Token::LParen) }
                 ')' => { self.advance(); Ok(Token::RParen) }
                 '{' => { self.advance(); Ok(Token::LBrace) }
                 '}' => { self.advance(); Ok(Token::RBrace) }
-                // Array brackets (from Python / JS)
+                // Array brackets (Python / JS)
                 '[' => { self.advance(); Ok(Token::LBracket) }
                 ']' => { self.advance(); Ok(Token::RBracket) }
                 ';' => { self.advance(); Ok(Token::Semicolon) }
-                ':' => { self.advance(); Ok(Token::Colon) }
+                // :: static method / namespace (C++ / Rust), : type annotation
+                ':' => {
+                    self.advance();
+                    if self.peek() == Some(':') { self.advance(); Ok(Token::ColonColon) }
+                    else { Ok(Token::Colon) }
+                }
                 ',' => { self.advance(); Ok(Token::Comma) }
-                // Ternary ? (from C / Kotlin)
+                // Ternary ? (C / Kotlin)
                 '?' => { self.advance(); Ok(Token::Question) }
                 '=' => {
                     self.advance();
@@ -272,12 +295,12 @@ impl Lexer {
                     if self.peek() == Some('&') { self.advance(); Ok(Token::AndAnd) }
                     else { Ok(Token::Amp) }
                 }
-                // |> pipe operator (from Elixir / F#), || logical or
+                // |> pipe (Elixir / F#), || logical-or, | lambda/bitwise-or
                 '|' => {
                     self.advance();
                     if self.peek() == Some('|') { self.advance(); Ok(Token::OrOr) }
                     else if self.peek() == Some('>') { self.advance(); Ok(Token::PipeGt) }
-                    else { Err(format!("Single '|' is not valid (line {})", self.line)) }
+                    else { Ok(Token::Pipe) }
                 }
                 other => Err(format!("Unexpected character '{}' at line {}:{}", other, self.line, self.col)),
             }

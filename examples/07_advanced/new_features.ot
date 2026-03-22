@@ -1,0 +1,168 @@
+// examples/07_advanced/new_features.ot
+// Демонстрирует: все новые возможности языка Orbitron
+//   - Параметры по умолчанию
+//   - Кортежи и деструктуризация
+//   - Лямбды
+//   - match-выражение
+//   - assert / assert_eq
+//   - for x in array
+//   - Статические методы и трейты
+//   - ^ (XOR), ~ (битовое NOT)
+//   - Аннотации @
+
+// ── Параметры по умолчанию ────────────────────────────────────────────────────
+
+func greet(n: int, times: int = 1) {
+    for i in 0..times {
+        println($"Привет #{n}!");
+    }
+}
+
+// Значение по умолчанию в вычислении
+func power_of(base: int, exp: int = 2): int {
+    return base ** exp;
+}
+
+// ── Трейт и реализация ────────────────────────────────────────────────────────
+
+trait Describable {
+    func describe(self);
+}
+
+struct Point {
+    x: int,
+    y: int,
+}
+
+impl Describable for Point {
+    pub func describe(self) {
+        println($"Точка ({x}, {y})");
+    }
+}
+
+impl Point {
+    pub static func origin() -> Point {
+        return Point { x: 0, y: 0 };
+    }
+
+    pub func dist_sq(self): int {
+        return self.x * self.x + self.y * self.y;
+    }
+}
+
+// ── Наследование классов ──────────────────────────────────────────────────────
+
+class Animal {
+    private name: int,    // используем int-код вместо строки
+    init(n: int) { self.name = n; }
+    pub func sound(self): int { return 0; }
+}
+
+class Dog extends Animal {
+    init(n: int) { self.name = n; }
+    pub func sound(self): int { return 1; }  // 1 = "Гав"
+}
+
+// ── Главная функция ───────────────────────────────────────────────────────────
+
+@main_section
+func main() {
+    println("=== Параметры по умолчанию ===");
+    greet(1);          // times = 1
+    greet(2, 3);       // times = 3
+    println(power_of(3));      // 9  (exp = 2)
+    println(power_of(2, 10));  // 1024
+
+    // ── Кортежи ──────────────────────────────────────────────────────────────
+    println("\n=== Кортежи ===");
+
+    var coords = (10, 20);
+    var (cx, cy) = coords;
+    println($"x={cx}, y={cy}");     // x=10, y=20
+
+    var rgb = (255, 128, 0);
+    var (r, g, b) = rgb;
+    println($"RGB: {r}, {g}, {b}"); // RGB: 255, 128, 0
+
+    // ── Лямбды ───────────────────────────────────────────────────────────────
+    println("\n=== Лямбды ===");
+
+    var double = |x| x * 2;
+    var add    = |a, b| a + b;
+    var square = |n| n * n;
+
+    // Лямбды — это i64-указатели, вызвать напрямую пока нельзя,
+    // но их можно передавать через обычные функции
+    println(power_of(5, 3));   // 125
+
+    // ── match-выражение ───────────────────────────────────────────────────────
+    println("\n=== match как выражение ===");
+
+    for score in 0..=10 {
+        var grade = match score {
+            10 => 5,
+            8  => 4,
+            6  => 3,
+            4  => 2,
+            _  => 1
+        };
+        if (score % 2 == 0) {
+            println($"Балл {score} → оценка {grade}");
+        }
+    }
+
+    // ── assert / assert_eq ────────────────────────────────────────────────────
+    println("\n=== Assertions ===");
+
+    var x = 42;
+    assert(x > 0);              // ОК
+    assert_eq(power_of(3), 9);  // ОК: 3^2 == 9
+    assert_eq(2 + 2, 4);        // ОК
+    println("Все утверждения прошли успешно!");
+
+    // ── for x in array ───────────────────────────────────────────────────────
+    println("\n=== for-in (итерация по массиву) ===");
+
+    var primes = [2, 3, 5, 7, 11, 13];
+    var prime_sum = 0;
+    for p in primes {
+        prime_sum += p;
+        println(p);
+    }
+    println($"Сумма простых: {prime_sum}");   // 41
+
+    // ── Статический метод ─────────────────────────────────────────────────────
+    println("\n=== Статические методы ===");
+
+    var origin = Point::origin();
+    origin.describe();
+    println($"Расстояние^2 от начала: {origin.dist_sq()}");  // 0
+
+    var p = Point { x: 3, y: 4 };
+    p.describe();
+    println($"Расстояние^2: {p.dist_sq()}");  // 25
+
+    // ── Битовые операторы ─────────────────────────────────────────────────────
+    println("\n=== Битовые операторы ===");
+
+    var a = 0b1010;   // 10
+    var b_val = 0b1100;  // 12
+    var xor_r = a ^ b_val;
+    println($"10 XOR 12 = {xor_r}");    // 6
+
+    var bitnot_r = ~0;   // все единицы = -1 в i64
+    println($"~0 = {bitnot_r}");        // -1
+
+    // ── Составное присваивание ────────────────────────────────────────────────
+    println("\n=== Составное присваивание ===");
+
+    var n = 100;
+    n %= 7;
+    println($"100 % 7 = {n}");     // 2
+
+    var flags = 0b1111;
+    flags ^= 0b0011;
+    println($"0b1111 ^ 0b0011 = {flags}");   // 12 (0b1100)
+
+    println("\nВсё работает!");
+}

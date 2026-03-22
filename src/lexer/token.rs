@@ -17,18 +17,18 @@ pub enum Token {
 
     // ── Keywords ──────────────────────────────────────────────────────────
     Var,       // var   — variable declaration
-    Const,     // const — immutable constant  (from Rust / C++)
+    Const,     // const — immutable constant           (Rust / C++)
     Func,      // func  — function declaration
     Return,
     If,
     Else,
-    Unless,    // unless — inverted if         (from Ruby)
+    Unless,    // unless — inverted if                  (Ruby)
     While,
     Do,        // do    — do-while loop
     For,
     In,        // in    — for i in range
     Loop,
-    Repeat,    // repeat N { } — repeat loop  (from Lua / Pascal)
+    Repeat,    // repeat N { } — repeat loop           (Lua / Pascal)
     Match,
     Println,   // println(expr) — print with newline
     True,
@@ -44,11 +44,16 @@ pub enum Token {
     Init,      // init  — class constructor block
     Pub,
     Private,
-    // New keywords
-    Enum,      // enum   — integer-backed enum      (from Rust / Swift)
-    Defer,     // defer  — deferred execution       (from Go)
+    Static,    // static — static method modifier      (Java / C++)
+    Trait,     // trait  — trait / interface            (Rust / Swift)
+    Extends,   // extends — class inheritance           (Java / Kotlin)
+    // Features
+    Enum,      // enum   — integer-backed enum         (Rust / Swift)
+    Defer,     // defer  — deferred execution          (Go)
     Import,    // import — multi-file import
     Extern,    // extern — external C function declaration
+    // Annotations
+    At,        // @     — decorator/annotation prefix  (Python / Java)
 
     // ── Range operators ───────────────────────────────────────────────────
     DotDot,    // ..    exclusive range
@@ -60,33 +65,40 @@ pub enum Token {
     Star,        // *
     Slash,       // /
     Percent,     // %
-    StarStar,    // **   power operator         (from Python)
+    StarStar,    // **   power operator                (Python)
     EqEq,        // ==
     BangEq,      // !=
     Lt,          // <
     LtEq,        // <=
     Gt,          // >
     GtEq,        // >=
-    Amp,         // &    address-of operator
+    Amp,         // &    address-of / bitwise-and
     AndAnd,      // &&
+    Pipe,        // |    lambda param list / bitwise-or
     OrOr,        // ||
+    Caret,       // ^    XOR operator                  (C / Java)
+    Tilde,       // ~    bitwise NOT                   (C / Java)
     Bang,        // !
     Assign,      // =
     FatArrow,    // =>
-    PipeGt,      // |>   pipe operator          (from Elixir / F#)
-    Question,    // ?    ternary / null-coalesce (from C / Kotlin)
+    Arrow,       // ->   return-type annotation        (Rust / Swift)
+    PipeGt,      // |>   pipe operator                 (Elixir / F#)
+    Question,    // ?    ternary / null-coalesce        (C / Kotlin)
+    ColonColon,  // ::   static method / namespace      (C++ / Rust)
     // Compound assignment
-    PlusAssign,  // +=
-    MinusAssign, // -=
-    StarAssign,  // *=
-    SlashAssign, // /=
+    PlusAssign,    // +=
+    MinusAssign,   // -=
+    StarAssign,    // *=
+    SlashAssign,   // /=
+    PercentAssign, // %=
+    CaretAssign,   // ^=
 
     // ── Punctuation ───────────────────────────────────────────────────────
     LParen,    // (
     RParen,    // )
     LBrace,    // {
     RBrace,    // }
-    LBracket,  // [    array indexing          (from Python / JS)
+    LBracket,  // [    array indexing                  (Python / JS)
     RBracket,  // ]
     Semicolon, // ;
     Colon,     // :

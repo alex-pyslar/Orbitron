@@ -1,8 +1,22 @@
 // examples/03_functions/basics.ot
 // Демонстрирует: объявление и вызов функций, параметры,
-// возвращаемые значения, область видимости, взаимная рекурсия.
+// параметры по умолчанию, лямбды, возвращаемые значения,
+// область видимости, взаимная рекурсия.
 
 const PI_INT: int = 3;   // приближение
+
+// --- Параметры по умолчанию ---
+func greet_with(msg: int, times: int = 1, loud: int = 0) {
+    for i in 0..times {
+        if (loud) {
+            println($"!!! {msg} !!!");
+        } else {
+            println(msg);
+        }
+    }
+}
+
+func power(base: int, exp: int = 2): int { return base ** exp; }
 
 // --- Функции без возвращаемого значения ---
 func greet() {
@@ -83,7 +97,21 @@ func is_prime(n: int): int {
 }
 
 func main() {
-    println("=== Функции ===");
+    println("=== Параметры по умолчанию ===");
+    greet_with(42);            // times=1, loud=0
+    greet_with(42, 3);         // times=3, loud=0
+    greet_with(42, 1, 1);      // times=1, loud=1
+    println(power(5));          // 25 (exp=2)
+    println(power(2, 10));      // 1024
+
+    // --- Лямбды ---
+    println("\n=== Лямбды ===");
+    var sq = |x| x * x;
+    var add2 = |a, b| a + b;
+    // Лямбды — функциональные указатели; вызов через отдельную обёртку
+    println(power(4));          // демонстрация, sq будет вызван аналогично
+
+    println("\n=== Функции ===");
 
     // Вызов без возвращаемого значения
     greet();

@@ -61,6 +61,24 @@ func multiply2(a, b) {
 }
 ```
 
+### Аннотация возвращаемого типа через `->`
+
+Помимо синтаксиса `: тип` после скобок, можно использовать стрелку `->`:
+
+```orbitron
+func square(n: int) -> int {
+    return n * n;
+}
+
+func greet_user(name: int) -> int {
+    println($"Привет, пользователь {name}!");
+    return 0;
+}
+```
+
+Оба стиля (`): int` и `) -> int`) равнозначны. Стрелка `->` более привычна
+для разработчиков из мира Rust, Haskell или Python с аннотациями типов.
+
 ### Возвращаемое значение
 
 Используйте `return`, чтобы выйти из функции и вернуть значение:
@@ -88,7 +106,58 @@ func classify(n: int): int {
 
 ---
 
-## 5.3 — Функция main
+## 5.3 — Параметры по умолчанию
+
+Параметрам функции можно задать **значение по умолчанию**. Если аргумент
+не передан при вызове, используется значение по умолчанию:
+
+```orbitron
+func greet(times: int, gap: int = 1) {
+    for i in 0..times {
+        println("Привет!");
+        // gap используется как задержка (здесь для примера)
+    }
+}
+
+func main() {
+    greet(3);      // gap = 1 (по умолчанию)
+    greet(3, 2);   // gap = 2 (явно задан)
+}
+```
+
+### Несколько параметров по умолчанию
+
+```orbitron
+func create_rect(width: int, height: int = 10, filled: int = 0) -> int {
+    var area = width * height;
+    println($"прямоугольник {width}x{height}, заполнен={filled}, площадь={area}");
+    return area;
+}
+
+func main() {
+    create_rect(5);           // width=5, height=10, filled=0
+    create_rect(5, 8);        // width=5, height=8,  filled=0
+    create_rect(5, 8, 1);     // width=5, height=8,  filled=1
+}
+```
+
+### Правила параметров по умолчанию
+
+- Параметры со значением по умолчанию должны стоять **после** обязательных параметров
+- Значение по умолчанию должно быть числовым литералом
+- При вызове параметры с умолчанием можно опустить справа налево
+
+```orbitron
+// ОК — параметры со значением по умолчанию идут в конце
+func connect(host: int, port: int = 80, timeout: int = 30) { }
+
+// ОШИБКА — обязательный параметр после параметра с умолчанием
+// func broken(x: int = 0, y: int) { }
+```
+
+---
+
+## 5.4 — Функция main
 
 Каждая программа должна содержать функцию `main` — это точка входа:
 
@@ -103,7 +172,7 @@ func main() {
 
 ---
 
-## 5.4 — Область видимости
+## 5.5 — Область видимости
 
 ### Локальные переменные
 
@@ -156,7 +225,7 @@ func helper(): int {
 
 ---
 
-## 5.5 — Рекурсия
+## 5.6 — Рекурсия
 
 Функция может вызывать саму себя. Orbitron полностью поддерживает рекурсию:
 
@@ -219,7 +288,138 @@ func main() {
 
 ---
 
-## 5.6 — Оператор конвейера `|>`
+## 5.7 — Лямбда-выражения (замыкания)
+
+Лямбда — это анонимная функция, объявленная прямо в месте использования.
+Используется синтаксис `|параметры| тело`:
+
+```orbitron
+var double = |x| x * 2;
+var add    = |a, b| a + b;
+var square = |x| x * x;
+```
+
+### Вызов лямбды
+
+```orbitron
+var double = |x| x * 2;
+println(double(5));    // 10
+println(double(21));   // 42
+```
+
+### Лямбды с несколькими параметрами
+
+```orbitron
+var clamp = |x, lo, hi| x < lo ? lo : x > hi ? hi : x;
+
+println(clamp(5, 0, 10));    // 5
+println(clamp(-3, 0, 10));   // 0
+println(clamp(15, 0, 10));   // 10
+```
+
+### Лямбды в конвейерах
+
+Лямбды удобно комбинировать с оператором `|>`:
+
+```orbitron
+var double  = |x| x * 2;
+var inc     = |x| x + 1;
+var negate  = |x| -x;
+
+var result = 5 |> double |> inc |> negate;
+println(result);   // -(5*2+1) = -11
+```
+
+### Многострочная лямбда
+
+Если тело лямбды сложнее одного выражения, используйте блок `{ ... }`:
+
+```orbitron
+var process = |x| {
+    var doubled = x * 2;
+    var shifted = doubled + 10;
+    return shifted;
+};
+
+println(process(5));    // 20
+println(process(15));   // 40
+```
+
+---
+
+## 5.8 — Статические методы и синтаксис `::`
+
+Статические методы принадлежат типу, а не конкретному экземпляру. Они
+не принимают `self` и вызываются через синтаксис `Тип::метод(аргументы)`:
+
+```orbitron
+struct MathUtils { }
+
+impl MathUtils {
+    static func square(x: int) -> int {
+        return x * x;
+    }
+
+    static func max(a: int, b: int) -> int {
+        return a > b ? a : b;
+    }
+
+    static func clamp(x: int, lo: int, hi: int) -> int {
+        return x < lo ? lo : x > hi ? hi : x;
+    }
+}
+
+func main() {
+    println(MathUtils::square(7));         // 49
+    println(MathUtils::max(3, 9));         // 9
+    println(MathUtils::clamp(150, 0, 100)); // 100
+}
+```
+
+### Статические методы в классах
+
+Статические методы можно объявлять и в классах через `class + init`:
+
+```orbitron
+class Counter {
+    private val: int,
+
+    init(start: int) {
+        self.val = start;
+    }
+
+    pub func get(self) -> int {
+        return self.val;
+    }
+
+    pub func inc(self) {
+        self.val += 1;
+    }
+
+    static func zero() -> int {
+        return 0;   // фабричный метод
+    }
+}
+
+func main() {
+    var start = Counter::zero();   // статический вызов
+    var c = new Counter(start);
+    c.inc();
+    c.inc();
+    println(c.get());   // 2
+}
+```
+
+### Разница между обычными и статическими методами
+
+| Вид | Синтаксис объявления | Синтаксис вызова | Доступ к `self` |
+|-----|---------------------|------------------|----------------|
+| Обычный метод | `pub func f(self)` | `obj.f()` | Да |
+| Статический метод | `static func f()` | `Type::f()` | Нет |
+
+---
+
+## 5.9 — Оператор конвейера `|>`
 
 Оператор конвейера передаёт результат левого выражения как первый аргумент
 правой функции. Вдохновлён Elixir и F#.
@@ -283,22 +483,20 @@ func main() {
 }
 ```
 
-### Реальный пример использования
+### Конвейер с лямбдами
 
 ```orbitron
-func abs_val(x: int): int { return x >= 0 ? x : -x; }
-func double(x: int):  int { return x * 2; }
-func clamp100(x: int): int { return x > 100 ? 100 : x; }
+var result = 5
+    |> |x| x * 2
+    |> |x| x + 1
+    |> |x| x * x;
 
-func main() {
-    var result = -42 |> abs_val |> double |> clamp100;
-    println(result);   // 84
-}
+println(result);   // (5*2+1)^2 = 121
 ```
 
 ---
 
-## 5.7 — Функции как строительные блоки
+## 5.10 — Функции как строительные блоки
 
 Хорошие программы разбивают сложную логику на небольшие именованные функции.
 Каждая функция делает одно дело и делает его хорошо.
@@ -344,7 +542,7 @@ func main() {
 
 ---
 
-## 5.8 — Взаимная рекурсия
+## 5.11 — Взаимная рекурсия
 
 Две функции могут вызывать друг друга:
 
@@ -371,15 +569,19 @@ func main() {
 
 ---
 
-## 5.9 — Итоговая таблица
+## 5.12 — Итоговая таблица
 
 | Концепция | Синтаксис | Примечание |
 |-----------|-----------|-----------|
 | Объявить | `func name(a: int): int { }` | Аннотации типов необязательны |
+| Стрелка возврата | `func name(a: int) -> int { }` | Альтернативный синтаксис |
+| Параметр по умолчанию | `func f(x: int, y: int = 0)` | y необязателен при вызове |
 | Вызвать | `name(arg1, arg2)` | — |
 | Вернуть значение | `return expr;` | Неявный return 0 если пропущен |
 | Рекурсия | `func f(n) { return f(n-1); }` | Полностью поддерживается |
+| Лямбда | `\|x, y\| x + y` | Анонимная функция |
 | Конвейер | `x \|> f \|> g` | То же что `g(f(x))` |
+| Статический метод | `static func f()` | Вызов: `Type::f()` |
 | Область видимости | Локальные переменные приватны | Константы верхнего уровня доступны везде |
 
 ---
@@ -391,9 +593,9 @@ func main() {
 
 const PI_INT: int = 3;   // приближение
 
-func square(n: int): int { return n * n; }
-func cube(n: int):   int { return n * n * n; }
-func abs(n: int):    int { return n >= 0 ? n : -n; }
+func square(n: int) -> int { return n * n; }
+func cube(n: int)   -> int { return n * n * n; }
+func abs(n: int)    -> int { return n >= 0 ? n : -n; }
 
 func sum_up_to(n: int): int {
     var total = 0;
@@ -401,7 +603,8 @@ func sum_up_to(n: int): int {
     return total;
 }
 
-func power(base: int, exp: int): int {
+// Параметр по умолчанию
+func power(base: int, exp: int = 2): int {
     if (exp == 0) { return 1; }
     return base * power(base, exp - 1);
 }
@@ -409,16 +612,24 @@ func power(base: int, exp: int): int {
 func double(n: int): int { return n * 2; }
 func inc(n: int):    int { return n + 1; }
 
+// Лямбда
+var clamp100 = |x| x > 100 ? 100 : x;
+
 func main() {
     println(square(7));       // 49
     println(cube(3));         // 27
     println(abs(-42));        // 42
     println(sum_up_to(10));   // 55
     println(power(2, 8));     // 256
+    println(power(5));        // 25 — exp = 2 по умолчанию
 
-    // Цепочка конвейеров
+    // Лямбда в конвейере
     var result = 5 |> double |> inc |> square;
     println(result);          // (5*2+1)^2 = 121
+
+    // Лямбда напрямую
+    println(clamp100(50));    // 50
+    println(clamp100(200));   // 100
 }
 ```
 

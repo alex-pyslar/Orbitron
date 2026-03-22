@@ -1,7 +1,9 @@
+use inkwell::basic_block::BasicBlock;
+use inkwell::types::BasicMetadataTypeEnum;
 use inkwell::values::{BasicMetadataValueEnum, FloatValue, IntValue};
 
 use crate::parser::ast::{BinOp, Expr, UnaryOp};
-use super::{CodeGen, ConstVal, Val, VarKind};
+use super::{CodeGen, ConstVal, Val, Var, VarKind};
 
 impl<'ctx> CodeGen<'ctx> {
     pub(super) fn gen_expr(&mut self, expr: &Expr) -> Val<'ctx> {
@@ -37,8 +39,11 @@ impl<'ctx> CodeGen<'ctx> {
                         ),
                     VarKind::Struct(type_name) =>
                         Val::Struct(var.ptr, type_name),
-                    VarKind::Array =>
+                    VarKind::Array | VarKind::Tuple =>
                         Val::Array(var.ptr),
+                    VarKind::FnPtr =>
+                        Val::Int(self.builder.build_load(self.i64_ty, var.ptr, name)
+                            .unwrap().into_int_value()),
                 }
             }
 
@@ -316,6 +321,12 @@ impl<'ctx> CodeGen<'ctx> {
                         ).unwrap();
                         Val::Int(self.builder.build_int_z_extend(cmp, self.i64_ty, "not.ext").unwrap())
                     }
+                    // ~x — bitwise NOT  (from C / Java)
+                    UnaryOp::BitNot => {
+                        let i        = self.as_int(v);
+                        let all_ones = self.i64_ty.const_all_ones();
+                        Val::Int(self.builder.build_xor(i, all_ones, "bitnot").unwrap())
+                    }
                 }
             }
 
@@ -323,6 +334,144 @@ impl<'ctx> CodeGen<'ctx> {
                 let l = self.gen_expr(lhs);
                 let r = self.gen_expr(rhs);
                 self.gen_binop(l, r, op)
+            }
+
+            // Type::method(args)  — static method call  (from C++ / Rust)
+            Expr::StaticCall { type_name, method, args } => {
+                let func_name = format!("{}_{}", type_name, method);
+                let callee = self.module.get_function(&func_name)
+                    .unwrap_or_else(|| panic!("Unknown static method '{}'", func_name));
+                let argv: Vec<BasicMetadataValueEnum> = args.iter()
+                    .map(|a| { let v = self.gen_expr(a); BasicMetadataValueEnum::IntValue(self.as_int(v)) })
+                    .collect();
+                let result = self.builder
+                    .build_call(callee, &argv, "scall")
+                    .unwrap()
+                    .try_as_basic_value()
+                    .expect_basic("static method must return a value")
+                    .into_int_value();
+                Val::Int(result)
+            }
+
+            // (a, b, ...)  — tuple literal  (from Python / Rust)
+            // Stored as a flat i64 array on the stack.
+            Expr::Tuple(exprs) => {
+                let n    = exprs.len() as u64;
+                let size = self.i64_ty.const_int(n, false);
+                let alloca = self.builder
+                    .build_array_alloca(self.i64_ty, size, "tuple")
+                    .unwrap();
+                for (i, e) in exprs.iter().enumerate() {
+                    let v   = self.gen_expr(e);
+                    let vi  = self.as_int(v);
+                    let idx = self.i64_ty.const_int(i as u64, false);
+                    let ptr = unsafe {
+                        self.builder.build_gep(self.i64_ty, alloca, &[idx], "tuple.init").unwrap()
+                    };
+                    self.builder.build_store(ptr, vi).unwrap();
+                }
+                Val::Array(alloca)
+            }
+
+            // |params| expr  — lambda / closure  (from Rust / Python)
+            Expr::Lambda { params, body } => {
+                let name = format!("__lambda_{}", self.lambda_counter);
+                self.lambda_counter += 1;
+
+                let ptys: Vec<BasicMetadataTypeEnum> = params.iter()
+                    .map(|_| BasicMetadataTypeEnum::from(self.i64_ty))
+                    .collect();
+                let fn_ty = self.i64_ty.fn_type(&ptys, false);
+                let func  = self.module.add_function(&name, fn_ty, None);
+
+                // Save caller context
+                let outer_block    = self.builder.get_insert_block().unwrap();
+                let outer_vars     = std::mem::take(&mut self.vars);
+                let outer_deferred = std::mem::take(&mut self.deferred);
+                let outer_arrays   = std::mem::take(&mut self.array_lens);
+
+                // Generate lambda body
+                let entry = self.ctx.append_basic_block(func, "entry");
+                self.builder.position_at_end(entry);
+                for (i, pname) in params.iter().enumerate() {
+                    let alloca = self.builder.build_alloca(self.i64_ty, pname).unwrap();
+                    let pval   = func.get_nth_param(i as u32).unwrap().into_int_value();
+                    self.builder.build_store(alloca, pval).unwrap();
+                    self.vars.insert(pname.clone(), Var { ptr: alloca, kind: VarKind::Int });
+                }
+                let ret_val = self.gen_expr(body);
+                let ret_int = self.as_int(ret_val);
+                self.builder.build_return(Some(&ret_int)).unwrap();
+
+                // Restore caller context
+                self.vars       = outer_vars;
+                self.deferred   = outer_deferred;
+                self.array_lens = outer_arrays;
+                self.builder.position_at_end(outer_block);
+
+                // Return function pointer as i64
+                Val::Int(
+                    self.builder
+                        .build_ptr_to_int(func.as_global_value().as_pointer_value(), self.i64_ty, "lambda.ptr")
+                        .unwrap()
+                )
+            }
+
+            // match expr { pat => val, ... }  — match as expression  (from Rust)
+            Expr::MatchExpr { expr, arms } => {
+                let val = self.gen_expr(expr);
+                let v   = self.as_int(val);
+                let func = self.cur_fn();
+                let merge_bb = self.ctx.append_basic_block(func, "mexpr.end");
+
+                let arm_bbs: Vec<BasicBlock> = (0..arms.len())
+                    .map(|i| self.ctx.append_basic_block(func, &format!("mexpr.arm.{}", i)))
+                    .collect();
+                let check_bbs: Vec<BasicBlock> = (1..arms.len())
+                    .map(|i| self.ctx.append_basic_block(func, &format!("mexpr.chk.{}", i)))
+                    .collect();
+
+                // Dispatch to first arm
+                if let Some(arm) = arms.first() {
+                    match self.resolve_match_pat(&arm.pat) {
+                        Some(pv) => {
+                            let cmp = self.builder.build_int_compare(inkwell::IntPredicate::EQ, v, pv, "mc").unwrap();
+                            let next = if check_bbs.is_empty() { merge_bb } else { check_bbs[0] };
+                            self.builder.build_conditional_branch(cmp, arm_bbs[0], next).unwrap();
+                        }
+                        None => { self.builder.build_unconditional_branch(arm_bbs[0]).unwrap(); }
+                    }
+                }
+
+                let mut incoming: Vec<(IntValue<'ctx>, BasicBlock<'ctx>)> = Vec::new();
+                for (i, arm) in arms.iter().enumerate() {
+                    self.builder.position_at_end(arm_bbs[i]);
+                    let arm_val = self.gen_expr(&arm.val);
+                    let arm_int = self.as_int(arm_val);
+                    let arm_end = self.builder.get_insert_block().unwrap();
+                    incoming.push((arm_int, arm_end));
+                    self.builder.build_unconditional_branch(merge_bb).unwrap();
+
+                    if i + 1 < arms.len() {
+                        self.builder.position_at_end(check_bbs[i]);
+                        let next_arm = arm_bbs[i + 1];
+                        let fall = if i + 1 < check_bbs.len() { check_bbs[i + 1] } else { merge_bb };
+                        match self.resolve_match_pat(&arms[i + 1].pat) {
+                            Some(pv) => {
+                                let cmp = self.builder.build_int_compare(inkwell::IntPredicate::EQ, v, pv, "mc").unwrap();
+                                self.builder.build_conditional_branch(cmp, next_arm, fall).unwrap();
+                            }
+                            None => { self.builder.build_unconditional_branch(next_arm).unwrap(); }
+                        }
+                    }
+                }
+
+                self.builder.position_at_end(merge_bb);
+                let phi = self.builder.build_phi(self.i64_ty, "mexpr.val").unwrap();
+                for (ival, bb) in &incoming {
+                    phi.add_incoming(&[(ival as &dyn inkwell::values::BasicValue, *bb)]);
+                }
+                Val::Int(phi.as_basic_value().into_int_value())
             }
 
             Expr::Call { name, args } => {
@@ -384,9 +533,63 @@ impl<'ctx> CodeGen<'ctx> {
                     );
                 }
 
+                // ── assert(cond) — abort on falsy condition ──
+                if name == "assert" {
+                    if args.len() != 1 {
+                        panic!("assert(cond) takes exactly 1 argument");
+                    }
+                    let cond_i1 = self.bool_cond(&args[0]);
+                    let func     = self.cur_fn();
+                    let ok_bb    = self.ctx.append_basic_block(func, "assert.ok");
+                    let fail_bb  = self.ctx.append_basic_block(func, "assert.fail");
+                    self.builder.build_conditional_branch(cond_i1, ok_bb, fail_bb).unwrap();
+                    self.builder.position_at_end(fail_bb);
+                    let abort_fn = self.module.get_function("abort").unwrap();
+                    self.builder.build_call(abort_fn, &[], "abort").unwrap();
+                    self.builder.build_unreachable().unwrap();
+                    self.builder.position_at_end(ok_bb);
+                    return Val::Int(self.i64_ty.const_int(0, false));
+                }
+
+                // ── assert_eq(a, b) — abort if a != b ──
+                if name == "assert_eq" {
+                    if args.len() != 2 {
+                        panic!("assert_eq(a, b) takes exactly 2 arguments");
+                    }
+                    let a = { let v = self.gen_expr(&args[0]); self.as_int(v) };
+                    let b = { let v = self.gen_expr(&args[1]); self.as_int(v) };
+                    let eq = self.builder.build_int_compare(inkwell::IntPredicate::EQ, a, b, "aeq").unwrap();
+                    let func    = self.cur_fn();
+                    let ok_bb   = self.ctx.append_basic_block(func, "aeq.ok");
+                    let fail_bb = self.ctx.append_basic_block(func, "aeq.fail");
+                    self.builder.build_conditional_branch(eq, ok_bb, fail_bb).unwrap();
+                    self.builder.position_at_end(fail_bb);
+                    let abort_fn = self.module.get_function("abort").unwrap();
+                    self.builder.build_call(abort_fn, &[], "abort").unwrap();
+                    self.builder.build_unreachable().unwrap();
+                    self.builder.position_at_end(ok_bb);
+                    return Val::Int(self.i64_ty.const_int(0, false));
+                }
+
+                // Fill in default parameters when call provides fewer args than declared
+                let defaults = self.fn_defaults.get(name).cloned().unwrap_or_default();
+                let mut call_args: Vec<Expr> = args.to_vec();
+                if call_args.len() < defaults.len() {
+                    for i in call_args.len()..defaults.len() {
+                        if let Some(Some(default_expr)) = defaults.get(i) {
+                            call_args.push(default_expr.clone());
+                        } else {
+                            panic!(
+                                "Missing argument {} for function '{}' and no default provided",
+                                i, name
+                            );
+                        }
+                    }
+                }
+
                 let callee = self.module.get_function(name)
                     .unwrap_or_else(|| panic!("Undefined function '{}'", name));
-                let argv: Vec<BasicMetadataValueEnum> = args.iter()
+                let argv: Vec<BasicMetadataValueEnum> = call_args.iter()
                     .map(|a| {
                         let v = self.gen_expr(a);
                         BasicMetadataValueEnum::IntValue(self.as_int(v))
@@ -437,6 +640,8 @@ impl<'ctx> CodeGen<'ctx> {
             BinOp::Mod => Val::Int(self.builder.build_int_signed_rem(li, ri, "mod").unwrap()),
             BinOp::And => Val::Int(self.builder.build_and(li, ri, "and").unwrap()),
             BinOp::Or  => Val::Int(self.builder.build_or(li, ri, "or").unwrap()),
+            // ^ XOR  (from C / Java)
+            BinOp::Xor => Val::Int(self.builder.build_xor(li, ri, "xor").unwrap()),
             cmp        => Val::Int(self.int_cmp(li, ri, cmp)),
         }
     }

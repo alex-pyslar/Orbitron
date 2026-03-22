@@ -2,6 +2,7 @@
 
 mod cli;
 mod error;
+mod fmt;
 mod jvm;
 mod lexer;
 mod parser;
@@ -40,6 +41,7 @@ fn dispatch(args: &[String]) -> Result<(), String> {
         "new"           => cmd_new(args),
         "build"         => cmd_build_or_run(args, false),
         "run"           => cmd_build_or_run(args, true),
+        "fmt"           => cmd_fmt(args),
         _               => cmd_file(args),
     }
 }
@@ -234,4 +236,75 @@ fn cmd_file(args: &[String]) -> Result<(), String> {
             compile_jvm(&entry, &src_root, &output, &jo)
         }
     }
+}
+
+// ── orbitron fmt [--write] [file.ot ...] ──────────────────────────────────────
+
+fn cmd_fmt(args: &[String]) -> Result<(), String> {
+    let mut files: Vec<String> = Vec::new();
+    let mut write_back = false;
+
+    for arg in args.iter().skip(2) {
+        match arg.as_str() {
+            "--write" | "-w" => write_back = true,
+            flag if flag.starts_with('-') =>
+                return Err(format!("Unknown fmt flag '{}'.\nUsage: orbitron fmt [--write] [file.ot ...]", flag)),
+            _ => files.push(arg.clone()),
+        }
+    }
+
+    // If no files given, find all .ot files in the current project src/
+    if files.is_empty() {
+        let cwd = std::env::current_dir()
+            .map_err(|e| format!("Cannot get current directory: {e}"))?;
+        let src_dir = cwd.join("src");
+        let scan_dir = if src_dir.exists() { src_dir } else { cwd };
+        for entry in walkdir_ot(&scan_dir)? {
+            files.push(entry.to_string_lossy().to_string());
+        }
+        if files.is_empty() {
+            eprintln!("No .ot files found.");
+            return Ok(());
+        }
+    }
+
+    let mut any_changed = false;
+    for file in &files {
+        let src = fs::read_to_string(file)
+            .map_err(|e| format!("Cannot read '{}': {e}", file))?;
+        let formatted = fmt::format_source(&src)
+            .map_err(|e| format!("{}: {}", file, e))?;
+
+        if write_back {
+            if formatted != src {
+                fs::write(file, &formatted)
+                    .map_err(|e| format!("Cannot write '{}': {e}", file))?;
+                println!("fmt: {}", file);
+                any_changed = true;
+            }
+        } else {
+            print!("{}", formatted);
+        }
+    }
+
+    if write_back && !any_changed {
+        println!("All files are already formatted.");
+    }
+    Ok(())
+}
+
+/// Recursively collect .ot file paths under a directory.
+fn walkdir_ot(dir: &Path) -> Result<Vec<PathBuf>, String> {
+    let mut out = Vec::new();
+    let entries = fs::read_dir(dir)
+        .map_err(|e| format!("Cannot read directory '{}': {e}", dir.display()))?;
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if path.is_dir() {
+            out.extend(walkdir_ot(&path)?);
+        } else if path.extension().and_then(|e| e.to_str()) == Some("ot") {
+            out.push(path);
+        }
+    }
+    Ok(out)
 }

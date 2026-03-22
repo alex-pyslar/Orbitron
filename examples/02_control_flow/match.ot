@@ -92,20 +92,20 @@ func main() {
         _               => { println("Пользователь не может войти"); }
     }
 
-    // --- Match как функция выбора значения ---
-    println("\n-- match для выбора значения --");
+    // --- match как выражение (возвращает значение) ---
+    println("\n-- match как выражение --");
 
     for score in 0..5 {
         var multiplied = score * 20;
-        var label = 0;
-        match multiplied {
-            0  => { label = 0; }
-            20 => { label = 1; }
-            40 => { label = 2; }
-            60 => { label = 3; }
-            80 => { label = 4; }
-            _  => { label = 5; }
-        }
+        // match-выражение: выбор значения без промежуточной переменной
+        var label = match multiplied {
+            0  => 0,
+            20 => 1,
+            40 => 2,
+            60 => 3,
+            80 => 4,
+            _  => 5
+        };
         println($"  {multiplied} → {label}");
     }
 

@@ -59,8 +59,11 @@ impl<'ctx> CodeGen<'ctx> {
                     VarKind::Struct(_) => {
                         panic!("Reassigning a struct via '=' is not supported");
                     }
-                    VarKind::Array => {
-                        panic!("Reassigning an array via '=' is not supported");
+                    VarKind::Array | VarKind::Tuple => {
+                        panic!("Reassigning an array/tuple via '=' is not supported");
+                    }
+                    VarKind::FnPtr => {
+                        self.builder.build_store(var.ptr, self.as_int(val)).unwrap();
                     }
                 }
             }
@@ -370,6 +373,99 @@ impl<'ctx> CodeGen<'ctx> {
                 self.builder.position_at_end(merge_bb);
             }
 
+            // for x in array { body }  — array iteration  (from Python)
+            Stmt::ForIn { var, iter, body } => {
+                let arr_name = match iter {
+                    Expr::Ident(n) => n.clone(),
+                    _ => panic!("for-in: iterator must be an array variable name"),
+                };
+                let len = *self.array_lens.get(&arr_name)
+                    .unwrap_or_else(|| panic!(
+                        "for-in: unknown array '{}' or array length not tracked", arr_name
+                    ));
+                let arr_ptr = self.extract_array_ptr(iter);
+
+                let func    = self.cur_fn();
+                let zero    = self.i64_ty.const_int(0, false);
+                let end     = self.i64_ty.const_int(len as u64, false);
+                let pre_bb  = self.builder.get_insert_block().unwrap();
+                let hdr_bb  = self.ctx.append_basic_block(func, "forin.hdr");
+                let body_bb = self.ctx.append_basic_block(func, "forin.body");
+                let step_bb = self.ctx.append_basic_block(func, "forin.step");
+                let exit_bb = self.ctx.append_basic_block(func, "forin.exit");
+
+                let var_alloca = self.builder.build_alloca(self.i64_ty, var).unwrap();
+                self.builder.build_unconditional_branch(hdr_bb).unwrap();
+
+                self.builder.position_at_end(hdr_bb);
+                let phi = self.builder.build_phi(self.i64_ty, "forin.i").unwrap();
+                phi.add_incoming(&[(&zero, pre_bb)]);
+                let phi_v = phi.as_basic_value().into_int_value();
+                let cond_b = self.builder.build_int_compare(
+                    inkwell::IntPredicate::SLT, phi_v, end, "forin.cond",
+                ).unwrap();
+                self.builder.build_conditional_branch(cond_b, body_bb, exit_bb).unwrap();
+
+                self.builder.position_at_end(body_bb);
+                let elem_ptr = unsafe {
+                    self.builder.build_gep(self.i64_ty, arr_ptr, &[phi_v], "forin.elem").unwrap()
+                };
+                let elem_val = self.builder
+                    .build_load(self.i64_ty, elem_ptr, "forin.val")
+                    .unwrap()
+                    .into_int_value();
+                self.builder.build_store(var_alloca, elem_val).unwrap();
+
+                let prev = self.vars.insert(var.clone(), Var { ptr: var_alloca, kind: VarKind::Int });
+                self.loop_stack.push((exit_bb, step_bb));
+                self.gen_stmt(body);
+                self.loop_stack.pop();
+                if !self.terminated() { self.builder.build_unconditional_branch(step_bb).unwrap(); }
+                match prev {
+                    Some(v) => { self.vars.insert(var.clone(), v); }
+                    None    => { self.vars.remove(var); }
+                }
+
+                self.builder.position_at_end(step_bb);
+                let inc = self.builder
+                    .build_int_add(phi_v, self.i64_ty.const_int(1, false), "forin.inc")
+                    .unwrap();
+                phi.add_incoming(&[(&inc, step_bb)]);
+                self.builder.build_unconditional_branch(hdr_bb).unwrap();
+
+                self.builder.position_at_end(exit_bb);
+            }
+
+            // var (a, b) = expr;  — tuple destructuring  (from Python / Rust)
+            Stmt::LetTuple { names, expr } => {
+                let val = self.gen_expr(expr);
+                let tuple_ptr = match val {
+                    Val::Array(ptr) => ptr,
+                    _ => panic!("LetTuple: right-hand side must evaluate to a tuple"),
+                };
+                for (i, name) in names.iter().enumerate() {
+                    let idx = self.i64_ty.const_int(i as u64, false);
+                    let elem_ptr = unsafe {
+                        self.builder.build_gep(self.i64_ty, tuple_ptr, &[idx], "tup.unpack").unwrap()
+                    };
+                    let v = self.builder
+                        .build_load(self.i64_ty, elem_ptr, name)
+                        .unwrap()
+                        .into_int_value();
+                    let alloca = self.builder.build_alloca(self.i64_ty, name).unwrap();
+                    self.builder.build_store(alloca, v).unwrap();
+                    self.vars.insert(name.clone(), Var { ptr: alloca, kind: VarKind::Int });
+                }
+            }
+
+            // @annotation  — no code generated, metadata only
+            Stmt::Annotation { .. } => {}
+
+            // trait / impl Trait for Type  — handled in pass 0/1/2 at top level
+            Stmt::TraitDecl { .. } | Stmt::ImplTrait { .. } => {
+                panic!("trait / impl Trait must be at the top level");
+            }
+
             Stmt::FnDecl { .. } => {
                 panic!("Nested function declarations are not supported");
             }
@@ -383,7 +479,7 @@ impl<'ctx> CodeGen<'ctx> {
 
     /// Returns `Some(int_val)` for patterns that compare against a constant,
     /// or `None` for wildcard patterns.
-    fn resolve_match_pat(
+    pub(super) fn resolve_match_pat(
         &self,
         pat: &MatchPat,
     ) -> Option<inkwell::values::IntValue<'ctx>> {
@@ -409,6 +505,10 @@ impl<'ctx> CodeGen<'ctx> {
     // ── Helper: allocate and store a `var` / `const` ─────────────────────────
 
     fn gen_let(&mut self, name: &str, expr: &Expr) {
+        // Track array length so ForIn can use it
+        if let Expr::ArrayLit(elems) = expr {
+            self.array_lens.insert(name.to_string(), elems.len() as i64);
+        }
         let val = self.gen_expr(expr);
         match val {
             Val::Int(i) => {

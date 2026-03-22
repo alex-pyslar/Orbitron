@@ -16,7 +16,7 @@ use inkwell::values::{
     IntValue, PointerValue,
 };
 
-use crate::parser::ast::{Expr, FieldType, MethodDecl, Stmt, UnaryOp};
+use crate::parser::ast::{Expr, FieldType, MethodDecl, Param, Stmt, UnaryOp};
 
 // ── Compile-time constant value ───────────────────────────────────────────────
 
@@ -33,7 +33,9 @@ pub(super) enum VarKind {
     Int,
     Float,
     Struct(String),
-    Array,  // flat i64[] array (from Python / JS)
+    Array,   // flat i64[] array                   (Python / JS)
+    FnPtr,   // function pointer (lambda)          (Rust / Python)
+    Tuple,   // tuple stored as i64[] (ptr)        (Python / Rust)
 }
 
 // ── Variable descriptor ──────────────────────────────────────────────────────
@@ -50,9 +52,7 @@ pub(super) struct Var<'ctx> {
 pub(super) enum Val<'ctx> {
     Int(IntValue<'ctx>),
     Float(FloatValue<'ctx>),
-    /// Struct value is always represented as a pointer to its stack allocation.
     Struct(PointerValue<'ctx>, String),
-    /// Array value is a pointer to the first i64 element.
     Array(PointerValue<'ctx>),
 }
 
@@ -69,18 +69,20 @@ pub struct CodeGen<'ctx> {
     pub(super) vars:    HashMap<String, Var<'ctx>>,
     pub(super) i64_ty:  inkwell::types::IntType<'ctx>,
     pub(super) f64_ty:  inkwell::types::FloatType<'ctx>,
-    /// LLVM struct types keyed by struct name.
     pub(super) struct_types:  HashMap<String, inkwell::types::StructType<'ctx>>,
-    /// Ordered field info (name, is_float) keyed by struct name.
     pub(super) struct_fields: HashMap<String, Vec<(String, bool)>>,
-    /// Stack of (exit_bb, continue_bb) for the active loop nesting.
     pub(super) loop_stack: Vec<(BasicBlock<'ctx>, BasicBlock<'ctx>)>,
-    /// Enum variants: enum_name → { variant_name → integer_value }  (from Rust / Swift)
     pub(super) enums: HashMap<String, HashMap<String, i64>>,
-    /// Compile-time constants (from Rust / C++)
     pub(super) consts: HashMap<String, ConstVal>,
-    /// Deferred statements to execute at function exit (from Go)
     pub(super) deferred: Vec<crate::parser::ast::Stmt>,
+    /// Tracks array lengths: var_name → length (for ForIn iteration)
+    pub(super) array_lens: HashMap<String, i64>,
+    /// Counter for unique lambda/generated function names
+    pub(super) lambda_counter: usize,
+    /// Default param values: fn_name → [Option<Expr>] per param
+    pub(super) fn_defaults: HashMap<String, Vec<Option<Expr>>>,
+    /// Op-overload registry: type_name → set of method names
+    pub(super) op_methods: HashMap<String, Vec<String>>,
 }
 
 impl<'ctx> CodeGen<'ctx> {
@@ -90,56 +92,71 @@ impl<'ctx> CodeGen<'ctx> {
         let i64_ty  = ctx.i64_type();
         let f64_ty  = ctx.f64_type();
 
-        // Declare libc printf: int printf(char*, ...)
         let i8_ptr    = ctx.ptr_type(inkwell::AddressSpace::default());
+
+        // printf / scanf
         let printf_ty = ctx.i32_type().fn_type(&[i8_ptr.into()], true);
         module.add_function("printf", printf_ty, None);
-
-        // Declare libc scanf: int scanf(char*, ...)
         let scanf_ty = ctx.i32_type().fn_type(&[i8_ptr.into()], true);
         module.add_function("scanf", scanf_ty, None);
 
-        // Declare libm pow(f64, f64) -> f64  — used by ** operator (from Python)
+        // pow (libm)
         let pow_ty = f64_ty.fn_type(&[f64_ty.into(), f64_ty.into()], false);
         module.add_function("pow", pow_ty, None);
 
-        // Declare libc syscall(long number, ...) -> long  — for raw syscalls
+        // syscall(long, ...)
         let syscall_ty = i64_ty.fn_type(&[i64_ty.into()], true);
         module.add_function("syscall", syscall_ty, None);
+
+        // abort() — used by assert                (C standard library)
+        let abort_ty = ctx.void_type().fn_type(&[], false);
+        module.add_function("abort", abort_ty, None);
 
         Self {
             ctx,
             builder,
             module,
-            vars:          HashMap::new(),
+            vars:           HashMap::new(),
             i64_ty,
             f64_ty,
-            struct_types:  HashMap::new(),
-            struct_fields: HashMap::new(),
-            loop_stack:    Vec::new(),
-            enums:         HashMap::new(),
-            consts:        HashMap::new(),
-            deferred:      Vec::new(),
+            struct_types:   HashMap::new(),
+            struct_fields:  HashMap::new(),
+            loop_stack:     Vec::new(),
+            enums:          HashMap::new(),
+            consts:         HashMap::new(),
+            deferred:       Vec::new(),
+            array_lens:     HashMap::new(),
+            lambda_counter: 0,
+            fn_defaults:    HashMap::new(),
+            op_methods:     HashMap::new(),
         }
     }
 
     // ── Program ──────────────────────────────────────────────────────────────
 
     pub fn generate_program(&mut self, program: &[Stmt]) {
-        // Pass 0: collect struct/class type declarations, enum variants, constants.
+        // Pass 0: structs, enums, constants, operator-overload registrations
         for stmt in program {
             match stmt {
                 Stmt::StructDecl { name, fields } => {
                     self.declare_struct(name, fields);
                 }
-                Stmt::ClassDecl { name, fields, .. } => {
-                    let tuples: Vec<(String, FieldType)> = fields
-                        .iter()
-                        .map(|f| (f.name.clone(), f.ty.clone()))
-                        .collect();
-                    self.declare_struct(name, &tuples);
+                Stmt::ClassDecl { name, parent, fields, .. } => {
+                    let mut all_fields: Vec<(String, FieldType)> = Vec::new();
+                    // Inherit parent fields
+                    if let Some(pname) = parent {
+                        if let Some(pfields) = self.struct_fields.get(pname).cloned() {
+                            for (fname, is_float) in &pfields {
+                                all_fields.push((fname.clone(),
+                                    if *is_float { FieldType::Float } else { FieldType::Int }));
+                            }
+                        }
+                    }
+                    for f in fields {
+                        all_fields.push((f.name.clone(), f.ty.clone()));
+                    }
+                    self.declare_struct(name, &all_fields);
                 }
-                // NEW: register enum integer variants  (from Rust / Swift)
                 Stmt::EnumDecl { name, variants } => {
                     let mut map = HashMap::new();
                     for (i, v) in variants.iter().enumerate() {
@@ -147,15 +164,25 @@ impl<'ctx> CodeGen<'ctx> {
                     }
                     self.enums.insert(name.clone(), map);
                 }
-                // NEW: register compile-time constants  (from Rust / C++)
                 Stmt::Const { name, expr } => {
                     self.register_const(name, expr);
+                }
+                // Register operator-overload methods        (Rust / Swift)
+                Stmt::ImplTrait { for_type, methods, .. } => {
+                    let names: Vec<String> = methods.iter().map(|m| m.name.clone()).collect();
+                    self.op_methods.insert(for_type.clone(), names);
+                }
+                // Register default param values
+                Stmt::FnDecl { name, params, .. } => {
+                    let defaults: Vec<Option<Expr>> =
+                        params.iter().map(|(_, d)| d.clone()).collect();
+                    self.fn_defaults.insert(name.clone(), defaults);
                 }
                 _ => {}
             }
         }
 
-        // Pass 1: forward-declare functions, methods and extern declarations.
+        // Pass 1: forward-declare all functions / methods
         for stmt in program {
             match stmt {
                 Stmt::FnDecl { name, params, .. } => {
@@ -177,9 +204,12 @@ impl<'ctx> CodeGen<'ctx> {
                         self.forward_declare_method(name, m);
                     }
                 }
-                // extern func — declare external C function (pass 1)
+                Stmt::ImplTrait { for_type, methods, .. } => {
+                    for m in methods {
+                        self.forward_declare_method(for_type, m);
+                    }
+                }
                 Stmt::ExternFn { name, params, variadic } => {
-                    // Skip if already declared (e.g. printf, scanf, pow, syscall)
                     if self.module.get_function(name).is_none() {
                         let ptys: Vec<BasicMetadataTypeEnum> =
                             (0..*params).map(|_| BasicMetadataTypeEnum::from(self.i64_ty)).collect();
@@ -194,30 +224,28 @@ impl<'ctx> CodeGen<'ctx> {
             }
         }
 
-        // Pass 2: generate function / method bodies.
+        // Pass 2: generate bodies
         for stmt in program {
             match stmt {
                 Stmt::FnDecl { name, params, body } => {
                     self.gen_fn(name, params, body);
                 }
                 Stmt::ImplDecl { struct_name, methods } => {
-                    for m in methods {
-                        self.gen_method(struct_name, m);
-                    }
+                    for m in methods { self.gen_method(struct_name, m); }
                 }
                 Stmt::ClassDecl { name, methods, .. } => {
-                    for m in methods {
-                        self.gen_method(name, m);
-                    }
+                    for m in methods { self.gen_method(name, m); }
                 }
-                // Top-level declarations already handled in pass 0 — skip silently.
-                // Import nodes are resolved before codegen — skip silently.
-                // ExternFn declared in pass 1 — skip in pass 2.
+                Stmt::ImplTrait { for_type, methods, .. } => {
+                    for m in methods { self.gen_method(for_type, m); }
+                }
                 Stmt::StructDecl { .. }
                 | Stmt::EnumDecl  { .. }
                 | Stmt::Const     { .. }
                 | Stmt::Import    { .. }
-                | Stmt::ExternFn  { .. } => {}
+                | Stmt::ExternFn  { .. }
+                | Stmt::TraitDecl { .. }
+                | Stmt::Annotation { .. } => {}
                 s => panic!("Unexpected top-level statement: {:?}", s),
             }
         }
@@ -240,7 +268,7 @@ impl<'ctx> CodeGen<'ctx> {
 
     // ── Struct helpers ────────────────────────────────────────────────────────
 
-    fn declare_struct(&mut self, name: &str, fields: &[(String, FieldType)]) {
+    pub(super) fn declare_struct(&mut self, name: &str, fields: &[(String, FieldType)]) {
         let field_types: Vec<inkwell::types::BasicTypeEnum> = fields
             .iter()
             .map(|(_, ft)| match ft {
@@ -262,7 +290,7 @@ impl<'ctx> CodeGen<'ctx> {
         let func_name = format!("{}_{}", struct_name, method.name);
         let ptr_ty    = self.ctx.ptr_type(inkwell::AddressSpace::default());
         let mut ptys: Vec<BasicMetadataTypeEnum> = Vec::new();
-        if method.has_self {
+        if method.has_self && !method.is_static {
             ptys.push(ptr_ty.into());
         }
         ptys.extend(method.params.iter().map(|_| BasicMetadataTypeEnum::from(self.i64_ty)));
@@ -275,17 +303,18 @@ impl<'ctx> CodeGen<'ctx> {
 
     // ── Function / Method generation ─────────────────────────────────────────
 
-    fn gen_fn(&mut self, name: &str, params: &[String], body: &[Stmt]) {
+    pub(super) fn gen_fn(&mut self, name: &str, params: &[Param], body: &[Stmt]) {
         let func = self.module.get_function(name)
-            .unwrap_or_else(|| panic!("BUG: function '{}' was not forward-declared", name));
+            .unwrap_or_else(|| panic!("BUG: function '{}' not forward-declared", name));
 
         let entry = self.ctx.append_basic_block(func, "entry");
         self.builder.position_at_end(entry);
 
         let outer_vars     = std::mem::take(&mut self.vars);
-        let outer_deferred = std::mem::take(&mut self.deferred); // NEW: defer (Go)
+        let outer_deferred = std::mem::take(&mut self.deferred);
+        let outer_arrays   = std::mem::take(&mut self.array_lens);
 
-        for (i, pname) in params.iter().enumerate() {
+        for (i, (pname, _default)) in params.iter().enumerate() {
             let alloca = self.builder.build_alloca(self.i64_ty, pname).unwrap();
             let pval   = func.get_nth_param(i as u32).unwrap().into_int_value();
             self.builder.build_store(alloca, pval).unwrap();
@@ -297,31 +326,30 @@ impl<'ctx> CodeGen<'ctx> {
             self.gen_stmt(s);
         }
 
-        // Emit deferred at implicit function end  (from Go)
         if !self.terminated() {
             self.emit_deferred();
-            self.builder
-                .build_return(Some(&self.i64_ty.const_int(0, false)))
-                .unwrap();
+            self.builder.build_return(Some(&self.i64_ty.const_int(0, false))).unwrap();
         }
 
-        self.vars     = outer_vars;
-        self.deferred = outer_deferred;
+        self.vars      = outer_vars;
+        self.deferred  = outer_deferred;
+        self.array_lens = outer_arrays;
     }
 
-    fn gen_method(&mut self, struct_name: &str, method: &MethodDecl) {
+    pub(super) fn gen_method(&mut self, struct_name: &str, method: &MethodDecl) {
         let func_name = format!("{}_{}", struct_name, method.name);
         let func = self.module.get_function(&func_name)
-            .unwrap_or_else(|| panic!("BUG: method '{}' was not forward-declared", func_name));
+            .unwrap_or_else(|| panic!("BUG: method '{}' not forward-declared", func_name));
 
         let entry = self.ctx.append_basic_block(func, "entry");
         self.builder.position_at_end(entry);
 
         let outer_vars     = std::mem::take(&mut self.vars);
-        let outer_deferred = std::mem::take(&mut self.deferred); // NEW: defer (Go)
+        let outer_deferred = std::mem::take(&mut self.deferred);
+        let outer_arrays   = std::mem::take(&mut self.array_lens);
         let mut param_idx  = 0u32;
 
-        if method.has_self {
+        if method.has_self && !method.is_static {
             let self_ptr = func.get_nth_param(0).unwrap().into_pointer_value();
             self.vars.insert(
                 "self".into(),
@@ -330,7 +358,7 @@ impl<'ctx> CodeGen<'ctx> {
             param_idx = 1;
         }
 
-        for (i, pname) in method.params.iter().enumerate() {
+        for (i, (pname, _default)) in method.params.iter().enumerate() {
             let pval   = func.get_nth_param(param_idx + i as u32).unwrap().into_int_value();
             let alloca = self.builder.build_alloca(self.i64_ty, pname).unwrap();
             self.builder.build_store(alloca, pval).unwrap();
@@ -342,51 +370,37 @@ impl<'ctx> CodeGen<'ctx> {
             self.gen_stmt(s);
         }
 
-        // Emit deferred at implicit method end  (from Go)
         if !self.terminated() {
             self.emit_deferred();
-            self.builder
-                .build_return(Some(&self.i64_ty.const_int(0, false)))
-                .unwrap();
+            self.builder.build_return(Some(&self.i64_ty.const_int(0, false))).unwrap();
         }
 
-        self.vars     = outer_vars;
-        self.deferred = outer_deferred;
+        self.vars       = outer_vars;
+        self.deferred   = outer_deferred;
+        self.array_lens = outer_arrays;
     }
 
-    // ── Defer helpers  (from Go) ──────────────────────────────────────────────
+    // ── Defer helpers  (Go) ──────────────────────────────────────────────────
 
-    /// Emit all deferred statements in LIFO order (last-defer-first).
     pub(super) fn emit_deferred(&mut self) {
         let stmts: Vec<Stmt> = self.deferred.iter().rev().cloned().collect();
-        for s in &stmts {
-            self.gen_stmt(s);
-        }
+        for s in &stmts { self.gen_stmt(s); }
     }
 
     // ── Shared helpers ────────────────────────────────────────────────────────
 
     pub(super) fn terminated(&self) -> bool {
-        self.builder
-            .get_insert_block()
-            .and_then(|b| b.get_terminator())
-            .is_some()
+        self.builder.get_insert_block().and_then(|b| b.get_terminator()).is_some()
     }
 
     pub(super) fn cur_fn(&self) -> FunctionValue<'ctx> {
-        self.builder
-            .get_insert_block()
-            .unwrap()
-            .get_parent()
-            .unwrap()
+        self.builder.get_insert_block().unwrap().get_parent().unwrap()
     }
 
     pub(super) fn as_int(&self, v: Val<'ctx>) -> IntValue<'ctx> {
         match v {
-            Val::Int(i)      => i,
-            Val::Float(f)    => self.builder
-                .build_float_to_signed_int(f, self.i64_ty, "f2i")
-                .unwrap(),
+            Val::Int(i)       => i,
+            Val::Float(f)     => self.builder.build_float_to_signed_int(f, self.i64_ty, "f2i").unwrap(),
             Val::Struct(_, n) => panic!("Cannot cast struct '{}' to int", n),
             Val::Array(_)     => panic!("Cannot cast array to int"),
         }
@@ -394,10 +408,8 @@ impl<'ctx> CodeGen<'ctx> {
 
     pub(super) fn as_float(&self, v: Val<'ctx>) -> FloatValue<'ctx> {
         match v {
-            Val::Float(f)    => f,
-            Val::Int(i)      => self.builder
-                .build_signed_int_to_float(i, self.f64_ty, "i2f")
-                .unwrap(),
+            Val::Float(f)     => f,
+            Val::Int(i)       => self.builder.build_signed_int_to_float(i, self.f64_ty, "i2f").unwrap(),
             Val::Struct(_, n) => panic!("Cannot cast struct '{}' to float", n),
             Val::Array(_)     => panic!("Cannot cast array to float"),
         }
@@ -406,9 +418,7 @@ impl<'ctx> CodeGen<'ctx> {
     pub(super) fn bool_cond(&mut self, cond: &Expr) -> IntValue<'ctx> {
         let v = self.gen_expr(cond);
         let i = self.as_int(v);
-        self.builder.build_int_compare(
-            inkwell::IntPredicate::NE, i, self.i64_ty.const_zero(), "cond",
-        ).unwrap()
+        self.builder.build_int_compare(inkwell::IntPredicate::NE, i, self.i64_ty.const_zero(), "cond").unwrap()
     }
 
     // ── printf helpers ────────────────────────────────────────────────────────
@@ -436,9 +446,6 @@ impl<'ctx> CodeGen<'ctx> {
         self.builder.build_call(pf, &[ptr.into()], "pr.str").unwrap();
     }
 
-    /// Print an interpolated string `$"Hello, {name}!"` via printf.
-    /// Builds format string at codegen time based on variable types.
-    /// (from C# / Kotlin)
     pub(super) fn print_interpolated(&mut self, parts: &[crate::lexer::token::InterpolPart]) {
         use crate::lexer::token::InterpolPart;
         use inkwell::values::BasicMetadataValueEnum;
@@ -449,7 +456,6 @@ impl<'ctx> CodeGen<'ctx> {
         for part in parts {
             match part {
                 InterpolPart::Lit(s) => {
-                    // Escape '%' so it isn't treated as a format specifier
                     fmt_str.push_str(&s.replace('%', "%%"));
                 }
                 InterpolPart::Var(name) => {
@@ -457,20 +463,16 @@ impl<'ctx> CodeGen<'ctx> {
                         match var.kind.clone() {
                             VarKind::Float => {
                                 fmt_str.push_str("%g");
-                                let fv = self.builder
-                                    .build_load(self.f64_ty, var.ptr, name)
-                                    .unwrap().into_float_value();
+                                let fv = self.builder.build_load(self.f64_ty, var.ptr, name).unwrap().into_float_value();
                                 args.push(fv.into());
                             }
-                            VarKind::Int => {
+                            VarKind::Int | VarKind::FnPtr => {
                                 fmt_str.push_str("%lld");
-                                let iv = self.builder
-                                    .build_load(self.i64_ty, var.ptr, name)
-                                    .unwrap().into_int_value();
+                                let iv = self.builder.build_load(self.i64_ty, var.ptr, name).unwrap().into_int_value();
                                 args.push(iv.into());
                             }
-                            VarKind::Array => {
-                                panic!("Arrays cannot be used in string interpolation");
+                            VarKind::Array | VarKind::Tuple => {
+                                panic!("Arrays/tuples cannot be used in string interpolation directly");
                             }
                             VarKind::Struct(n) => {
                                 panic!("Structs ('{}') cannot be used in string interpolation", n);
@@ -498,10 +500,7 @@ impl<'ctx> CodeGen<'ctx> {
         let fmt_name = format!("ifmt.{}", fxhash(&fmt_str));
         let fmt_ptr  = match self.module.get_global(&fmt_name) {
             Some(g) => g.as_pointer_value(),
-            None    => self.builder
-                .build_global_string_ptr(&fmt_str, &fmt_name)
-                .unwrap()
-                .as_pointer_value(),
+            None    => self.builder.build_global_string_ptr(&fmt_str, &fmt_name).unwrap().as_pointer_value(),
         };
 
         let pf = self.module.get_function("printf").unwrap();
@@ -523,7 +522,6 @@ impl<'ctx> CodeGen<'ctx> {
         let ll = format!("{}.ll", output);
         let s  = format!("{}.s",  output);
 
-        // Write LLVM IR
         if opts.verbose { eprintln!("  → Writing LLVM IR: {}", ll); }
         self.module
             .print_to_file(Path::new(&ll))
@@ -534,27 +532,20 @@ impl<'ctx> CodeGen<'ctx> {
             return Ok(());
         }
 
-        // IR → assembly
         if opts.verbose { eprintln!("  → llc {} → {}", ll, s); }
         let llc_ok = Command::new("llc")
             .args([&ll, "-o", &s, "-relocation-model=pic"])
             .status()
             .map_err(|e| format!("llc not found: {}", e))?;
-        if !llc_ok.success() {
-            return Err("llc failed".into());
-        }
+        if !llc_ok.success() { return Err("llc failed".into()); }
 
-        // assembly → binary
         if opts.verbose { eprintln!("  → clang {} → {}", s, output); }
         let cc_ok = Command::new("clang")
             .args([&s, "-o", output, "-lm"])
             .status()
             .map_err(|e| format!("clang not found: {}", e))?;
-        if !cc_ok.success() {
-            return Err("clang failed".into());
-        }
+        if !cc_ok.success() { return Err("clang failed".into()); }
 
-        // Clean up intermediate files unless --save-temps
         if !opts.save_temps {
             let _ = std::fs::remove_file(&ll);
             let _ = std::fs::remove_file(&s);

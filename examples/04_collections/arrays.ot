@@ -21,13 +21,24 @@ func main() {
     a[2] = a[1] * 2;
     println($"После: {a[0]}, {a[1]}, {a[2]}");   // 99, 20, 40
 
-    // --- Перебор ---
-    println("\n-- Перебор --");
+    // --- Перебор через индекс ---
+    println("\n-- Перебор через индекс --");
 
     var nums = [5, 10, 15, 20, 25, 30];
     for i in 0..6 {
         println($"  nums[{i}] = {nums[i]}");
     }
+
+    // --- Перебор for-in (Python-стиль) ---
+    println("\n-- Перебор for-in --");
+
+    var fib = [1, 1, 2, 3, 5, 8, 13, 21];
+    var fib_sum = 0;
+    for x in fib {
+        fib_sum += x;
+        println(x);
+    }
+    println($"Сумма Фибоначчи: {fib_sum}");
 
     // --- Сумма ---
     println("\n-- Сумма элементов --");

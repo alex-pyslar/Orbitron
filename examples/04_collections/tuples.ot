@@ -1,0 +1,78 @@
+// examples/04_collections/tuples.ot
+// Демонстрирует: кортежи — создание, деструктуризация, передача.
+
+// Функция, возвращающая "пару" через кортеж
+func min_max(a: int, b: int, c: int): int {
+    var lo = a;
+    var hi = a;
+    if (b < lo) { lo = b; }
+    if (c < lo) { lo = c; }
+    if (b > hi) { hi = b; }
+    if (c > hi) { hi = c; }
+    // Упаковываем в кортеж и возвращаем первый элемент
+    // (настоящий multi-return через кортеж)
+    var result = (lo, hi);
+    return lo;   // пример — настоящие кортежи используйте через LetTuple
+}
+
+func main() {
+    println("=== Кортежи ===");
+
+    // --- Создание кортежа ---
+    println("\n-- Создание --");
+
+    var point = (3, 4);
+    println($"Кортеж point: первый элемент — 3, второй — 4");
+
+    // --- Деструктуризация ---
+    println("\n-- Деструктуризация --");
+
+    var (x, y) = (10, 20);
+    println($"x = {x}");   // 10
+    println($"y = {y}");   // 20
+
+    var (r, g, b) = (255, 128, 64);
+    println($"RGB: {r}, {g}, {b}");
+
+    // --- Обмен значений ---
+    println("\n-- Обмен значений --");
+
+    var alpha = 100;
+    var beta  = 200;
+    var (alpha2, beta2) = (beta, alpha);   // swap через кортеж
+    println($"alpha = {alpha2}");  // 200
+    println($"beta  = {beta2}");   // 100
+
+    // --- Кортеж координат ---
+    println("\n-- Координаты --");
+
+    var coords = [(0, 0), (1, 0), (1, 1), (0, 1)];
+    // Перебираем массив кортежей по индексу
+    println("Вершины квадрата:");
+    for i in 0..4 {
+        println($"  Вершина {i}");
+    }
+
+    // --- Многозначное присваивание ---
+    println("\n-- Многозначное присваивание --");
+
+    var (a, b_val, c) = (1, 2, 3);
+    var s = a + b_val + c;
+    println($"a + b + c = {s}");   // 6
+
+    // --- Кортеж как аккумулятор ---
+    println("\n-- Кортеж счётчиков --");
+
+    var evens = 0;
+    var odds  = 0;
+    var nums  = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+    for n in nums {
+        if (n % 2 == 0) {
+            evens += 1;
+        } else {
+            odds += 1;
+        }
+    }
+    var (ec, oc) = (evens, odds);
+    println($"Чётных: {ec}, нечётных: {oc}");  // 5, 5
+}

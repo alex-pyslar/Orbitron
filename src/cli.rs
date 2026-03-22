@@ -43,6 +43,7 @@ USAGE:
   orbitron new <name>            Create a new project
   orbitron build [options]       Build the project (searches for orbitron.toml)
   orbitron run   [options]       Build and run the project
+  orbitron fmt [--write] [files] Format source code (gofmt-style)
   orbitron [options] <file.ot>   Compile a single file
 
 OPTIONS:
