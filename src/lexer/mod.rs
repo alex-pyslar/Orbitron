@@ -219,56 +219,64 @@ impl Lexer {
             s.push(self.advance().unwrap());
         }
         match s.as_str() {
-            "var"      => Token::Var,
-            "let"      => Token::Let,       // new: immutable binding
-            "mut"      => Token::Mut,       // new: mutable binding
-            "const"    => Token::Const,     // Rust/C++
-            "func"     => Token::Func,
-            "fn"       => Token::Fn,        // new: shorter function keyword (Rust-style)
-            "return"   => Token::Return,
-            "if"       => Token::If,
-            "else"     => Token::Else,
-            "unless"   => Token::Unless,    // Ruby
-            "while"    => Token::While,
-            "do"       => Token::Do,
-            "for"      => Token::For,
-            "in"       => Token::In,
-            "loop"     => Token::Loop,
-            "repeat"   => Token::Repeat,    // Lua/Pascal
-            "match"    => Token::Match,
-            "println"  => Token::Println,
-            "true"     => Token::True,
-            "false"    => Token::False,
-            "break"    => Token::Break,
-            "continue" => Token::Continue,
-            "struct"   => Token::Struct,
-            "impl"     => Token::Impl,
-            "class"    => Token::Class,
-            "self"     => Token::SelfKw,
-            "new"      => Token::New,
-            "init"     => Token::Init,
-            "pub"      => Token::Pub,
-            "private"  => Token::Private,
-            "static"   => Token::Static,    // Java/C++
-            "trait"    => Token::Trait,     // Rust/Swift
-            "extends"  => Token::Extends,   // Java/Kotlin
-            "enum"     => Token::Enum,      // Rust/Swift
-            "defer"    => Token::Defer,     // Go
-            "import"   => Token::Import,    // multi-file import (old syntax)
-            "extern"   => Token::Extern,    // external C declaration
-            "type"     => Token::Type,      // new: type alias
-            "where"    => Token::Where,     // new: constraint placeholder
-            _          => Token::Ident(s),
+            "var"       => Token::Var,
+            "let"       => Token::Let,       // backward compat: immutable binding
+            "mut"       => Token::Mut,       // mutable modifier
+            "const"     => Token::Const,     // Rust/C++
+            "func"      => Token::Func,
+            "fn"        => Token::Fn,        // Rust-style function keyword
+            "return"    => Token::Return,
+            "if"        => Token::If,
+            "else"      => Token::Else,
+            "unless"    => Token::Unless,    // Ruby
+            "while"     => Token::While,
+            "do"        => Token::Do,
+            "for"       => Token::For,
+            "in"        => Token::In,
+            "loop"      => Token::Loop,
+            "repeat"    => Token::Repeat,    // Lua/Pascal
+            "match"     => Token::Match,
+            "println"   => Token::Println,
+            "true"      => Token::True,
+            "false"     => Token::False,
+            "break"     => Token::Break,
+            "continue"  => Token::Continue,
+            "struct"    => Token::Struct,
+            "impl"      => Token::Impl,
+            "class"     => Token::Class,
+            "self"      => Token::SelfKw,
+            "new"       => Token::New,
+            "init"      => Token::Init,
+            "pub"       => Token::Pub,       // alias for public (Rust-style)
+            "priv"      => Token::Priv,      // alias for private (short form)
+            "prot"      => Token::Prot,      // alias for protected (short form)
+            "public"    => Token::Public,    // Java/Kotlin
+            "private"   => Token::Private,   // Java/Kotlin
+            "protected" => Token::Protected, // Java/Kotlin
+            "internal"  => Token::Internal,  // Kotlin
+            "static"    => Token::Static,    // Java/C++
+            "trait"     => Token::Trait,     // Rust/Swift
+            "extends"   => Token::Extends,   // Java/Kotlin
+            "enum"      => Token::Enum,      // Rust/Swift
+            "defer"     => Token::Defer,     // Go
+            "import"    => Token::Import,    // multi-file import
+            "extern"    => Token::Extern,    // external C declaration
+            "type"      => Token::Type,      // type alias
+            "where"     => Token::Where,     // constraint placeholder
+            "go"        => Token::Go,        // goroutine spawn (Go)
+            "async"     => Token::Async,     // async function/block (Rust/Kotlin)
+            "await"     => Token::Await,     // async wait (Rust/Kotlin)
+            "launch"    => Token::Launch,    // coroutine launch (Kotlin)
+            "chan"       => Token::Chan,      // channel (Go)
+            _           => Token::Ident(s),
         }
     }
 
     /// Lex `#import "path";` or `#const NAME: type = val;` or standalone `#`.
+    /// Kept for backward compatibility — these are now just aliases for plain keywords.
     fn read_hash(&mut self) -> Result<Token, String> {
         self.advance(); // consume '#'
-        // peek at following identifier to detect #import / #const
         let saved_pos = self.pos;
-        // skip whitespace between # and keyword (not typical but be safe)
-        // We won't skip whitespace here — `#import` must be without space
         let mut kw = String::new();
         while self.peek().map_or(false, |c| c.is_alphabetic() || c == '_') {
             kw.push(self.advance().unwrap());
@@ -384,8 +392,16 @@ impl Lexer {
                 }
                 '<' => {
                     self.advance();
-                    if self.peek() == Some('=') { self.advance(); Ok(Token::LtEq) }
-                    else { Ok(Token::Lt) }
+                    if self.peek() == Some('=') {
+                        self.advance();
+                        Ok(Token::LtEq)
+                    } else if self.peek() == Some('-') {
+                        // <- channel send/receive operator (Go)
+                        self.advance();
+                        Ok(Token::ChanOp)
+                    } else {
+                        Ok(Token::Lt)
+                    }
                 }
                 '>' => {
                     self.advance();

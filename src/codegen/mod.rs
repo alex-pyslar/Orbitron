@@ -250,7 +250,13 @@ impl<'ctx> CodeGen<'ctx> {
                 | Stmt::ExternFn  { .. }
                 | Stmt::TraitDecl { .. }
                 | Stmt::TypeAlias { .. }
-                | Stmt::Annotation { .. } => {}
+                | Stmt::Annotation { .. }
+                | Stmt::VarDecl   { .. }
+                | Stmt::LetNew    { .. }
+                | Stmt::Let       { .. }
+                | Stmt::GoStmt    { .. }
+                | Stmt::Launch    { .. }
+                | Stmt::ChanSend  { .. } => {}
                 s => panic!("Unexpected top-level statement: {:?}", s),
             }
         }

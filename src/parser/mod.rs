@@ -80,6 +80,7 @@ impl Parser {
         }
         match self.peek() {
             Token::Func | Token::Fn => self.parse_fn_decl(),
+            Token::Async => self.parse_fn_decl(),
             Token::Struct   => self.parse_struct_decl(),
             Token::Impl     => self.parse_impl_or_trait_impl(),
             Token::Class    => self.parse_class_decl(),
@@ -192,6 +193,20 @@ impl Parser {
 
     fn parse_fn_decl(&mut self) -> Result<Stmt, String> {
         self.advance(); // 'func' or 'fn'
+        self.parse_fn_decl_body(false)
+    }
+
+    /// `async fn name(params) { body }`
+    fn parse_async_fn_decl(&mut self) -> Result<Stmt, String> {
+        self.advance(); // 'async'
+        match self.peek() {
+            Token::Func | Token::Fn => { self.advance(); }
+            t => return Err(format!("Expected 'fn' or 'func' after 'async', got {:?}", t.clone())),
+        }
+        self.parse_fn_decl_body(true)
+    }
+
+    fn parse_fn_decl_body(&mut self, is_async: bool) -> Result<Stmt, String> {
         let name = self.expect_ident()?;
         self.expect(&Token::LParen)?;
         let params = self.parse_param_list_with_defaults()?;
@@ -215,10 +230,11 @@ impl Parser {
                 params,
                 body: vec![Stmt::Return(expr.clone())],
                 expr_body: Some(expr),
+                is_async,
             });
         }
         let body = self.parse_block_stmts_with_implicit_return()?;
-        Ok(Stmt::FnDecl { name, params, body, expr_body: None })
+        Ok(Stmt::FnDecl { name, params, body, expr_body: None, is_async })
     }
 
     /// Parse parameter list with optional default values:
@@ -262,8 +278,7 @@ impl Parser {
         self.expect(&Token::LBrace)?;
         let mut methods = Vec::new();
         while !self.check(&Token::RBrace) && !self.check(&Token::Eof) {
-            self.eat(&Token::Pub);
-            self.eat(&Token::Private);
+            let _access = self.parse_access_modifier(); // pub/priv/prot/public/private/protected/internal
             // Accept both 'func' and 'fn'
             match self.peek() {
                 Token::Func | Token::Fn => { self.advance(); }
@@ -391,7 +406,7 @@ impl Parser {
                 self.expect(&Token::Colon)?;
                 let ftype = self.parse_field_type()?;
                 self.eat(&Token::Comma);
-                fields.push(FieldDecl { name: fname, ty: ftype, access });
+                fields.push(FieldDecl { name: fname, ty: ftype, access, is_static });
             }
         }
 
@@ -423,9 +438,11 @@ impl Parser {
     }
 
     fn parse_access_modifier(&mut self) -> Access {
-        if self.eat(&Token::Pub)          { Access::Public  }
-        else if self.eat(&Token::Private) { Access::Private }
-        else                              { Access::Public  }
+        if      self.eat(&Token::Pub)       || self.eat(&Token::Public)    { Access::Public    }
+        else if self.eat(&Token::Priv)      || self.eat(&Token::Private)   { Access::Private   }
+        else if self.eat(&Token::Prot)      || self.eat(&Token::Protected) { Access::Protected }
+        else if self.eat(&Token::Internal)                                  { Access::Internal  }
+        else                                                                { Access::Default   }
     }
 
     fn parse_method_decl(&mut self) -> Result<MethodDecl, String> {
@@ -491,13 +508,14 @@ impl Parser {
                 params,
                 has_self,
                 is_static: false,
+                is_async: false,
                 body: vec![Stmt::Return(expr.clone())],
                 access: Access::Public,
                 expr_body: Some(expr),
             });
         }
         let body = self.parse_block_stmts_with_implicit_return()?;
-        Ok(MethodDecl { name, params, has_self, is_static: false, body, access: Access::Public, expr_body: None })
+        Ok(MethodDecl { name, params, has_self, is_static: false, is_async: false, body, access: Access::Public, expr_body: None })
     }
 
     // ── Block ──────────────────────────────────────────────────────────────
@@ -559,6 +577,9 @@ impl Parser {
             Token::Return   => return self.parse_return(),
             Token::Println  => return self.parse_println(),
             Token::Match    => return self.parse_match_stmt(),
+            Token::Go       => return self.parse_go_stmt(),
+            Token::Launch   => return self.parse_launch_stmt(),
+            Token::Async    => return self.parse_async_fn_decl(),
             Token::Break    => {
                 self.advance();
                 self.expect(&Token::Semicolon)?;
@@ -572,6 +593,10 @@ impl Parser {
             Token::LBrace => {
                 let body = self.parse_block_stmts()?;
                 return Ok(Stmt::Block(body));
+            }
+            // channel send: ident <- expr ;
+            Token::Ident(_) if matches!(self.peek2(), Token::ChanOp) => {
+                return self.parse_chan_send();
             }
             Token::Ident(_) if matches!(
                 self.peek2(),
@@ -648,11 +673,18 @@ impl Parser {
             Token::Return   => self.parse_return(),
             Token::Println  => self.parse_println(),
             Token::Match    => self.parse_match_stmt(),
+            Token::Go       => self.parse_go_stmt(),
+            Token::Launch   => self.parse_launch_stmt(),
+            Token::Async    => self.parse_async_fn_decl(),
             Token::Break    => { self.advance(); self.expect(&Token::Semicolon)?; Ok(Stmt::Break) }
             Token::Continue => { self.advance(); self.expect(&Token::Semicolon)?; Ok(Stmt::Continue) }
             Token::LBrace => {
                 let body = self.parse_block_stmts()?;
                 Ok(Stmt::Block(body))
+            }
+            // channel send: ident <- expr ;
+            Token::Ident(_) if matches!(self.peek2(), Token::ChanOp) => {
+                self.parse_chan_send()
             }
             // compound assignment:  ident op= expr ;
             Token::Ident(_) if matches!(
@@ -683,6 +715,35 @@ impl Parser {
                 Ok(Stmt::Expr(e))
             }
         }
+    }
+
+    /// `go { block }` or `go fn_call(args);`  — goroutine spawn  (Go)
+    fn parse_go_stmt(&mut self) -> Result<Stmt, String> {
+        self.advance(); // 'go'
+        if self.check(&Token::LBrace) {
+            let body = self.parse_block_stmts()?;
+            return Ok(Stmt::GoStmt { body: Box::new(Stmt::Block(body)) });
+        }
+        // go fn_call(args);  — treat as go { fn_call(args); }
+        let e = self.parse_expr()?;
+        self.eat(&Token::Semicolon);
+        Ok(Stmt::GoStmt { body: Box::new(Stmt::Expr(e)) })
+    }
+
+    /// `launch { block }`  — coroutine launch  (Kotlin)
+    fn parse_launch_stmt(&mut self) -> Result<Stmt, String> {
+        self.advance(); // 'launch'
+        let body = self.parse_block_stmts()?;
+        Ok(Stmt::Launch { body: Box::new(Stmt::Block(body)) })
+    }
+
+    /// `ch <- val;`  — channel send  (Go)
+    fn parse_chan_send(&mut self) -> Result<Stmt, String> {
+        let chan_name = self.expect_ident()?;
+        self.expect(&Token::ChanOp)?; // '<-'
+        let val = self.parse_expr()?;
+        self.eat(&Token::Semicolon);
+        Ok(Stmt::ChanSend { chan: Expr::Ident(chan_name), val })
     }
 
     /// `let name [: type] = expr;`  — immutable binding (new syntax)
@@ -739,6 +800,8 @@ impl Parser {
 
     fn parse_var(&mut self) -> Result<Stmt, String> {
         self.advance(); // 'var'
+        // `var mut name` — mutable variable
+        let mutable = self.eat(&Token::Mut);
         // Tuple destructuring: var (a, b) = expr;
         if self.check(&Token::LParen) {
             self.advance(); // '('
@@ -754,11 +817,15 @@ impl Parser {
             return Ok(Stmt::LetTuple { names, expr });
         }
         let name = self.expect_ident()?;
-        if self.eat(&Token::Colon) { self.skip_type_annotation()?; }
+        let ty = if self.eat(&Token::Colon) {
+            Some(self.consume_type_annotation()?)
+        } else {
+            None
+        };
         self.expect(&Token::Assign)?;
         let expr = self.parse_expr()?;
         self.eat(&Token::Semicolon);
-        Ok(Stmt::Let { name, expr })
+        Ok(Stmt::VarDecl { name, mutable, ty, expr })
     }
 
     fn parse_assign(&mut self) -> Result<Stmt, String> {
@@ -1194,6 +1261,16 @@ impl Parser {
                 self.advance();
                 Ok(Expr::Deref(Box::new(self.parse_unary()?)))
             }
+            // await expr — async wait  (Rust / Kotlin)
+            Token::Await => {
+                self.advance();
+                Ok(Expr::Await { expr: Box::new(self.parse_unary()?) })
+            }
+            // <-chan — receive from channel  (Go)
+            Token::ChanOp => {
+                self.advance();
+                Ok(Expr::ChanRecv { chan: Box::new(self.parse_unary()?) })
+            }
             _ => self.parse_power(),
         }
     }
@@ -1250,6 +1327,14 @@ impl Parser {
         // `|params| expr` — lambda  (Rust / Python)
         if self.check(&Token::Pipe) {
             return self.parse_lambda();
+        }
+
+        // `chan()` — channel creation  (Go)
+        if self.check(&Token::Chan) {
+            self.advance(); // 'chan'
+            self.expect(&Token::LParen)?;
+            self.expect(&Token::RParen)?;
+            return Ok(Expr::Number(0)); // stub: returns 0 (channel id)
         }
 
         // `match expr { pat => val, ... }` — match as expression

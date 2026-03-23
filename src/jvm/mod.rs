@@ -552,6 +552,21 @@ impl JvmCodeGen {
             | Stmt::Import { .. }
             | Stmt::Defer(_)
             | Stmt::ExternFn { .. } => {}
+            Stmt::VarDecl { name, mutable: _, ty: _, expr } => {
+                out.push_str(&format!("long {} = {};\n", name, self.emit_expr(expr)));
+            }
+            // go { block } / launch { block } — synchronous stub in JVM backend
+            Stmt::GoStmt { body } => {
+                return self.emit_stmt(body, depth);
+            }
+            Stmt::Launch { body } => {
+                return self.emit_stmt(body, depth);
+            }
+            // ch <- val  — stub: evaluate val, discard
+            Stmt::ChanSend { val, .. } => {
+                let ind = "    ".repeat(depth + 1);
+                return format!("{}{};  // chan send (stub)\n", ind, self.emit_expr(val));
+            }
         }
         out
     }
@@ -695,6 +710,16 @@ impl JvmCodeGen {
                 panic!("*deref не поддерживается в JVM-бекенде (используйте --backend llvm)"),
             Expr::CStr(_) =>
                 panic!("cstr() не поддерживается в JVM-бекенде (используйте --backend llvm)"),
+            // Channel receive — stub: returns 0
+            Expr::ChanRecv { chan } => {
+                // evaluate channel for side-effects
+                let _ = self.emit_expr(chan);
+                "0L".to_string()
+            }
+            // await — synchronous stub: evaluate and return value
+            Expr::Await { expr } => {
+                self.emit_expr(expr)
+            }
         }
     }
 

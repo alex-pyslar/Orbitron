@@ -481,6 +481,25 @@ impl<'ctx> CodeGen<'ctx> {
             Stmt::StructDecl { .. } | Stmt::ImplDecl { .. } | Stmt::ClassDecl { .. } => {
                 panic!("struct/impl/class must be at the top level");
             }
+
+            Stmt::VarDecl { name, expr, .. } => {
+                self.gen_let(name, expr);
+            }
+
+            // go { block } / go fn_call(args)  — synchronous stub: run inline
+            Stmt::GoStmt { body } => {
+                self.gen_stmt(body);
+            }
+
+            // launch { block }  — synchronous stub: run inline
+            Stmt::Launch { body } => {
+                self.gen_stmt(body);
+            }
+
+            // ch <- val  — stub: evaluate val for side-effects, discard
+            Stmt::ChanSend { val, .. } => {
+                self.gen_expr(val);
+            }
         }
     }
 

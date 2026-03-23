@@ -157,7 +157,7 @@ fn fmt_stmt(stmt: &Stmt, depth: usize) -> String {
             s
         }
 
-        Stmt::FnDecl { name, params, body, expr_body } => {
+        Stmt::FnDecl { name, params, body, expr_body, .. } => {
             let ps = fmt_params(params);
             if let Some(e) = expr_body {
                 format!("{}fn {}({}) => {};\n", ind, name, ps, fmt_expr(e))
@@ -209,7 +209,13 @@ fn fmt_stmt(stmt: &Stmt, depth: usize) -> String {
             let mut s = format!("{}class{}{} {{\n", ind, ext, name);
             // Reorder: fields first
             for f in fields {
-                let acc = match f.access { Access::Public => "pub ", Access::Private => "private " };
+                let acc = match f.access {
+                    Access::Public    => "pub ",
+                    Access::Private   => "priv ",
+                    Access::Protected => "prot ",
+                    Access::Internal  => "internal ",
+                    Access::Default   => "",
+                };
                 s.push_str(&format!("{}    {}{}: {},\n", ind, acc, f.name, fmt_field_type(&f.ty)));
             }
             for m in methods { s.push_str(&fmt_method(m, depth + 1)); }
@@ -239,6 +245,20 @@ fn fmt_stmt(stmt: &Stmt, depth: usize) -> String {
 
         Stmt::Annotation { name } =>
             format!("{}@{}\n", ind, name),
+
+        Stmt::VarDecl { name, mutable, ty, expr } => {
+            let kw = if *mutable { "var mut" } else { "var" };
+            if let Some(t) = ty {
+                format!("{}{} {}: {} = {};\n", ind, kw, name, t, fmt_expr(expr))
+            } else {
+                format!("{}{} {} = {};\n", ind, kw, name, fmt_expr(expr))
+            }
+        }
+
+        Stmt::GoStmt { body }  => format!("{}go {};\n", ind, fmt_stmt_inline(body)),
+        Stmt::Launch { body }  => format!("{}launch {};\n", ind, fmt_stmt_inline(body)),
+        Stmt::ChanSend { chan, val } =>
+            format!("{}{} <- {};\n", ind, fmt_expr(chan), fmt_expr(val)),
     }
 }
 
@@ -327,6 +347,8 @@ fn fmt_expr(expr: &Expr) -> String {
         Expr::AddrOf(e)  => format!("&{}", fmt_expr(e)),
         Expr::Deref(e)   => format!("*{}", fmt_expr(e)),
         Expr::CStr(s)    => format!("cstr(\"{}\")", escape_str(s)),
+        Expr::ChanRecv { chan } => format!("<-{}", fmt_expr(chan)),
+        Expr::Await { expr }   => format!("await {}", fmt_expr(expr)),
     }
 }
 
@@ -367,7 +389,13 @@ fn fmt_params(params: &[Param]) -> String {
 
 fn fmt_method(m: &MethodDecl, depth: usize) -> String {
     let ind   = indent(depth);
-    let acc   = match m.access { Access::Public => "pub ", Access::Private => "private " };
+    let acc   = match m.access {
+        Access::Public    => "pub ",
+        Access::Private   => "priv ",
+        Access::Protected => "prot ",
+        Access::Internal  => "internal ",
+        Access::Default   => "",
+    };
     let stat  = if m.is_static { "static " } else { "" };
     let self_ = if m.has_self && !m.is_static { "self" } else { "" };
     let ps    = fmt_params(&m.params);

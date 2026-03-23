@@ -699,6 +699,17 @@ impl<'ctx> CodeGen<'ctx> {
                     .into_int_value();
                 Val::Int(result)
             }
+
+            // Channel receive — stub: returns 0  (Go-style channels not implemented)
+            Expr::ChanRecv { chan } => {
+                // evaluate the channel expression for side-effects, return 0
+                self.gen_expr(chan);
+                Val::Int(self.i64_ty.const_int(0, false))
+            }
+            // await — synchronous stub: evaluate the expression and return its value
+            Expr::Await { expr } => {
+                self.gen_expr(expr)
+            }
         }
     }
 

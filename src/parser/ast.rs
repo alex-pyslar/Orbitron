@@ -28,6 +28,9 @@ pub enum UnaryOp {
 pub enum Access {
     Public,
     Private,
+    Protected, // visible in subclasses           (Java / Kotlin)
+    Internal,  // visible inside module only      (Kotlin)
+    Default,   // no modifier specified
 }
 
 // ── Struct field type ─────────────────────────────────────────────────────────
@@ -43,9 +46,10 @@ pub enum FieldType {
 
 #[derive(Debug, Clone)]
 pub struct FieldDecl {
-    pub name:   String,
-    pub ty:     FieldType,
-    pub access: Access,
+    pub name:      String,
+    pub ty:        FieldType,
+    pub access:    Access,
+    pub is_static: bool,
 }
 
 // ── Match arm pattern ─────────────────────────────────────────────────────────
@@ -81,6 +85,7 @@ pub struct MethodDecl {
     pub params:    Vec<(String, Option<Expr>)>, // (name, default_value)
     pub has_self:  bool,
     pub is_static: bool,
+    pub is_async:  bool,   // async method marker (Rust / Kotlin)
     pub body:      Vec<Stmt>,
     pub access:    Access,
     /// Fat-arrow expression body: `fn name(params) => expr;`
@@ -144,15 +149,23 @@ pub enum Expr {
     Deref(Box<Expr>),
     /// cstr("literal") — address of a null-terminated C string global
     CStr(String),
+    /// <-chan — receive from channel               (Go)
+    ChanRecv { chan: Box<Expr> },
+    /// await expr — wait for async result         (Rust / Kotlin)
+    Await { expr: Box<Expr> },
 }
 
 // ── Statements ───────────────────────────────────────────────────────────────
 
 #[derive(Debug, Clone)]
 pub enum Stmt {
-    /// var name = expr;  (old syntax)
+    /// var name = expr;  (old syntax — kept for backward compat)
     Let { name: String, expr: Expr },
-    /// let name = expr;  / mut name = expr;  (new syntax)
+    /// var name [: type] = expr;  /  var mut name [: type] = expr;
+    /// Also handles `let name = expr;` (backward compat, mutable=false)
+    /// and `mut name = expr;` (backward compat, mutable=true)
+    VarDecl { name: String, mutable: bool, ty: Option<String>, expr: Expr },
+    /// let name = expr;  / mut name = expr;  (old new syntax — alias of VarDecl)
     LetNew { name: String, mutable: bool, ty: Option<String>, expr: Expr },
     /// var (a, b) = expr;  — tuple destructuring   (Python / Rust)
     LetTuple { names: Vec<String>, expr: Expr },
@@ -218,6 +231,7 @@ pub enum Stmt {
         params:    Vec<Param>,
         body:      Vec<Stmt>,
         expr_body: Option<Expr>,  // fat-arrow body: fn f(x) => expr;
+        is_async:  bool,          // async fn                    (Rust / Kotlin)
     },
     /// @annotation
     Annotation { name: String },
@@ -257,7 +271,7 @@ pub enum Stmt {
     },
     /// defer stmt;                          (Go) — executes at function exit
     Defer(Box<Stmt>),
-    /// import "module";                     — multi-file import (old syntax)
+    /// import "module";                     — multi-file import
     Import { path: String },
     /// extern func name(p0, p1, ...): ret;  — declare external C function
     ExternFn {
@@ -265,4 +279,10 @@ pub enum Stmt {
         params:   usize,
         variadic: bool,
     },
+    /// go { block } / go fn_call(args);    — goroutine spawn  (Go)
+    GoStmt { body: Box<Stmt> },
+    /// launch { block }                    — coroutine launch (Kotlin)
+    Launch { body: Box<Stmt> },
+    /// ch <- val;                          — channel send     (Go)
+    ChanSend { chan: Expr, val: Expr },
 }
