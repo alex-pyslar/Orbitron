@@ -45,13 +45,10 @@ pub enum Token {
     SelfKw,    // self
     New,       // new   — constructor call
     Init,      // init  — class constructor block
-    Pub,       // pub   — alias for public (Rust-style)
-    Priv,      // priv  — alias for private (short form)
-    Prot,      // prot  — alias for protected (short form)
-    Public,    // public   — fully visible                (Java / Kotlin)
-    Private,   // private  — class-local visibility       (Java / Kotlin)
-    Protected, // protected — subclass visibility         (Java / Kotlin)
-    Internal,  // internal — module-level visibility      (Kotlin)
+    Public,    // public    — fully visible                (Java / Kotlin)
+    Private,   // private   — class-local visibility       (Java / Kotlin)
+    Protected, // protected — subclass visibility          (Java / Kotlin)
+    Internal,  // internal  — module-level visibility      (Kotlin)
     Static,    // static — static method modifier        (Java / C++)
     Trait,     // trait  — trait / interface              (Rust / Swift)
     Extends,   // extends — class inheritance             (Java / Kotlin)

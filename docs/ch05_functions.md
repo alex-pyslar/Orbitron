@@ -388,9 +388,9 @@ class Counter {
         self.val = start;
     }
 
-    pub fn get(self): i64 => self.val;
+    public fn get(self): i64 => self.val;
 
-    pub fn inc(self) {
+    public fn inc(self) {
         self.val += 1;
     }
 
@@ -410,7 +410,7 @@ fn main() {
 
 | Вид | Синтаксис объявления | Синтаксис вызова | Доступ к `self` |
 |-----|---------------------|------------------|----------------|
-| Обычный метод | `pub fn f(self)` | `obj.f()` | Да |
+| Обычный метод | `public fn f(self)` | `obj.f()` | Да |
 | Статический метод | `pub static fn f()` | `Type::f()` | Нет |
 
 ---

@@ -42,14 +42,14 @@ struct Config {
 }
 
 impl Config {
-    pub static fn default(): Config => Config { port: 0, timeout: 0, retries: 0 };
-    pub static fn full(): Config   => Config { port: 8080, timeout: 30, retries: 3 };
+    public static fn default(): Config => Config { port: 0, timeout: 0, retries: 0 };
+    public static fn full(): Config   => Config { port: 8080, timeout: 30, retries: 3 };
 
-    pub fn effective_port(self): i64    => self.port    ?: 80;
-    pub fn effective_timeout(self): i64 => self.timeout ?: 10;
-    pub fn effective_retries(self): i64 => self.retries ?: 1;
+    public fn effective_port(self): i64    => self.port    ?: 80;
+    public fn effective_timeout(self): i64 => self.timeout ?: 10;
+    public fn effective_retries(self): i64 => self.retries ?: 1;
 
-    pub fn describe(self) {
+    public fn describe(self) {
         println!("  port=\{self.effective_port()} timeout=\{self.effective_timeout()} retries=\{self.effective_retries()}");
     }
 }

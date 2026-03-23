@@ -11,17 +11,17 @@ struct Circle {
 }
 
 impl Circle {
-    pub fn area_x100(self): i64 => 314 * self.r * self.r / 100;
+    public fn area_x100(self): i64 => 314 * self.r * self.r / 100;
 
-    pub fn perimeter_x10(self): i64 => 628 * self.r / 100;
+    public fn perimeter_x10(self): i64 => 628 * self.r / 100;
 
-    pub fn contains(self, px: i64, py: i64): i64 {
+    public fn contains(self, px: i64, py: i64): i64 {
         let dx = px - self.cx;
         let dy = py - self.cy;
         return dx*dx + dy*dy <= self.r*self.r ? 1 : 0;
     }
 
-    pub fn describe(self) {
+    public fn describe(self) {
         let a = self.area_x100();
         println!("Окружность: центр=(\{self.cx},\{self.cy}), r=\{self.r}, площадь≈\{a}/100");
     }
@@ -35,22 +35,22 @@ struct Rect {
 }
 
 impl Rect {
-    pub fn area(self): i64      => self.w * self.h;
-    pub fn perimeter(self): i64 => 2*(self.w + self.h);
-    pub fn is_square(self): i64 => self.w == self.h ? 1 : 0;
+    public fn area(self): i64      => self.w * self.h;
+    public fn perimeter(self): i64 => 2*(self.w + self.h);
+    public fn is_square(self): i64 => self.w == self.h ? 1 : 0;
 
-    pub fn contains(self, px: i64, py: i64): i64 {
+    public fn contains(self, px: i64, py: i64): i64 {
         if (px < self.x || px > self.x + self.w) { return 0; }
         if (py < self.y || py > self.y + self.h) { return 0; }
         return 1;
     }
 
-    pub fn scale(self, f: i64) {
+    public fn scale(self, f: i64) {
         self.w *= f;
         self.h *= f;
     }
 
-    pub fn describe(self) {
+    public fn describe(self) {
         let a = self.area();
         let p = self.perimeter();
         println!("Прямоугольник: (\{self.x},\{self.y}) \{self.w}x\{self.h}, площадь=\{a}, периметр=\{p}");
@@ -64,22 +64,22 @@ struct Triangle {
 }
 
 impl Triangle {
-    pub fn is_valid(self): i64 {
+    public fn is_valid(self): i64 {
         if (self.a + self.b <= self.c) { return 0; }
         if (self.b + self.c <= self.a) { return 0; }
         if (self.a + self.c <= self.b) { return 0; }
         return 1;
     }
 
-    pub fn perimeter(self): i64 => self.a + self.b + self.c;
+    public fn perimeter(self): i64 => self.a + self.b + self.c;
 
-    pub fn is_equilateral(self): i64 => self.a == self.b && self.b == self.c ? 1 : 0;
+    public fn is_equilateral(self): i64 => self.a == self.b && self.b == self.c ? 1 : 0;
 
-    pub fn is_isosceles(self): i64 {
+    public fn is_isosceles(self): i64 {
         return (self.a == self.b || self.b == self.c || self.a == self.c) ? 1 : 0;
     }
 
-    pub fn is_right(self): i64 {
+    public fn is_right(self): i64 {
         // Проверка теоремы Пифагора (a^2 + b^2 == c^2 или перестановки)
         let a2 = self.a * self.a;
         let b2 = self.b * self.b;
@@ -90,7 +90,7 @@ impl Triangle {
         return 0;
     }
 
-    pub fn describe(self) {
+    public fn describe(self) {
         let p = self.perimeter();
         let v = self.is_valid();
         println!("Треугольник: (\{self.a},\{self.b},\{self.c}), периметр=\{p}, допустим=\{v}");

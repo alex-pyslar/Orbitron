@@ -12,23 +12,23 @@ class BankAccount {
         self.balance  = initial;
     }
 
-    pub fn deposit(self, amount: i64): i64 {
+    public fn deposit(self, amount: i64): i64 {
         if (amount <= 0) { return -1; }   // неверная сумма
         self.balance += amount;
         return 0;
     }
 
-    pub fn withdraw(self, amount: i64): i64 {
+    public fn withdraw(self, amount: i64): i64 {
         if (amount <= 0)           { return -1; }   // неверная сумма
         if (self.balance < amount) { return -2; }   // недостаточно средств
         self.balance -= amount;
         return 0;
     }
 
-    pub fn get_balance(self): i64 => self.balance;
-    pub fn get_owner(self):   i64 => self.owner_id;
+    public fn get_balance(self): i64 => self.balance;
+    public fn get_owner(self):   i64 => self.owner_id;
 
-    pub fn describe(self) {
+    public fn describe(self) {
         println!("Счёт #\{self.owner_id}: \{self.balance} руб.");
     }
 }
@@ -49,7 +49,7 @@ class Stack {
         self.top = 0;
     }
 
-    pub fn push(self, val: i64): i64 {
+    public fn push(self, val: i64): i64 {
         if (self.top >= 8) { return -1; }   // переполнение
         if (self.top == 0) { self.d0 = val; }
         if (self.top == 1) { self.d1 = val; }
@@ -63,7 +63,7 @@ class Stack {
         return 0;
     }
 
-    pub fn pop(self): i64 {
+    public fn pop(self): i64 {
         if (self.top == 0) { return -1; }   // пустой стек
         self.top -= 1;
         if (self.top == 0) { return self.d0; }
@@ -76,7 +76,7 @@ class Stack {
         return self.d7;
     }
 
-    pub fn peek(self): i64 {
+    public fn peek(self): i64 {
         if (self.top == 0) { return -1; }
         let t = self.top - 1;
         if (t == 0) { return self.d0; }
@@ -89,8 +89,8 @@ class Stack {
         return self.d7;
     }
 
-    pub fn size(self):     i64 => self.top;
-    pub fn is_empty(self): i64 => self.top == 0 ? 1 : 0;
+    public fn size(self):     i64 => self.top;
+    public fn is_empty(self): i64 => self.top == 0 ? 1 : 0;
 }
 
 // === Таймер / счётчик ===
@@ -105,15 +105,15 @@ class Timer {
         self.max_ticks = max_ticks;
     }
 
-    pub fn tick(self): i64 {
+    public fn tick(self): i64 {
         if (self.ticks >= self.max_ticks) { return 0; }
         self.ticks += 1;
         return self.ticks % self.interval == 0 ? 1 : 0;   // 1 = событие
     }
 
-    pub fn elapsed(self): i64 => self.ticks;
-    pub fn done(self):    i64 => self.ticks >= self.max_ticks ? 1 : 0;
-    pub fn reset(self)        { self.ticks = 0; }
+    public fn elapsed(self): i64 => self.ticks;
+    public fn done(self):    i64 => self.ticks >= self.max_ticks ? 1 : 0;
+    public fn reset(self)        { self.ticks = 0; }
 }
 
 // === Матрица 2x2 ===
@@ -130,15 +130,15 @@ class Matrix2x2 {
         self.d = d;
     }
 
-    pub fn det(self): i64   => self.a * self.d - self.b * self.c;
-    pub fn trace(self): i64 => self.a + self.d;
+    public fn det(self): i64   => self.a * self.d - self.b * self.c;
+    public fn trace(self): i64 => self.a + self.d;
 
-    pub fn mul_vec(self, x: i64, y: i64, out_x: i64, out_y: i64) {
+    public fn mul_vec(self, x: i64, y: i64, out_x: i64, out_y: i64) {
         ptr_write(out_x, self.a * x + self.b * y);
         ptr_write(out_y, self.c * x + self.d * y);
     }
 
-    pub fn describe(self) {
+    public fn describe(self) {
         println!("  [\{self.a}, \{self.b}]");
         println!("  [\{self.c}, \{self.d}]");
     }

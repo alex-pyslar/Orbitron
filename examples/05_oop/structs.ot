@@ -9,33 +9,33 @@ struct Vec2 {
 }
 
 impl Vec2 {
-    pub fn len_sq(self): i64 {
+    public fn len_sq(self): i64 {
         return self.x * self.x + self.y * self.y;
     }
 
-    pub fn dot(self, ox: i64, oy: i64): i64 {
+    public fn dot(self, ox: i64, oy: i64): i64 {
         return self.x * ox + self.y * oy;
     }
 
-    pub fn add(self, ox: i64, oy: i64) {
+    public fn add(self, ox: i64, oy: i64) {
         self.x += ox;
         self.y += oy;
     }
 
-    pub fn scale(self, factor: i64) {
+    public fn scale(self, factor: i64) {
         self.x *= factor;
         self.y *= factor;
     }
 
-    pub fn manhattan(self): i64 {
+    public fn manhattan(self): i64 {
         let ax = self.x >= 0 ? self.x : -self.x;
         let ay = self.y >= 0 ? self.y : -self.y;
         return ax + ay;
     }
 
-    pub fn is_zero(self): i64 => self.x == 0 && self.y == 0 ? 1 : 0;
+    public fn is_zero(self): i64 => self.x == 0 && self.y == 0 ? 1 : 0;
 
-    pub fn describe(self) {
+    public fn describe(self) {
         println!("Vec2(\{self.x}, \{self.y})");
     }
 }
@@ -49,20 +49,20 @@ struct Circle {
 
 impl Circle {
     // Площадь * 100 (без float, π ≈ 3.14)
-    pub fn area_x100(self): i64 => 314 * self.r * self.r / 100;
+    public fn area_x100(self): i64 => 314 * self.r * self.r / 100;
 
     // Длина окружности * 10 (2π ≈ 6.28)
-    pub fn perim_x10(self): i64 => 628 * self.r / 100;
+    public fn perim_x10(self): i64 => 628 * self.r / 100;
 
-    pub fn contains(self, px: i64, py: i64): i64 {
+    public fn contains(self, px: i64, py: i64): i64 {
         let dx = px - self.cx;
         let dy = py - self.cy;
         return dx*dx + dy*dy <= self.r * self.r ? 1 : 0;
     }
 
-    pub fn area_approx(self): i64 => self.area_x100() / 100;
+    public fn area_approx(self): i64 => self.area_x100() / 100;
 
-    pub fn describe(self) {
+    public fn describe(self) {
         let a = self.area_approx();
         println!("Circle(cx=\{self.cx}, cy=\{self.cy}, r=\{self.r}, area≈\{a})");
     }
@@ -77,22 +77,22 @@ struct Rect {
 }
 
 impl Rect {
-    pub fn area(self):      i64 => self.w * self.h;
-    pub fn perimeter(self): i64 => 2 * (self.w + self.h);
-    pub fn is_square(self): i64 => self.w == self.h ? 1 : 0;
+    public fn area(self):      i64 => self.w * self.h;
+    public fn perimeter(self): i64 => 2 * (self.w + self.h);
+    public fn is_square(self): i64 => self.w == self.h ? 1 : 0;
 
-    pub fn contains(self, px: i64, py: i64): i64 {
+    public fn contains(self, px: i64, py: i64): i64 {
         if (px < self.x || px > self.x + self.w) { return 0; }
         if (py < self.y || py > self.y + self.h) { return 0; }
         return 1;
     }
 
-    pub fn scale(self, factor: i64) {
+    public fn scale(self, factor: i64) {
         self.w *= factor;
         self.h *= factor;
     }
 
-    pub fn describe(self) {
+    public fn describe(self) {
         let a = self.area();
         let p = self.perimeter();
         println!("Rect(\{self.x},\{self.y}) \{self.w}x\{self.h}: area=\{a}, perim=\{p}");
@@ -106,25 +106,25 @@ struct Complex {
 }
 
 impl Complex {
-    pub fn add(self, ore: i64, oim: i64) {
+    public fn add(self, ore: i64, oim: i64) {
         self.re += ore;
         self.im += oim;
     }
 
-    pub fn mul(self, ore: i64, oim: i64) {
+    public fn mul(self, ore: i64, oim: i64) {
         let new_re = self.re * ore - self.im * oim;
         let new_im = self.re * oim + self.im * ore;
         self.re = new_re;
         self.im = new_im;
     }
 
-    pub fn abs_sq(self): i64 => self.re * self.re + self.im * self.im;
+    public fn abs_sq(self): i64 => self.re * self.re + self.im * self.im;
 
-    pub fn conjugate(self) {
+    public fn conjugate(self) {
         self.im = -self.im;
     }
 
-    pub fn describe(self) {
+    public fn describe(self) {
         if (self.im >= 0) {
             println!("(\{self.re} + \{self.im}i)");
         } else {

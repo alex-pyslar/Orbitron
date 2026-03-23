@@ -561,12 +561,12 @@ func fast_add(a: int, b: int): int {
 
 ```orbitron
 class Animal {
-    pub func speak(self) { println("..."); }
+    public fn speak(self) { println("..."); }
 }
 
 class Dog extends Animal {
     @override
-    pub func speak(self) { println("Гав!"); }
+    public fn speak(self) { println("Гав!"); }
 }
 ```
 

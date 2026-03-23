@@ -80,7 +80,7 @@ impl Parser {
         }
         match self.peek() {
             Token::Func | Token::Fn => self.parse_fn_decl(),
-            Token::Async => self.parse_fn_decl(),
+            Token::Async => self.parse_async_fn_decl(),
             Token::Struct   => self.parse_struct_decl(),
             Token::Impl     => self.parse_impl_or_trait_impl(),
             Token::Class    => self.parse_class_decl(),
@@ -438,9 +438,9 @@ impl Parser {
     }
 
     fn parse_access_modifier(&mut self) -> Access {
-        if      self.eat(&Token::Pub)       || self.eat(&Token::Public)    { Access::Public    }
-        else if self.eat(&Token::Priv)      || self.eat(&Token::Private)   { Access::Private   }
-        else if self.eat(&Token::Prot)      || self.eat(&Token::Protected) { Access::Protected }
+        if      self.eat(&Token::Public)    { Access::Public    }
+        else if self.eat(&Token::Private)   { Access::Private   }
+        else if self.eat(&Token::Protected) { Access::Protected }
         else if self.eat(&Token::Internal)                                  { Access::Internal  }
         else                                                                { Access::Default   }
     }

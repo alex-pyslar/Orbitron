@@ -1,0 +1,38 @@
+func worker(id) {
+    println(id);
+}
+
+async fn fetch(url) {
+    println(url);
+    return 42;
+}
+
+func main() {
+    // var mut — mutable variable
+    var mut counter = 0;
+    counter = counter + 1;
+    println(counter);
+
+    // go statement — goroutine spawn (synchronous stub)
+    go {
+        println(1);
+    }
+
+    // go with function call
+    go worker(2);
+
+    // launch — coroutine launch (synchronous stub)
+    launch {
+        println(3);
+    }
+
+    // async fn call + await
+    var result = await fetch(99);
+    println(result);
+
+    // channel operations (stub)
+    var ch = chan();
+    ch <- 42;
+    var val = <-ch;
+    println(val);
+}

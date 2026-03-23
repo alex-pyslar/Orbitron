@@ -1,0 +1,23 @@
+func main() {
+    // immutable (default)
+    var x = 10;
+    println(x);
+
+    // mutable
+    var mut y = 20;
+    y = y + 5;
+    println(y);
+
+    // typed
+    var z: i64 = 100;
+    println(z);
+
+    // typed mutable
+    var mut w: i64 = 0;
+    w = 42;
+    println(w);
+
+    // const
+    const MAX: i64 = 999;
+    println(MAX);
+}

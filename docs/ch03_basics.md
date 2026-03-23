@@ -416,14 +416,14 @@ fn fast_double(x: i64): i64 => x * 2;
 
 ```orbitron
 class Animal {
-    pub fn speak(self) {
+    public fn speak(self) {
         println!("...");
     }
 }
 
 class Dog extends Animal {
     @override
-    pub fn speak(self) {
+    public fn speak(self) {
         println!("Гав!");
     }
 }

@@ -80,7 +80,7 @@ fn test_something() { assert_eq!(1 + 1, 2); }
 fn old_api(x: i64): i64 { return x; }
 
 @override
-pub fn speak(self) { println!("Гав!"); }
+public fn speak(self) { println!("Гав!"); }
 
 @inline
 fn fast_mul(a: i64, b: i64): i64 => a * b;
@@ -232,8 +232,8 @@ struct Point {
 }
 
 impl Point {
-    pub fn len_sq(self): i64 => self.x * self.x + self.y * self.y;
-    pub fn move_by(self, dx: i64, dy: i64) {
+    public fn len_sq(self): i64 => self.x * self.x + self.y * self.y;
+    public fn move_by(self, dx: i64, dy: i64) {
         self.x += dx;
         self.y += dy;
     }
@@ -260,8 +260,8 @@ class Counter {
         self.step = s;
     }
 
-    pub fn tick(self) { self.val += self.step; }
-    pub fn get(self): i64 => self.val;
+    public fn tick(self) { self.val += self.step; }
+    public fn get(self): i64 => self.val;
 
     pub static fn zero(): i64 => 0;   // статический метод
 }
@@ -280,15 +280,15 @@ let z = Counter::zero();    // статический вызов
 class Animal {
     private name: i64,
     init(n: i64) { self.name = n; }
-    pub fn get_name(self): i64 => self.name;
-    pub fn speak(self) { println!("..."); }
+    public fn get_name(self): i64 => self.name;
+    public fn speak(self) { println!("..."); }
 }
 
 class Dog extends Animal {
     init(n: i64) { self.name = n; }
 
     @override
-    pub fn speak(self) { println!("Гав!"); }
+    public fn speak(self) { println!("Гав!"); }
 }
 
 let d = new Dog(1);
@@ -314,13 +314,13 @@ trait Measurable {
 struct Circle { radius: i64 }
 
 impl Measurable for Circle {
-    pub fn area(self): i64 => 314 * self.radius * self.radius / 100;
-    pub fn perimeter(self): i64 => 628 * self.radius / 100;
+    public fn area(self): i64 => 314 * self.radius * self.radius / 100;
+    public fn perimeter(self): i64 => 628 * self.radius / 100;
 }
 
 // Реализация операторного трейта
 impl Add for Circle {
-    pub fn add(self, other_r: i64): i64 => self.radius + other_r;
+    public fn add(self, other_r: i64): i64 => self.radius + other_r;
 }
 ```
 

@@ -278,25 +278,25 @@ struct Vec2 {
 }
 
 impl Vec2 {
-    pub func add(self, ox: int, oy: int): int {
+    public fn add(self, ox: int, oy: int): int {
         // Возвращает x-компоненту суммы (упрощённо)
         return self.x + ox;
     }
 
-    pub func len_sq(self): int {
+    public fn len_sq(self): int {
         return self.x * self.x + self.y * self.y;
     }
 
-    pub func dot(self, ox: int, oy: int): int {
+    public fn dot(self, ox: int, oy: int): int {
         return self.x * ox + self.y * oy;
     }
 
-    pub func scale(self, factor: int) {
+    public fn scale(self, factor: int) {
         self.x = self.x * factor;
         self.y = self.y * factor;
     }
 
-    pub func describe(self) {
+    public fn describe(self) {
         println($"Vec2({self.x}, {self.y})");
     }
 }
@@ -316,15 +316,15 @@ struct Circle {
 }
 
 impl Circle {
-    pub func area_approx(self): int {
+    public fn area_approx(self): int {
         return 314 * self.radius * self.radius / 100;
     }
 
-    pub func perimeter_approx(self): int {
+    public fn perimeter_approx(self): int {
         return 628 * self.radius / 100;
     }
 
-    pub func contains(self, px: int, py: int): int {
+    public fn contains(self, px: int, py: int): int {
         var dx = px - self.center_x;
         var dy = py - self.center_y;
         return dx*dx + dy*dy <= self.radius * self.radius ? 1 : 0;
@@ -339,11 +339,11 @@ struct Rect {
 }
 
 impl Rect {
-    pub func area(self):      int { return self.width * self.height; }
-    pub func perimeter(self): int { return 2 * (self.width + self.height); }
-    pub func is_square(self): int { return self.width == self.height ? 1 : 0; }
+    public fn area(self):      int { return self.width * self.height; }
+    public fn perimeter(self): int { return 2 * (self.width + self.height); }
+    public fn is_square(self): int { return self.width == self.height ? 1 : 0; }
 
-    pub func contains(self, px: int, py: int): int {
+    public fn contains(self, px: int, py: int): int {
         var in_x = px >= self.x && px <= self.x + self.width;
         var in_y = py >= self.y && py <= self.y + self.height;
         return in_x && in_y ? 1 : 0;

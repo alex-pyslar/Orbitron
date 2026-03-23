@@ -32,14 +32,14 @@ struct Point {
 }
 
 impl Describable for Point {
-    pub fn describe(self) {
+    public fn describe(self) {
         println!("Точка (\{self.x}, \{self.y})");
     }
 }
 
 impl Point {
-    pub static fn origin(): Point => Point { x: 0, y: 0 };
-    pub fn dist_sq(self): i64 => self.x * self.x + self.y * self.y;
+    public static fn origin(): Point => Point { x: 0, y: 0 };
+    public fn dist_sq(self): i64 => self.x * self.x + self.y * self.y;
 }
 
 // ── Наследование классов ──────────────────────────────────────────────────────
@@ -47,12 +47,12 @@ impl Point {
 class Animal {
     private name: i64,    // используем i64-код вместо строки
     init(n: i64) { self.name = n; }
-    pub fn sound(self): i64 { return 0; }
+    public fn sound(self): i64 { return 0; }
 }
 
 class Dog extends Animal {
     init(n: i64) { self.name = n; }
-    pub fn sound(self): i64 { return 1; }  // 1 = "Гав"
+    public fn sound(self): i64 { return 1; }  // 1 = "Гав"
 }
 
 // ── Главная функция ───────────────────────────────────────────────────────────

@@ -43,16 +43,16 @@ struct Point {
 
 ```orbitron
 impl Point {
-    pub func dist_sq(self): int {
+    public fn dist_sq(self): int {
         return self.x * self.x + self.y * self.y;
     }
 
-    pub func move_by(self, dx: int, dy: int) {
+    public fn move_by(self, dx: int, dy: int) {
         self.x = self.x + dx;
         self.y = self.y + dy;
     }
 
-    pub func print_pos(self) {
+    public fn print_pos(self) {
         println($"Точка: x={self.x}, y={self.y}");
     }
 }
@@ -64,7 +64,7 @@ impl Point {
 `this`. Внутри метода обращайтесь к полям через `self.поле`:
 
 ```orbitron
-pub func area(self): int {
+public fn area(self): int {
     return self.width * self.height;
 }
 ```
@@ -96,24 +96,24 @@ struct Rectangle {
 }
 
 impl Rectangle {
-    pub func area(self): int {
+    public fn area(self): int {
         return self.width * self.height;
     }
 
-    pub func perimeter(self): int {
+    public fn perimeter(self): int {
         return 2 * (self.width + self.height);
     }
 
-    pub func is_square(self): int {
+    public fn is_square(self): int {
         return self.width == self.height ? 1 : 0;
     }
 
-    pub func scale(self, factor: int) {
+    public fn scale(self, factor: int) {
         self.width  = self.width  * factor;
         self.height = self.height * factor;
     }
 
-    pub func describe(self) {
+    public fn describe(self) {
         var a = self.area();
         var p = self.perimeter();
         println($"Прямоугольник {self.width}x{self.height}: площадь={a}, периметр={p}");
@@ -142,14 +142,14 @@ struct Vec2 { x: int, y: int }
 struct Vec3 { x: int, y: int, z: int }
 
 impl Vec2 {
-    pub func len_sq(self): int { return self.x**2 + self.y**2; }
-    pub func dot(self, ox: int, oy: int): int {
+    public fn len_sq(self): int { return self.x**2 + self.y**2; }
+    public fn dot(self, ox: int, oy: int): int {
         return self.x * ox + self.y * oy;
     }
 }
 
 impl Vec3 {
-    pub func len_sq(self): int {
+    public fn len_sq(self): int {
         return self.x**2 + self.y**2 + self.z**2;
     }
 }
@@ -183,15 +183,15 @@ class Counter {
         self.step = s;
     }
 
-    pub func tick(self) {
+    public fn tick(self) {
         self.val = self.val + self.step;
     }
 
-    pub func get(self): int {
+    public fn get(self): int {
         return self.val;
     }
 
-    pub func reset(self) {
+    public fn reset(self) {
         self.val = 0;
     }
 }
@@ -243,20 +243,20 @@ class BankAccount {
         self.balance = initial_balance;
     }
 
-    pub func deposit(self, amount: int) {
+    public fn deposit(self, amount: int) {
         if (amount > 0) {
             self.balance = self.balance + amount;
         }
     }
 
-    pub func withdraw(self, amount: int): int {
+    public fn withdraw(self, amount: int): int {
         if (amount <= 0)           { return -1; }  // неверная сумма
         if (self.balance < amount) { return -2; }  // недостаточно средств
         self.balance = self.balance - amount;
         return 0;  // успех
     }
 
-    pub func get_balance(self): int {
+    public fn get_balance(self): int {
         return self.balance;
     }
 }
@@ -293,7 +293,7 @@ struct Vector {
 
 impl Vector {
     // Обычный метод — принимает self
-    pub func len_sq(self): int {
+    public fn len_sq(self): int {
         return self.x * self.x + self.y * self.y;
     }
 
@@ -331,8 +331,8 @@ class Config {
         self.timeout   = t;
     }
 
-    pub func get_max(self): int { return self.max_users; }
-    pub func get_timeout(self): int { return self.timeout; }
+    public fn get_max(self): int { return self.max_users; }
+    public fn get_timeout(self): int { return self.timeout; }
 
     // Фабричный статический метод — создаёт «дефолтный» экземпляр
     static func default_timeout(): int {
@@ -516,14 +516,14 @@ class Animal {
         self.age  = a;
     }
 
-    pub func get_name(self): int { return self.name; }
-    pub func get_age(self): int  { return self.age; }
+    public fn get_name(self): int { return self.name; }
+    public fn get_age(self): int  { return self.age; }
 
-    pub func speak(self) {
+    public fn speak(self) {
         println("...");
     }
 
-    pub func describe(self) {
+    public fn describe(self) {
         var n = self.name;
         var a = self.age;
         println($"Животное #{n}, возраст {a}");
@@ -540,11 +540,11 @@ class Dog extends Animal {
     }
 
     @override
-    pub func speak(self) {
+    public fn speak(self) {
         println("Гав!");
     }
 
-    pub func get_breed(self): int {
+    public fn get_breed(self): int {
         return self.breed;
     }
 }
@@ -559,11 +559,11 @@ class Cat extends Animal {
     }
 
     @override
-    pub func speak(self) {
+    public fn speak(self) {
         println("Мяу!");
     }
 
-    pub func is_indoor(self): int {
+    public fn is_indoor(self): int {
         return self.indoor;
     }
 }
@@ -600,7 +600,7 @@ class Shape {
         self.color = c;
     }
 
-    pub func get_color(self): int { return self.color; }
+    public fn get_color(self): int { return self.color; }
 }
 
 class Polygon extends Shape {
@@ -611,7 +611,7 @@ class Polygon extends Shape {
         self.sides = s;
     }
 
-    pub func get_sides(self): int { return self.sides; }
+    public fn get_sides(self): int { return self.sides; }
 }
 
 class RegularPolygon extends Polygon {
@@ -623,7 +623,7 @@ class RegularPolygon extends Polygon {
         self.side_len = l;
     }
 
-    pub func perimeter(self): int {
+    public fn perimeter(self): int {
         return self.sides * self.side_len;
     }
 }
@@ -662,7 +662,7 @@ class Stack {
         self.top = 0;
     }
 
-    pub func push(self, val: int) {
+    public fn push(self, val: int) {
         if (self.top == 0) { self.data_0 = val; }
         if (self.top == 1) { self.data_1 = val; }
         if (self.top == 2) { self.data_2 = val; }
@@ -670,7 +670,7 @@ class Stack {
         self.top += 1;
     }
 
-    pub func pop(self): int {
+    public fn pop(self): int {
         self.top -= 1;
         if (self.top == 0) { return self.data_0; }
         if (self.top == 1) { return self.data_1; }
@@ -678,7 +678,7 @@ class Stack {
         return self.data_3;
     }
 
-    pub func size(self): int {
+    public fn size(self): int {
         return self.top;
     }
 }
@@ -764,13 +764,13 @@ impl Shape for Circle {
 }
 
 impl Circle {
-    pub func contains(self, x: int, y: int): int {
+    public fn contains(self, x: int, y: int): int {
         var dx = x - self.cx;
         var dy = y - self.cy;
         return dx*dx + dy*dy <= self.radius * self.radius ? 1 : 0;
     }
 
-    pub func describe(self) {
+    public fn describe(self) {
         var a = self.area();
         println($"Окружность r={self.radius} в ({self.cx},{self.cy}), площадь≈{a}");
     }
@@ -794,18 +794,18 @@ impl Shape for Triangle {
 }
 
 impl Triangle {
-    pub func is_valid(self): int {
+    public fn is_valid(self): int {
         if (self.a + self.b <= self.c) { return 0; }
         if (self.b + self.c <= self.a) { return 0; }
         if (self.a + self.c <= self.b) { return 0; }
         return 1;
     }
 
-    pub func is_equilateral(self): int {
+    public fn is_equilateral(self): int {
         return (self.a == self.b && self.b == self.c) ? 1 : 0;
     }
 
-    pub func is_isosceles(self): int {
+    public fn is_isosceles(self): int {
         return (self.a == self.b || self.b == self.c || self.a == self.c) ? 1 : 0;
     }
 }

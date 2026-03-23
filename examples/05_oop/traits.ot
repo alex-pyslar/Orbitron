@@ -21,18 +21,18 @@ struct Rect {
 }
 
 impl Shape for Rect {
-    pub fn area(self): i64      => self.w * self.h;
-    pub fn perimeter(self): i64 => 2 * (self.w + self.h);
+    public fn area(self): i64      => self.w * self.h;
+    public fn perimeter(self): i64 => 2 * (self.w + self.h);
 }
 
 impl Printable for Rect {
-    pub fn print_info(self) {
+    public fn print_info(self) {
         println!("Прямоугольник \{self.w}x\{self.h}: площадь=\{self.area()}, периметр=\{self.perimeter()}");
     }
 }
 
 impl Rect {
-    pub static fn square(side: i64): Rect {
+    public static fn square(side: i64): Rect {
         return Rect { w: side, h: side };
     }
 }
@@ -49,10 +49,10 @@ class Animal {
         self.weight = weight;
     }
 
-    pub fn get_legs(self):   i64 => self.legs;
-    pub fn get_weight(self): i64 => self.weight;
+    public fn get_legs(self):   i64 => self.legs;
+    public fn get_weight(self): i64 => self.weight;
 
-    pub fn describe(self) {
+    public fn describe(self) {
         println!("Животное: \{self.legs} ног, вес \{self.weight} кг");
     }
 }
@@ -67,7 +67,7 @@ class Dog extends Animal {
         self.breed_code = breed;
     }
 
-    pub fn bark(self) {
+    public fn bark(self) {
         match self.breed_code {
             1 => { println!("Гав! (Лабрадор)"); }
             2 => { println!("Ауф! (Хаски)");    }
@@ -75,7 +75,7 @@ class Dog extends Animal {
         }
     }
 
-    pub fn get_breed(self): i64 => self.breed_code;
+    public fn get_breed(self): i64 => self.breed_code;
 }
 
 // Птица наследует Animal
@@ -88,7 +88,7 @@ class Bird extends Animal {
         self.can_fly = can_fly;
     }
 
-    pub fn fly(self) {
+    public fn fly(self) {
         if (self.can_fly) {
             println!("Птица летит!");
         } else {
@@ -105,12 +105,12 @@ struct Vec2 {
 }
 
 impl Vec2 {
-    pub static fn zero(): Vec2   => Vec2 { x: 0, y: 0 };
-    pub static fn unit_x(): Vec2 => Vec2 { x: 1, y: 0 };
+    public static fn zero(): Vec2   => Vec2 { x: 0, y: 0 };
+    public static fn unit_x(): Vec2 => Vec2 { x: 1, y: 0 };
 
-    pub fn len_sq(self): i64 => self.x * self.x + self.y * self.y;
+    public fn len_sq(self): i64 => self.x * self.x + self.y * self.y;
 
-    pub fn dot(self, other: Vec2): i64 {
+    public fn dot(self, other: Vec2): i64 {
         return self.x * other.x + self.y * other.y;
     }
 }

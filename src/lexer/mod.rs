@@ -247,9 +247,6 @@ impl Lexer {
             "self"      => Token::SelfKw,
             "new"       => Token::New,
             "init"      => Token::Init,
-            "pub"       => Token::Pub,       // alias for public (Rust-style)
-            "priv"      => Token::Priv,      // alias for private (short form)
-            "prot"      => Token::Prot,      // alias for protected (short form)
             "public"    => Token::Public,    // Java/Kotlin
             "private"   => Token::Private,   // Java/Kotlin
             "protected" => Token::Protected, // Java/Kotlin
