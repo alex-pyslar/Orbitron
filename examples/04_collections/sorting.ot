@@ -4,26 +4,21 @@
 // линейный поиск, двоичный поиск.
 
 // Вывести массив
-func print_array(arr: int, n: int) {
+fn print_array(arr: i64, n: i64) {
     for i in 0..n {
-        println(arr[i]);
+        println!(arr[i]);
     }
 }
 
-// Меньше ли arr[a] чем arr[b]?
-func less(arr: int, a: int, b: int): int {
-    return arr[a] < arr[b] ? 1 : 0;
-}
-
 // Поменять местами элементы
-func swap(arr: int, a: int, b: int) {
-    var tmp = arr[a];
+fn swap(arr: i64, a: i64, b: i64) {
+    let tmp = arr[a];
     arr[a]  = arr[b];
     arr[b]  = tmp;
 }
 
 // --- Пузырьковая сортировка ---
-func bubble_sort(arr: int, n: int) {
+fn bubble_sort(arr: i64, n: i64) {
     for pass in 0..n {
         for i in 0..n {
             if (i + 1 < n) {
@@ -36,9 +31,9 @@ func bubble_sort(arr: int, n: int) {
 }
 
 // --- Сортировка выбором ---
-func selection_sort(arr: int, n: int) {
+fn selection_sort(arr: i64, n: i64) {
     for i in 0..n {
-        var min_idx = i;
+        mut min_idx = i;
         for j in 0..n {
             if (j > i) {
                 if (arr[j] < arr[min_idx]) {
@@ -53,10 +48,10 @@ func selection_sort(arr: int, n: int) {
 }
 
 // --- Сортировка вставками ---
-func insertion_sort(arr: int, n: int) {
+fn insertion_sort(arr: i64, n: i64) {
     for i in 1..n {
-        var key = arr[i];
-        var j   = i - 1;
+        let key = arr[i];
+        mut j   = i - 1;
         while (j >= 0 && arr[j] > key) {
             arr[j + 1] = arr[j];
             j -= 1;
@@ -66,7 +61,7 @@ func insertion_sort(arr: int, n: int) {
 }
 
 // --- Линейный поиск ---
-func linear_search(arr: int, n: int, target: int): int {
+fn linear_search(arr: i64, n: i64, target: i64): i64 {
     for i in 0..n {
         if (arr[i] == target) { return i; }
     }
@@ -74,12 +69,12 @@ func linear_search(arr: int, n: int, target: int): int {
 }
 
 // --- Двоичный поиск (массив должен быть отсортирован) ---
-func binary_search(arr: int, n: int, target: int): int {
-    var lo = 0;
-    var hi = n - 1;
+fn binary_search(arr: i64, n: i64, target: i64): i64 {
+    mut lo = 0;
+    mut hi = n - 1;
 
     while (lo <= hi) {
-        var mid = (lo + hi) / 2;
+        let mid = (lo + hi) / 2;
         if (arr[mid] == target) { return mid; }
         if (arr[mid] < target)  { lo = mid + 1; }
         else                    { hi = mid - 1; }
@@ -87,49 +82,49 @@ func binary_search(arr: int, n: int, target: int): int {
     return -1;
 }
 
-func main() {
-    println("=== Алгоритмы сортировки и поиска ===");
+fn main() {
+    println!("=== Алгоритмы сортировки и поиска ===");
 
     // --- Пузырьковая сортировка ---
-    println("\n-- Пузырьковая сортировка --");
-    var b1 = [64, 34, 25, 12, 22, 11, 90];
+    println!("\n-- Пузырьковая сортировка --");
+    mut b1 = [64, 34, 25, 12, 22, 11, 90];
     bubble_sort(b1, 7);
     print_array(b1, 7);   // 11 12 22 25 34 64 90
 
     // --- Сортировка выбором ---
-    println("\n-- Сортировка выбором --");
-    var s1 = [29, 10, 14, 37, 13, 1, 100, 50, 7];
+    println!("\n-- Сортировка выбором --");
+    mut s1 = [29, 10, 14, 37, 13, 1, 100, 50, 7];
     selection_sort(s1, 9);
     print_array(s1, 9);   // 1 7 10 13 14 29 37 50 100
 
     // --- Сортировка вставками ---
-    println("\n-- Сортировка вставками --");
-    var i1 = [5, 2, 4, 6, 1, 3];
+    println!("\n-- Сортировка вставками --");
+    mut i1 = [5, 2, 4, 6, 1, 3];
     insertion_sort(i1, 6);
     print_array(i1, 6);   // 1 2 3 4 5 6
 
     // --- Поиск ---
-    println("\n-- Линейный поиск --");
-    var haystack = [10, 30, 50, 70, 90, 110, 130, 150];
-    var n = 8;
+    println!("\n-- Линейный поиск --");
+    let haystack = [10, 30, 50, 70, 90, 110, 130, 150];
+    let n = 8;
 
-    println(linear_search(haystack, n, 70));    // 3
-    println(linear_search(haystack, n, 150));   // 7
-    println(linear_search(haystack, n, 999));   // -1
+    println!(linear_search(haystack, n, 70));    // 3
+    println!(linear_search(haystack, n, 150));   // 7
+    println!(linear_search(haystack, n, 999));   // -1
 
-    println("\n-- Двоичный поиск (после сортировки) --");
-    var sorted = [3, 7, 12, 19, 25, 33, 41, 58, 67, 80];
-    var sn = 10;
+    println!("\n-- Двоичный поиск (после сортировки) --");
+    let sorted = [3, 7, 12, 19, 25, 33, 41, 58, 67, 80];
+    let sn = 10;
 
-    println(binary_search(sorted, sn, 19));    // 3
-    println(binary_search(sorted, sn, 80));    // 9
-    println(binary_search(sorted, sn, 3));     // 0
-    println(binary_search(sorted, sn, 99));    // -1
+    println!(binary_search(sorted, sn, 19));    // 3
+    println!(binary_search(sorted, sn, 80));    // 9
+    println!(binary_search(sorted, sn, 3));     // 0
+    println!(binary_search(sorted, sn, 99));    // -1
 
     // --- Подсчёт инверсий (грубый метод) ---
-    println("\n-- Количество инверсий в массиве --");
-    var arr = [3, 1, 4, 1, 5, 9, 2, 6];
-    var inv = 0;
+    println!("\n-- Количество инверсий в массиве --");
+    let arr = [3, 1, 4, 1, 5, 9, 2, 6];
+    mut inv = 0;
     for i in 0..8 {
         for j in 0..8 {
             if (j > i && arr[i] > arr[j]) {
@@ -137,13 +132,13 @@ func main() {
             }
         }
     }
-    println($"Инверсий: {inv}");
+    println!("Инверсий: \{inv}");
 
     // --- Второй максимум ---
-    println("\n-- Второй максимум --");
-    var vals = [42, 17, 83, 55, 6, 99, 31, 78];
-    var m1 = vals[0];
-    var m2 = vals[0];
+    println!("\n-- Второй максимум --");
+    let vals = [42, 17, 83, 55, 6, 99, 31, 78];
+    mut m1 = vals[0];
+    mut m2 = vals[0];
 
     for i in 1..8 {
         if (vals[i] > m1) {
@@ -154,21 +149,21 @@ func main() {
         }
     }
 
-    println($"Максимум:    {m1}");   // 99
-    println($"2-й максимум: {m2}");   // 83
+    println!("Максимум:     \{m1}");   // 99
+    println!("2-й максимум: \{m2}");   // 83
 
     // --- Удаление дублей (подсчёт уникальных) ---
-    println("\n-- Количество уникальных элементов --");
-    var dups = [3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5];
-    var dn   = 11;
-    var unique = 0;
+    println!("\n-- Количество уникальных элементов --");
+    let dups = [3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5];
+    let dn   = 11;
+    mut unique = 0;
 
     for i in 0..dn {
-        var found = 0;
+        mut found = 0;
         for j in 0..i {
             if (dups[j] == dups[i]) { found = 1; }
         }
         unless (found) { unique += 1; }
     }
-    println($"Уникальных: {unique}");   // 7 (1,2,3,4,5,6,9)
+    println!("Уникальных: \{unique}");   // 7
 }

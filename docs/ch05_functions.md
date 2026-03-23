@@ -7,10 +7,10 @@
 
 ## 5.1 — Объявление функций
 
-Функция объявляется с ключевым словом `func`:
+Функция объявляется с ключевым словом `fn`:
 
 ```orbitron
-func имя(параметр1: тип, параметр2: тип): тип_возврата {
+fn имя(параметр1: тип, параметр2: тип): тип_возврата {
     // тело
     return значение;
 }
@@ -19,26 +19,36 @@ func имя(параметр1: тип, параметр2: тип): тип_воз
 Минимальный пример:
 
 ```orbitron
-func greet() {
-    println("Привет из функции!");
+fn greet() {
+    println!("Привет из функции!");
 }
 ```
 
 Функция с параметрами и возвращаемым значением:
 
 ```orbitron
-func add(a: int, b: int): int {
+fn add(a: i64, b: i64): i64 {
     return a + b;
 }
+```
+
+### Fat-arrow тела (однострочные функции)
+
+Для простых функций можно использовать синтаксис `=>`:
+
+```orbitron
+fn double(x: i64): i64 => x * 2;
+fn square(x: i64): i64 => x * x;
+fn max2(a: i64, b: i64): i64 => a > b ? a : b;
 ```
 
 ### Вызов функций
 
 ```orbitron
-func main() {
+fn main() {
     greet();               // вызов без аргументов
-    var sum = add(3, 4);   // вызов с аргументами, захват возвращаемого значения
-    println(sum);          // 7
+    let sum = add(3, 4);   // вызов с аргументами, захват возвращаемого значения
+    println!(sum);         // 7
 }
 ```
 
@@ -51,12 +61,15 @@ func main() {
 
 ```orbitron
 // Полностью аннотировано (рекомендуется для документации)
-func multiply(a: int, b: int): int {
+fn multiply(a: i64, b: i64): i64 {
     return a * b;
 }
 
+// Fat-arrow для однострочных функций
+fn multiply_short(a: i64, b: i64): i64 => a * b;
+
 // Без аннотаций (короче, тоже работает)
-func multiply2(a, b) {
+fn multiply2(a, b) {
     return a * b;
 }
 ```
@@ -66,25 +79,24 @@ func multiply2(a, b) {
 Помимо синтаксиса `: тип` после скобок, можно использовать стрелку `->`:
 
 ```orbitron
-func square(n: int) -> int {
+fn square(n: i64) -> i64 {
     return n * n;
 }
 
-func greet_user(name: int) -> int {
-    println($"Привет, пользователь {name}!");
+fn greet_user(name: i64) -> i64 {
+    println!("Привет, пользователь \{name}!");
     return 0;
 }
 ```
 
-Оба стиля (`): int` и `) -> int`) равнозначны. Стрелка `->` более привычна
-для разработчиков из мира Rust, Haskell или Python с аннотациями типов.
+Оба стиля (`): i64` и `) -> i64`) равнозначны.
 
 ### Возвращаемое значение
 
 Используйте `return`, чтобы выйти из функции и вернуть значение:
 
 ```orbitron
-func max_of(a: int, b: int): int {
+fn max_of(a: i64, b: i64): i64 {
     if (a > b) { return a; }
     return b;
 }
@@ -97,7 +109,7 @@ func max_of(a: int, b: int): int {
 Функция может иметь несколько инструкций `return`:
 
 ```orbitron
-func classify(n: int): int {
+fn classify(n: i64): i64 {
     if (n > 0) { return 1; }   // положительное
     if (n < 0) { return -1; }  // отрицательное
     return 0;                  // ноль
@@ -112,14 +124,14 @@ func classify(n: int): int {
 не передан при вызове, используется значение по умолчанию:
 
 ```orbitron
-func greet(times: int, gap: int = 1) {
+fn greet(times: i64, gap: i64 = 1) {
     for i in 0..times {
-        println("Привет!");
+        println!("Привет!");
         // gap используется как задержка (здесь для примера)
     }
 }
 
-func main() {
+fn main() {
     greet(3);      // gap = 1 (по умолчанию)
     greet(3, 2);   // gap = 2 (явно задан)
 }
@@ -128,13 +140,13 @@ func main() {
 ### Несколько параметров по умолчанию
 
 ```orbitron
-func create_rect(width: int, height: int = 10, filled: int = 0) -> int {
-    var area = width * height;
-    println($"прямоугольник {width}x{height}, заполнен={filled}, площадь={area}");
+fn create_rect(width: i64, height: i64 = 10, filled: i64 = 0): i64 {
+    let area = width * height;
+    println!("прямоугольник \{width}x\{height}, заполнен=\{filled}, площадь=\{area}");
     return area;
 }
 
-func main() {
+fn main() {
     create_rect(5);           // width=5, height=10, filled=0
     create_rect(5, 8);        // width=5, height=8,  filled=0
     create_rect(5, 8, 1);     // width=5, height=8,  filled=1
@@ -149,10 +161,10 @@ func main() {
 
 ```orbitron
 // ОК — параметры со значением по умолчанию идут в конце
-func connect(host: int, port: int = 80, timeout: int = 30) { }
+fn connect(host: i64, port: i64 = 80, timeout: i64 = 30) { }
 
 // ОШИБКА — обязательный параметр после параметра с умолчанием
-// func broken(x: int = 0, y: int) { }
+// fn broken(x: i64 = 0, y: i64) { }
 ```
 
 ---
@@ -162,9 +174,9 @@ func connect(host: int, port: int = 80, timeout: int = 30) { }
 Каждая программа должна содержать функцию `main` — это точка входа:
 
 ```orbitron
-func main() {
+fn main() {
     // программа начинается здесь
-    println("Привет");
+    println!("Привет");
 }
 ```
 
@@ -179,14 +191,14 @@ func main() {
 Переменные, объявленные внутри функции, **локальны** для этой функции:
 
 ```orbitron
-func compute() {
-    var x = 10;   // локальна для compute
-    println(x);
+fn compute() {
+    let x = 10;   // локальна для compute
+    println!(x);
 }
 
-func main() {
+fn main() {
     compute();
-    // println(x);   // ОШИБКА — x здесь не видна
+    // println!(x);   // ОШИБКА — x здесь не видна
 }
 ```
 
@@ -195,16 +207,14 @@ func main() {
 Константы, объявленные на верхнем уровне (вне всех функций), видны всем функциям:
 
 ```orbitron
-const LIMIT: int = 100;
+#const LIMIT: i64 = 100;
 
-func check(n: int): int {
-    return n < LIMIT ? 1 : 0;
-}
+fn check(n: i64): i64 => n < LIMIT ? 1 : 0;
 
-func main() {
-    println(check(50));    // 1
-    println(check(200));   // 0
-    println(LIMIT);        // 100
+fn main() {
+    println!(check(50));    // 1
+    println!(check(200));   // 0
+    println!(LIMIT);        // 100
 }
 ```
 
@@ -214,13 +224,11 @@ func main() {
 Порядок объявления не важен — компилятор делает проход для предварительных объявлений:
 
 ```orbitron
-func main() {
-    println(helper());   // ОК — helper объявлена ниже
+fn main() {
+    println!(helper());   // ОК — helper объявлена ниже
 }
 
-func helper(): int {
-    return 42;
-}
+fn helper(): i64 => 42;
 ```
 
 ---
@@ -230,22 +238,22 @@ func helper(): int {
 Функция может вызывать саму себя. Orbitron полностью поддерживает рекурсию:
 
 ```orbitron
-func factorial(n: int): int {
+fn factorial(n: i64): i64 {
     if (n <= 1) { return 1; }
     return n * factorial(n - 1);
 }
 
-func main() {
-    println(factorial(1));   // 1
-    println(factorial(5));   // 120
-    println(factorial(10));  // 3628800
+fn main() {
+    println!(factorial(1));   // 1
+    println!(factorial(5));   // 120
+    println!(factorial(10));  // 3628800
 }
 ```
 
 ### Числа Фибоначчи (рекурсивно)
 
 ```orbitron
-func fib(n: int): int {
+fn fib(n: i64): i64 {
     if (n <= 1) { return n; }
     return fib(n - 1) + fib(n - 2);
 }
@@ -257,13 +265,13 @@ func fib(n: int): int {
 итерацию, когда важна производительность:
 
 ```orbitron
-func fib_iter(n: int): int {
+fn fib_iter(n: i64): i64 {
     if (n <= 1) { return n; }
-    var a = 0;
-    var b = 1;
-    var i = 2;
+    mut a = 0;
+    mut b = 1;
+    mut i = 2;
     while (i <= n) {
-        var tmp = a + b;
+        let tmp = a + b;
         a = b;
         b = tmp;
         i += 1;
@@ -275,14 +283,14 @@ func fib_iter(n: int): int {
 ### НОД (алгоритм Евклида)
 
 ```orbitron
-func gcd(a: int, b: int): int {
+fn gcd(a: i64, b: i64): i64 {
     if (b == 0) { return a; }
     return gcd(b, a % b);
 }
 
-func main() {
-    println(gcd(48, 18));    // 6
-    println(gcd(100, 75));   // 25
+fn main() {
+    println!(gcd(48, 18));    // 6
+    println!(gcd(100, 75));   // 25
 }
 ```
 
@@ -294,27 +302,27 @@ func main() {
 Используется синтаксис `|параметры| тело`:
 
 ```orbitron
-var double = |x| x * 2;
-var add    = |a, b| a + b;
-var square = |x| x * x;
+let double = |x| x * 2;
+let add    = |a, b| a + b;
+let square = |x| x * x;
 ```
 
 ### Вызов лямбды
 
 ```orbitron
-var double = |x| x * 2;
-println(double(5));    // 10
-println(double(21));   // 42
+let double = |x| x * 2;
+println!(double(5));    // 10
+println!(double(21));   // 42
 ```
 
 ### Лямбды с несколькими параметрами
 
 ```orbitron
-var clamp = |x, lo, hi| x < lo ? lo : x > hi ? hi : x;
+let clamp = |x, lo, hi| x < lo ? lo : x > hi ? hi : x;
 
-println(clamp(5, 0, 10));    // 5
-println(clamp(-3, 0, 10));   // 0
-println(clamp(15, 0, 10));   // 10
+println!(clamp(5, 0, 10));    // 5
+println!(clamp(-3, 0, 10));   // 0
+println!(clamp(15, 0, 10));   // 10
 ```
 
 ### Лямбды в конвейерах
@@ -322,12 +330,12 @@ println(clamp(15, 0, 10));   // 10
 Лямбды удобно комбинировать с оператором `|>`:
 
 ```orbitron
-var double  = |x| x * 2;
-var inc     = |x| x + 1;
-var negate  = |x| -x;
+let double  = |x| x * 2;
+let inc     = |x| x + 1;
+let negate  = |x| -x;
 
-var result = 5 |> double |> inc |> negate;
-println(result);   // -(5*2+1) = -11
+let result = 5 |> double |> inc |> negate;
+println!(result);   // -(5*2+1) = -11
 ```
 
 ### Многострочная лямбда
@@ -335,14 +343,14 @@ println(result);   // -(5*2+1) = -11
 Если тело лямбды сложнее одного выражения, используйте блок `{ ... }`:
 
 ```orbitron
-var process = |x| {
-    var doubled = x * 2;
-    var shifted = doubled + 10;
+let process = |x| {
+    let doubled = x * 2;
+    let shifted = doubled + 10;
     return shifted;
 };
 
-println(process(5));    // 20
-println(process(15));   // 40
+println!(process(5));    // 20
+println!(process(15));   // 40
 ```
 
 ---
@@ -356,23 +364,15 @@ println(process(15));   // 40
 struct MathUtils { }
 
 impl MathUtils {
-    static func square(x: int) -> int {
-        return x * x;
-    }
-
-    static func max(a: int, b: int) -> int {
-        return a > b ? a : b;
-    }
-
-    static func clamp(x: int, lo: int, hi: int) -> int {
-        return x < lo ? lo : x > hi ? hi : x;
-    }
+    pub static fn square(x: i64): i64 => x * x;
+    pub static fn max(a: i64, b: i64): i64 => a > b ? a : b;
+    pub static fn clamp(x: i64, lo: i64, hi: i64): i64 => x < lo ? lo : x > hi ? hi : x;
 }
 
-func main() {
-    println(MathUtils::square(7));         // 49
-    println(MathUtils::max(3, 9));         // 9
-    println(MathUtils::clamp(150, 0, 100)); // 100
+fn main() {
+    println!(MathUtils::square(7));          // 49
+    println!(MathUtils::max(3, 9));          // 9
+    println!(MathUtils::clamp(150, 0, 100)); // 100
 }
 ```
 
@@ -382,31 +382,27 @@ func main() {
 
 ```orbitron
 class Counter {
-    private val: int,
+    private val: i64,
 
-    init(start: int) {
+    init(start: i64) {
         self.val = start;
     }
 
-    pub func get(self) -> int {
-        return self.val;
-    }
+    pub fn get(self): i64 => self.val;
 
-    pub func inc(self) {
+    pub fn inc(self) {
         self.val += 1;
     }
 
-    static func zero() -> int {
-        return 0;   // фабричный метод
-    }
+    pub static fn zero(): i64 => 0;   // фабричный метод
 }
 
-func main() {
-    var start = Counter::zero();   // статический вызов
-    var c = new Counter(start);
+fn main() {
+    let start = Counter::zero();   // статический вызов
+    let c = new Counter(start);
     c.inc();
     c.inc();
-    println(c.get());   // 2
+    println!(c.get());   // 2
 }
 ```
 
@@ -414,8 +410,8 @@ func main() {
 
 | Вид | Синтаксис объявления | Синтаксис вызова | Доступ к `self` |
 |-----|---------------------|------------------|----------------|
-| Обычный метод | `pub func f(self)` | `obj.f()` | Да |
-| Статический метод | `static func f()` | `Type::f()` | Нет |
+| Обычный метод | `pub fn f(self)` | `obj.f()` | Да |
+| Статический метод | `pub static fn f()` | `Type::f()` | Нет |
 
 ---
 
@@ -437,18 +433,18 @@ func main() {
 ### Базовое использование
 
 ```orbitron
-func double(n: int): int { return n * 2; }
-func inc(n: int):    int { return n + 1; }
-func square(n: int): int { return n * n; }
+fn double(n: i64): i64 => n * 2;
+fn inc(n: i64):    i64 => n + 1;
+fn square(n: i64): i64 => n * n;
 
-func main() {
-    var r1 = 3 |> double;                     // double(3) = 6
-    var r2 = 3 |> double |> inc;              // inc(double(3)) = 7
-    var r3 = 3 |> double |> inc |> square;    // square(inc(double(3))) = 49
+fn main() {
+    let r1 = 3 |> double;                     // double(3) = 6
+    let r2 = 3 |> double |> inc;              // inc(double(3)) = 7
+    let r3 = 3 |> double |> inc |> square;    // square(inc(double(3))) = 49
 
-    println(r1);   // 6
-    println(r2);   // 7
-    println(r3);   // 49
+    println!(r1);   // 6
+    println!(r2);   // 7
+    println!(r3);   // 49
 }
 ```
 
@@ -459,10 +455,10 @@ func main() {
 
 ```orbitron
 // Вложенные вызовы — читать справа налево, изнутри наружу
-var r1 = square(inc(double(3)));
+let r1 = square(inc(double(3)));
 
 // Конвейер — читать слева направо, данные текут естественно
-var r2 = 3 |> double |> inc |> square;
+let r2 = 3 |> double |> inc |> square;
 ```
 
 ### Конвейер с дополнительными аргументами
@@ -470,28 +466,28 @@ var r2 = 3 |> double |> inc |> square;
 Когда правая функция принимает дополнительные аргументы, перечислите их в скобках:
 
 ```orbitron
-func clamp(x: int, lo: int, hi: int): int {
+fn clamp(x: i64, lo: i64, hi: i64): i64 {
     if (x < lo) { return lo; }
     if (x > hi) { return hi; }
     return x;
 }
 
-func main() {
+fn main() {
     // Эквивалентно: clamp(150, 0, 100)
-    var r = 150 |> clamp(0, 100);
-    println(r);   // 100
+    let r = 150 |> clamp(0, 100);
+    println!(r);   // 100
 }
 ```
 
 ### Конвейер с лямбдами
 
 ```orbitron
-var result = 5
+let result = 5
     |> |x| x * 2
     |> |x| x + 1
     |> |x| x * x;
 
-println(result);   // (5*2+1)^2 = 121
+println!(result);   // (5*2+1)^2 = 121
 ```
 
 ---
@@ -503,12 +499,10 @@ println(result);   // (5*2+1)^2 = 121
 
 ```orbitron
 // Площадь трапеции
-func trapezoid_area(a: int, b: int, h: int): int {
-    return (a + b) * h / 2;
-}
+fn trapezoid_area(a: i64, b: i64, h: i64): i64 => (a + b) * h / 2;
 
 // Является ли год високосным
-func is_leap(year: int): int {
+fn is_leap(year: i64): i64 {
     if (year % 400 == 0) { return 1; }
     if (year % 100 == 0) { return 0; }
     if (year % 4   == 0) { return 1; }
@@ -516,14 +510,12 @@ func is_leap(year: int): int {
 }
 
 // Делится ли n на d
-func divides(d: int, n: int): int {
-    return n % d == 0 ? 1 : 0;
-}
+fn divides(d: i64, n: i64): i64 => n % d == 0 ? 1 : 0;
 
 // Простое ли число n
-func is_prime(n: int): int {
+fn is_prime(n: i64): i64 {
     if (n < 2) { return 0; }
-    var i = 2;
+    mut i = 2;
     while (i * i <= n) {
         if (divides(i, n)) { return 0; }
         i += 1;
@@ -531,12 +523,12 @@ func is_prime(n: int): int {
     return 1;
 }
 
-func main() {
-    println(trapezoid_area(5, 7, 4));   // 24
-    println(is_leap(2024));              // 1
-    println(is_leap(1900));              // 0
-    println(is_prime(97));               // 1
-    println(is_prime(100));              // 0
+fn main() {
+    println!(trapezoid_area(5, 7, 4));   // 24
+    println!(is_leap(2024));              // 1
+    println!(is_leap(1900));              // 0
+    println!(is_prime(97));               // 1
+    println!(is_prime(100));              // 0
 }
 ```
 
@@ -547,20 +539,20 @@ func main() {
 Две функции могут вызывать друг друга:
 
 ```orbitron
-func is_even(n: int): int {
+fn is_even(n: i64): i64 {
     if (n == 0) { return 1; }
     return is_odd(n - 1);
 }
 
-func is_odd(n: int): int {
+fn is_odd(n: i64): i64 {
     if (n == 0) { return 0; }
     return is_even(n - 1);
 }
 
-func main() {
-    println(is_even(10));   // 1
-    println(is_odd(7));     // 1
-    println(is_even(3));    // 0
+fn main() {
+    println!(is_even(10));   // 1
+    println!(is_odd(7));     // 1
+    println!(is_even(3));    // 0
 }
 ```
 
@@ -573,16 +565,17 @@ func main() {
 
 | Концепция | Синтаксис | Примечание |
 |-----------|-----------|-----------|
-| Объявить | `func name(a: int): int { }` | Аннотации типов необязательны |
-| Стрелка возврата | `func name(a: int) -> int { }` | Альтернативный синтаксис |
-| Параметр по умолчанию | `func f(x: int, y: int = 0)` | y необязателен при вызове |
+| Объявить | `fn name(a: i64): i64 { }` | Аннотации типов необязательны |
+| Fat-arrow тело | `fn name(a: i64): i64 => expr;` | Однострочная функция |
+| Стрелка возврата | `fn name(a: i64) -> i64 { }` | Альтернативный синтаксис |
+| Параметр по умолчанию | `fn f(x: i64, y: i64 = 0)` | y необязателен при вызове |
 | Вызвать | `name(arg1, arg2)` | — |
 | Вернуть значение | `return expr;` | Неявный return 0 если пропущен |
-| Рекурсия | `func f(n) { return f(n-1); }` | Полностью поддерживается |
+| Рекурсия | `fn f(n: i64) { return f(n-1); }` | Полностью поддерживается |
 | Лямбда | `\|x, y\| x + y` | Анонимная функция |
 | Конвейер | `x \|> f \|> g` | То же что `g(f(x))` |
-| Статический метод | `static func f()` | Вызов: `Type::f()` |
-| Область видимости | Локальные переменные приватны | Константы верхнего уровня доступны везде |
+| Статический метод | `pub static fn f()` | Вызов: `Type::f()` |
+| Область видимости | `let`/`mut` переменные локальны | `#const` верхнего уровня доступны везде |
 
 ---
 
@@ -591,45 +584,45 @@ func main() {
 ```orbitron
 // examples/03_functions/basics.ot
 
-const PI_INT: int = 3;   // приближение
+#const PI_INT: i64 = 3;   // приближение
 
-func square(n: int) -> int { return n * n; }
-func cube(n: int)   -> int { return n * n * n; }
-func abs(n: int)    -> int { return n >= 0 ? n : -n; }
+fn square(n: i64): i64 => n * n;
+fn cube(n: i64):   i64 => n * n * n;
+fn abs(n: i64):    i64 => n >= 0 ? n : -n;
 
-func sum_up_to(n: int): int {
-    var total = 0;
+fn sum_up_to(n: i64): i64 {
+    mut total = 0;
     for i in 1..=n { total += i; }
     return total;
 }
 
 // Параметр по умолчанию
-func power(base: int, exp: int = 2): int {
+fn power(base: i64, exp: i64 = 2): i64 {
     if (exp == 0) { return 1; }
     return base * power(base, exp - 1);
 }
 
-func double(n: int): int { return n * 2; }
-func inc(n: int):    int { return n + 1; }
+fn double(n: i64): i64 => n * 2;
+fn inc(n: i64):    i64 => n + 1;
 
 // Лямбда
-var clamp100 = |x| x > 100 ? 100 : x;
+let clamp100 = |x| x > 100 ? 100 : x;
 
-func main() {
-    println(square(7));       // 49
-    println(cube(3));         // 27
-    println(abs(-42));        // 42
-    println(sum_up_to(10));   // 55
-    println(power(2, 8));     // 256
-    println(power(5));        // 25 — exp = 2 по умолчанию
+fn main() {
+    println!(square(7));       // 49
+    println!(cube(3));         // 27
+    println!(abs(-42));        // 42
+    println!(sum_up_to(10));   // 55
+    println!(power(2, 8));     // 256
+    println!(power(5));        // 25 — exp = 2 по умолчанию
 
     // Лямбда в конвейере
-    var result = 5 |> double |> inc |> square;
-    println(result);          // (5*2+1)^2 = 121
+    let result = 5 |> double |> inc |> square;
+    println!(result);          // (5*2+1)^2 = 121
 
     // Лямбда напрямую
-    println(clamp100(50));    // 50
-    println(clamp100(200));   // 100
+    println!(clamp100(50));    // 50
+    println!(clamp100(200));   // 100
 }
 ```
 

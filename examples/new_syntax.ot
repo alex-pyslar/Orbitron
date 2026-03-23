@@ -1,0 +1,221 @@
+// examples/new_syntax.ot
+// Демонстрирует весь новый синтаксис Orbitron в одном файле:
+//   let/mut, fn, =>, #const, #import, println!(), "\{var}", ?:, ?.
+//
+// Запуск:
+//   orbitron examples/new_syntax.ot
+
+#const VERSION: i64 = 2;
+#const GREETING: i64 = 42;   // кодовое число
+
+// ── Простые функции с fat-arrow телами ────────────────────────────────────────
+
+fn double(x: i64): i64 => x * 2;
+fn square(x: i64): i64 => x * x;
+fn add(a: i64, b: i64): i64 => a + b;
+fn negate(x: i64): i64 => -x;
+fn max2(a: i64, b: i64): i64 => a > b ? a : b;
+fn min2(a: i64, b: i64): i64 => a < b ? a : b;
+fn clamp(v: i64, lo: i64, hi: i64): i64 => v < lo ? lo : v > hi ? hi : v;
+
+// ── Функции с телом и let/mut ──────────────────────────────────────────────────
+
+fn factorial(n: i64): i64 {
+    if (n <= 1) { return 1; }
+    return n * factorial(n - 1);
+}
+
+fn sum_to(n: i64): i64 {
+    mut total = 0;
+    for i in 1..=n {
+        total += i;
+    }
+    return total;
+}
+
+fn count_digits(n: i64): i64 {
+    if (n == 0) { return 1; }
+    mut x = n >= 0 ? n : -n;
+    mut count = 0;
+    while (x > 0) {
+        x /= 10;
+        count += 1;
+    }
+    return count;
+}
+
+// ── Структура с методами ───────────────────────────────────────────────────────
+
+struct Point {
+    x: i64,
+    y: i64,
+}
+
+impl Point {
+    pub static fn origin(): Point => Point { x: 0, y: 0 };
+    pub static fn new(x: i64, y: i64): Point => Point { x: x, y: y };
+
+    pub fn dist_sq(self): i64 => self.x * self.x + self.y * self.y;
+    pub fn manhattan(self): i64 {
+        let ax = self.x >= 0 ? self.x : -self.x;
+        let ay = self.y >= 0 ? self.y : -self.y;
+        return ax + ay;
+    }
+
+    pub fn describe(self) {
+        println!("Point(\{self.x}, \{self.y})  dist²=\{self.dist_sq()}");
+    }
+}
+
+// ── Перечисление ───────────────────────────────────────────────────────────────
+
+enum Direction { North, South, East, West }
+
+fn dir_name(d: i64): i64 {
+    match d {
+        Direction.North => { println!("Север"); }
+        Direction.South => { println!("Юг"); }
+        Direction.East  => { println!("Восток"); }
+        Direction.West  => { println!("Запад"); }
+        _               => { println!("Неизвестно"); }
+    }
+    return 0;
+}
+
+// ── main ───────────────────────────────────────────────────────────────────────
+
+fn main() {
+    println!("╔══════════════════════════════════════════╗");
+    println!("║  Новый синтаксис Orbitron v\{VERSION}         ║");
+    println!("╚══════════════════════════════════════════╝");
+
+    // ── let (иммутабельные) и mut (мутабельные) ────────────────────────────────
+    println!("\n=== let / mut ===");
+
+    let x = 10;
+    let y = 20;
+    mut counter = 0;
+
+    println!("x=\{x}, y=\{y}");
+    repeat 3 {
+        counter += 1;
+    }
+    println!("counter после repeat 3: \{counter}");
+
+    // ── fn с fat-arrow ─────────────────────────────────────────────────────────
+    println!("\n=== fn => (fat-arrow) ===");
+
+    println!("double(7)   = \{double(7)}");
+    println!("square(9)   = \{square(9)}");
+    println!("add(3, 4)   = \{add(3, 4)}");
+    println!("max2(5, 12) = \{max2(5, 12)}");
+    println!("clamp(150, 0, 100) = \{clamp(150, 0, 100)}");
+
+    // ── #const ─────────────────────────────────────────────────────────────────
+    println!("\n=== #const ===");
+    println!("VERSION  = \{VERSION}");
+    println!("GREETING = \{GREETING}");
+
+    // ── Строковая интерполяция \{expr} ─────────────────────────────────────────
+    println!("\n=== Интерполяция \"...\\{expr}...\" ===");
+
+    let name  = 7;
+    let score = 2048;
+    println!("Игрок #\{name}, очки: \{score}, уровень: \{score / 100}");
+    println!("2^10 = \{2 ** 10}");
+    println!("Сумма 1..100 = \{sum_to(100)}");
+
+    // ── Оператор Elvis ?: ──────────────────────────────────────────────────────
+    println!("\n=== Оператор ?: (Elvis) ===");
+
+    let zero = 0;
+    let nonz = 42;
+
+    let r1 = zero ?: 99;   // zero == 0 → берём 99
+    let r2 = nonz ?: 99;   // nonz != 0 → берём nonz
+    println!("0 ?: 99  = \{r1}");    // 99
+    println!("42 ?: 99 = \{r2}");   // 42
+
+    // Цепочка
+    mut val = 0;
+    val = val ?: (score / 1000 ?: 5);
+    println!("Итоговый val = \{val}");   // 2 (score/1000 = 2, не ноль)
+
+    // ── Тернарный оператор ? : ─────────────────────────────────────────────────
+    println!("\n=== Тернарный ? : ===");
+
+    let abs_x = x >= 0 ? x : -x;
+    let parity = x % 2 == 0 ? 1 : 0;
+    println!("|x|=\{abs_x}, чётное=\{parity}");
+
+    // ── Кортежи ────────────────────────────────────────────────────────────────
+    println!("\n=== Кортежи ===");
+
+    let coords = (3, 4);
+    let (cx, cy) = coords;
+    println!("coords = (\{cx}, \{cy}), dist²=\{cx*cx + cy*cy}");
+
+    let rgb = (255, 128, 0);
+    let (r, g, b) = rgb;
+    println!("RGB = \{r}, \{g}, \{b}");
+
+    // ── Лямбды ─────────────────────────────────────────────────────────────────
+    println!("\n=== Лямбды ===");
+
+    let triple = |n| n * 3;
+    let sub    = |a, b| a - b;
+    println!("triple(7) = \{triple(7)}");
+    println!("sub(10,3) = \{sub(10, 3)}");
+
+    // ── Конвейер |> ────────────────────────────────────────────────────────────
+    println!("\n=== Конвейер |> ===");
+
+    let piped = 3 |> double |> square |> negate;
+    println!("3 |> double |> square |> negate = \{piped}");  // -36
+
+    // ── Структура и методы ─────────────────────────────────────────────────────
+    println!("\n=== struct + impl ===");
+
+    let origin = Point::origin();
+    origin.describe();
+
+    let p = Point::new(3, 4);
+    p.describe();
+    println!("manhattan(p) = \{p.manhattan()}");
+
+    // ── assert! / assert_eq! ───────────────────────────────────────────────────
+    println!("\n=== assert! / assert_eq! ===");
+
+    assert!(VERSION > 0);
+    assert_eq!(double(5), 10);
+    assert_eq!(square(4), 16);
+    assert_eq!(factorial(5), 120);
+    assert_eq!(sum_to(10), 55);
+    println!("Все утверждения прошли успешно!");
+
+    // ── enum + match ───────────────────────────────────────────────────────────
+    println!("\n=== enum + match ===");
+
+    let dirs = [Direction.North, Direction.East, Direction.South, Direction.West];
+    for i in 0..4 {
+        dir_name(dirs[i]);
+    }
+
+    // ── unless ─────────────────────────────────────────────────────────────────
+    println!("\n=== unless ===");
+
+    let divisor = 7;
+    unless (divisor == 0) {
+        println!("100 / \{divisor} = \{100 / divisor}");
+    }
+
+    // ── defer ──────────────────────────────────────────────────────────────────
+    println!("\n=== defer ===");
+    {
+        defer println!("  (defer: выполняется последним)");
+        println!("  Первая строка");
+        println!("  Вторая строка");
+    }
+
+    println!("\n=== Готово. Синтаксис v\{VERSION} продемонстрирован! ===");
+}

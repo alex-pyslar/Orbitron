@@ -2,104 +2,103 @@
 // Демонстрирует: все операторы Orbitron —
 // арифметику, сравнение, логику, тернарный, конвейер.
 
-func double(n: int): int { return n * 2; }
-func inc(n: int):    int { return n + 1; }
-func square(n: int): int { return n * n; }
-func negate(n: int): int { return -n; }
-func abs_val(n: int): int { return n >= 0 ? n : -n; }
+fn double(n: i64): i64 => n * 2;
+fn inc(n: i64):    i64 => n + 1;
+fn square(n: i64): i64 => n * n;
+fn negate(n: i64): i64 => -n;
+fn abs_val(n: i64): i64 => n >= 0 ? n : -n;
 
-func main() {
-    println("=== Арифметические операторы ===");
+fn main() {
+    println!("=== Арифметические операторы ===");
 
-    var a = 17;
-    var b = 5;
+    let a = 17;
+    let b = 5;
 
-    println($"{a} + {b} = {a + b}");     // 22
-    println($"{a} - {b} = {a - b}");     // 12
-    println($"{a} * {b} = {a * b}");     // 85
-    println($"{a} / {b} = {a / b}");     // 3  (целочисленное)
-    println($"{a} % {b} = {a % b}");     // 2  (остаток)
-    println($"{b} ** 3 = {b ** 3}");     // 125 (степень)
+    println!("\{a} + \{b} = \{a + b}");     // 22
+    println!("\{a} - \{b} = \{a - b}");     // 12
+    println!("\{a} * \{b} = \{a * b}");     // 85
+    println!("\{a} / \{b} = \{a / b}");     // 3  (целочисленное)
+    println!("\{a} % \{b} = \{a % b}");     // 2  (остаток)
+    println!("\{b} ** 3 = \{b ** 3}");      // 125 (степень)
 
-    println("");
-    println("=== Операторы сравнения ===");
+    println!("");
+    println!("=== Операторы сравнения ===");
 
-    var x = 10;
-    var y = 20;
+    let x = 10;
+    let y = 20;
 
-    println($"{x} == {y}: {x == y}");   // 0
-    println($"{x} != {y}: {x != y}");   // 1
-    println($"{x} <  {y}: {x < y}");    // 1
-    println($"{x} <= {y}: {x <= y}");   // 1
-    println($"{x} >  {y}: {x > y}");    // 0
-    println($"{x} >= {y}: {x >= y}");   // 0
+    println!("\{x} == \{y}: \{x == y}");   // 0
+    println!("\{x} != \{y}: \{x != y}");   // 1
+    println!("\{x} <  \{y}: \{x < y}");    // 1
+    println!("\{x} <= \{y}: \{x <= y}");   // 1
+    println!("\{x} >  \{y}: \{x > y}");    // 0
+    println!("\{x} >= \{y}: \{x >= y}");   // 0
 
-    println("");
-    println("=== Логические операторы ===");
+    println!("");
+    println!("=== Логические операторы ===");
 
-    var p = 1;   // истина
-    var q = 0;   // ложь
+    let p = 1;   // истина
+    let q = 0;   // ложь
 
-    println($"p && q = {p && q}");    // 0
-    println($"p || q = {p || q}");    // 1
-    println($"!p     = {!p}");         // 0
-    println($"!q     = {!q}");         // 1
-    println($"p && !q = {p && !q}");  // 1
+    println!("p && q = \{p && q}");    // 0
+    println!("p || q = \{p || q}");    // 1
+    println!("!p     = \{!p}");         // 0
+    println!("!q     = \{!q}");         // 1
+    println!("p && !q = \{p && !q}");  // 1
 
-    println("");
-    println("=== Составное присваивание ===");
+    println!("");
+    println!("=== Составное присваивание ===");
 
-    var n = 100;
-    println($"Начало: {n}");
-    n += 50;  println($"+= 50: {n}");   // 150
-    n -= 30;  println($"-= 30: {n}");   // 120
-    n *= 2;   println($"*= 2:  {n}");   // 240
-    n /= 3;   println($"/= 3:  {n}");   // 80
-    n %= 7;   println($"%%= 7: {n}");   // 3
+    mut n = 100;
+    println!("Начало: \{n}");
+    n += 50;  println!("+= 50: \{n}");   // 150
+    n -= 30;  println!("-= 30: \{n}");   // 120
+    n *= 2;   println!("*= 2:  \{n}");   // 240
+    n /= 3;   println!("/= 3:  \{n}");   // 80
+    n %= 7;   println!("%%= 7: \{n}");   // 3
 
-    println("");
-    println("=== Тернарный оператор ? : ===");
+    println!("");
+    println!("=== Тернарный оператор ? : ===");
 
-    var score = 78;
-    var grade = score >= 90 ? 4 :
+    let score = 78;
+    let grade = score >= 90 ? 4 :
                 score >= 80 ? 3 :
                 score >= 70 ? 2 :
                 score >= 60 ? 1 : 0;
 
-    println($"score={score}, grade={grade}");   // 2
+    println!("score=\{score}, grade=\{grade}");   // 2
 
-    var val = -7;
-    var abs = val >= 0 ? val : -val;
-    println($"|{val}| = {abs}");   // 7
+    let val = -7;
+    let abs = val >= 0 ? val : -val;
+    println!("|\{val}| = \{abs}");   // 7
 
-    var m = 5;
-    var k = 8;
-    var max = m > k ? m : k;
-    var min = m < k ? m : k;
-    println($"max({m},{k}) = {max}");   // 8
-    println($"min({m},{k}) = {min}");   // 5
+    let m = 5;
+    let k = 8;
+    let max = m > k ? m : k;
+    let min = m < k ? m : k;
+    println!("max(\{m},\{k}) = \{max}");   // 8
+    println!("min(\{m},\{k}) = \{min}");   // 5
 
-    println("");
-    println("=== Оператор конвейера |> ===");
+    println!("");
+    println!("=== Оператор конвейера |> ===");
 
-    // 3 |> double |> inc |> square = square(inc(double(3))) = (3*2+1)^2 = 49
-    var r1 = 3 |> double;
-    println($"3 |> double = {r1}");                    // 6
+    let r1 = 3 |> double;
+    println!("3 |> double = \{r1}");                    // 6
 
-    var r2 = 3 |> double |> inc;
-    println($"3 |> double |> inc = {r2}");             // 7
+    let r2 = 3 |> double |> inc;
+    println!("3 |> double |> inc = \{r2}");             // 7
 
-    var r3 = 3 |> double |> inc |> square;
-    println($"3 |> double |> inc |> square = {r3}");   // 49
+    let r3 = 3 |> double |> inc |> square;
+    println!("3 |> double |> inc |> square = \{r3}");   // 49
 
-    var r4 = -15 |> abs_val |> double;
-    println($"-15 |> abs_val |> double = {r4}");       // 30
+    let r4 = -15 |> abs_val |> double;
+    println!("-15 |> abs_val |> double = \{r4}");       // 30
 
-    println("");
-    println("=== Приоритет операторов ===");
+    println!("");
+    println!("=== Приоритет операторов ===");
 
-    println(2 + 3 * 4);        // 14  (* раньше +)
-    println((2 + 3) * 4);      // 20  (скобки)
-    println(2 ** 3 ** 2);      // 512 (2**(3**2), право-ассоциативно)
-    println(10 - 3 - 2);       // 5   (левая ассоциативность -)
+    println!(2 + 3 * 4);        // 14
+    println!((2 + 3) * 4);      // 20
+    println!(2 ** 3 ** 2);      // 512
+    println!(10 - 3 - 2);       // 5
 }

@@ -53,28 +53,73 @@ impl Lexer {
         }
     }
 
+    /// Lex a regular string `"..."`. If `\{ident}` is found inside,
+    /// the result is `Token::InterpolStr` (new Swift/Kotlin-style interpolation).
+    /// Otherwise returns `Token::Str`.
     fn read_string(&mut self) -> Result<Token, String> {
         self.advance(); // opening "
         let mut s = String::new();
+        let mut parts: Vec<InterpolPart> = Vec::new();
+        let mut has_interp = false;
+
         loop {
             match self.advance() {
-                Some('"')  => return Ok(Token::Str(s)),
-                Some('\\') => match self.advance() {
-                    Some('n')  => s.push('\n'),
-                    Some('t')  => s.push('\t'),
-                    Some('\\') => s.push('\\'),
-                    Some('"')  => s.push('"'),
-                    Some(c)    => { s.push('\\'); s.push(c); }
-                    None       => return Err("Unterminated escape in string".into()),
-                },
-                Some(c) => s.push(c),
-                None    => return Err(format!("Unterminated string at line {}", self.line)),
+                Some('"') => {
+                    if has_interp {
+                        if !s.is_empty() { parts.push(InterpolPart::Lit(std::mem::take(&mut s))); }
+                        return Ok(Token::InterpolStr(parts));
+                    } else {
+                        return Ok(Token::Str(s));
+                    }
+                }
+                Some('\\') => {
+                    match self.peek() {
+                        // \{ident} — new-style string interpolation (Swift / Kotlin)
+                        Some('{') => {
+                            self.advance(); // consume '{'
+                            has_interp = true;
+                            if !s.is_empty() { parts.push(InterpolPart::Lit(std::mem::take(&mut s))); }
+                            // Read identifier (or simple expression for now: just ident)
+                            let mut ident = String::new();
+                            loop {
+                                match self.advance() {
+                                    Some('}') => break,
+                                    Some(c) if c.is_alphanumeric() || c == '_' => ident.push(c),
+                                    Some(c) => return Err(format!(
+                                        "Unexpected '{}' in \\{{...}} interpolation (line {})",
+                                        c, self.line
+                                    )),
+                                    None => return Err("Unterminated string interpolation".into()),
+                                }
+                            }
+                            if ident.is_empty() {
+                                return Err("Empty interpolation '\\{}' in string".into());
+                            }
+                            parts.push(InterpolPart::Var(ident));
+                        }
+                        _ => {
+                            // Regular escape sequences
+                            match self.advance() {
+                                Some('n')  => s.push('\n'),
+                                Some('t')  => s.push('\t'),
+                                Some('\\') => s.push('\\'),
+                                Some('"')  => s.push('"'),
+                                Some(c)    => { s.push('\\'); s.push(c); }
+                                None       => return Err("Unterminated escape in string".into()),
+                            }
+                        }
+                    }
+                }
+                Some(c) => {
+                    if has_interp { s.push(c); } else { s.push(c); }
+                }
+                None => return Err(format!("Unterminated string at line {}", self.line)),
             }
         }
     }
 
-    /// Lex a `$"..."` interpolated string.
-    /// Supports `{ident}` holes for variable interpolation  (C# / Kotlin).
+    /// Lex a `$"..."` interpolated string (old C# / Kotlin style — kept for backward compat).
+    /// Supports `{ident}` holes for variable interpolation.
     fn read_interp_string(&mut self) -> Result<Token, String> {
         self.advance(); // consume '$'
         if self.peek() != Some('"') {
@@ -128,6 +173,29 @@ impl Lexer {
 
     fn read_number(&mut self) -> Token {
         let mut s = String::new();
+        // Hex literal: 0x...
+        if self.peek() == Some('0') && (self.peek2() == Some('x') || self.peek2() == Some('X')) {
+            s.push(self.advance().unwrap()); // '0'
+            s.push(self.advance().unwrap()); // 'x'
+            while self.peek().map_or(false, |c| c.is_ascii_hexdigit()) {
+                s.push(self.advance().unwrap());
+            }
+            let hex_str = &s[2..];
+            let val = i64::from_str_radix(hex_str, 16).unwrap_or(0);
+            return Token::Int(val);
+        }
+        // Binary literal: 0b...
+        if self.peek() == Some('0') && (self.peek2() == Some('b') || self.peek2() == Some('B')) {
+            s.push(self.advance().unwrap()); // '0'
+            s.push(self.advance().unwrap()); // 'b'
+            while self.peek().map_or(false, |c| c == '0' || c == '1') {
+                s.push(self.advance().unwrap());
+            }
+            let bin_str = &s[2..];
+            let val = i64::from_str_radix(bin_str, 2).unwrap_or(0);
+            return Token::Int(val);
+        }
+        // Decimal
         while self.peek().map_or(false, |c| c.is_ascii_digit()) {
             s.push(self.advance().unwrap());
         }
@@ -152,8 +220,11 @@ impl Lexer {
         }
         match s.as_str() {
             "var"      => Token::Var,
+            "let"      => Token::Let,       // new: immutable binding
+            "mut"      => Token::Mut,       // new: mutable binding
             "const"    => Token::Const,     // Rust/C++
             "func"     => Token::Func,
+            "fn"       => Token::Fn,        // new: shorter function keyword (Rust-style)
             "return"   => Token::Return,
             "if"       => Token::If,
             "else"     => Token::Else,
@@ -183,9 +254,33 @@ impl Lexer {
             "extends"  => Token::Extends,   // Java/Kotlin
             "enum"     => Token::Enum,      // Rust/Swift
             "defer"    => Token::Defer,     // Go
-            "import"   => Token::Import,    // multi-file import
+            "import"   => Token::Import,    // multi-file import (old syntax)
             "extern"   => Token::Extern,    // external C declaration
+            "type"     => Token::Type,      // new: type alias
+            "where"    => Token::Where,     // new: constraint placeholder
             _          => Token::Ident(s),
+        }
+    }
+
+    /// Lex `#import "path";` or `#const NAME: type = val;` or standalone `#`.
+    fn read_hash(&mut self) -> Result<Token, String> {
+        self.advance(); // consume '#'
+        // peek at following identifier to detect #import / #const
+        let saved_pos = self.pos;
+        // skip whitespace between # and keyword (not typical but be safe)
+        // We won't skip whitespace here — `#import` must be without space
+        let mut kw = String::new();
+        while self.peek().map_or(false, |c| c.is_alphabetic() || c == '_') {
+            kw.push(self.advance().unwrap());
+        }
+        match kw.as_str() {
+            "import" => Ok(Token::HashImport),
+            "const"  => Ok(Token::HashConst),
+            _        => {
+                // Not a recognized directive — restore and return Hash
+                self.pos = saved_pos;
+                Ok(Token::Hash)
+            }
         }
     }
 
@@ -194,13 +289,15 @@ impl Lexer {
         match self.peek() {
             None    => Ok(Token::Eof),
             Some(c) => match c {
-                // Interpolated string: $"Hello {name}!"  (C# / Kotlin)
+                // Old interpolated string: $"Hello {name}!"  (C# / Kotlin)
                 '$'                          => self.read_interp_string(),
                 '"'                          => self.read_string(),
                 '0'..='9'                    => Ok(self.read_number()),
                 'a'..='z' | 'A'..='Z' | '_' => Ok(self.read_ident()),
                 // Annotation: @name
                 '@' => { self.advance(); Ok(Token::At) }
+                // Hash directives: #import, #const, or standalone #
+                '#' => self.read_hash(),
                 // Range operators: ..= and ..
                 '.' => {
                     self.advance();
@@ -267,8 +364,13 @@ impl Lexer {
                     else { Ok(Token::Colon) }
                 }
                 ',' => { self.advance(); Ok(Token::Comma) }
-                // Ternary ? (C / Kotlin)
-                '?' => { self.advance(); Ok(Token::Question) }
+                // ?: Elvis / null-coalescing (Kotlin), ?. optional chaining, ? ternary
+                '?' => {
+                    self.advance();
+                    if self.peek() == Some('.') { self.advance(); Ok(Token::QuestionDot) }
+                    else if self.peek() == Some(':') { self.advance(); Ok(Token::Elvis) }
+                    else { Ok(Token::Question) }
+                }
                 '=' => {
                     self.advance();
                     if self.peek() == Some('=') { self.advance(); Ok(Token::EqEq) }

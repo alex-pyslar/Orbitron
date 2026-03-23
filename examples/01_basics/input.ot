@@ -1,46 +1,46 @@
 // examples/01_basics/input.ot
 // Демонстрирует: чтение ввода из stdin — readInt() и readFloat().
 
-func main() {
-    println("=== Ввод данных ===");
+fn main() {
+    println!("=== Ввод данных ===");
 
     // --- Чтение целого числа ---
-    println("Введите целое число:");
-    var n = readInt();
-    println($"Вы ввели: {n}");
-    println($"Квадрат: {n * n}");
-    println($"Куб:     {n * n * n}");
+    println!("Введите целое число:");
+    let n = readInt();
+    println!("Вы ввели: \{n}");
+    println!("Квадрат: \{n * n}");
+    println!("Куб:     \{n * n * n}");
 
     // --- Проверка чётности ---
-    var is_even = n % 2 == 0 ? 1 : 0;
-    println($"Чётное: {is_even}");
+    let is_even = n % 2 == 0 ? 1 : 0;
+    println!("Чётное: \{is_even}");
 
     // --- Чтение второго числа ---
-    println("Введите ещё одно целое число:");
-    var m = readInt();
+    println!("Введите ещё одно целое число:");
+    let m = readInt();
 
-    var sum  = n + m;
-    var diff = n - m;
-    var prod = n * m;
+    let sum  = n + m;
+    let diff = n - m;
+    let prod = n * m;
 
-    println($"Сумма:    {sum}");
-    println($"Разность: {diff}");
-    println($"Произведение: {prod}");
+    println!("Сумма:    \{sum}");
+    println!("Разность: \{diff}");
+    println!("Произведение: \{prod}");
 
     unless (m == 0) {
-        var q = n / m;
-        var r = n % m;
-        println($"Частное:  {q}");
-        println($"Остаток:  {r}");
+        let q = n / m;
+        let r = n % m;
+        println!("Частное:  \{q}");
+        println!("Остаток:  \{r}");
     }
 
     // --- Чтение числа с плавающей точкой ---
-    println("Введите вещественное число:");
-    var f = readFloat();
-    println($"Вы ввели: {f}");
-    println($"Удвоенное: {f * 2.0}");
+    println!("Введите вещественное число:");
+    let f = readFloat();
+    println!("Вы ввели: \{f}");
+    println!("Удвоенное: \{f * 2.0}");
 
     // --- Итог ---
-    var bigger = n > m ? n : m;
-    println($"Наибольшее: {bigger}");
+    let bigger = n > m ? n : m;
+    println!("Наибольшее: \{bigger}");
 }

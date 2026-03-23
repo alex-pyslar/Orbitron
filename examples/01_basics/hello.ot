@@ -2,23 +2,23 @@
 // Первая программа на Orbitron — Hello World.
 // Демонстрирует: вывод строк, переменные, строковую интерполяцию.
 
-func main() {
+fn main() {
     // Простой вывод строки
-    println("Привет, мир!");
+    println!("Привет, мир!");
 
     // Переменные
-    var x = 42;
-    var pi: float = 3.14;
+    let x = 42;
+    let pi: f64 = 3.14;
 
-    // Строковая интерполяция: $"...{переменная}..."
-    println($"x = {x}");
-    println($"pi = {pi}");
+    // Строковая интерполяция: "...\{переменная}..."
+    println!("x = \{x}");
+    println!("pi = \{pi}");
 
     // Константа
-    const VERSION: int = 1;
-    println($"Orbitron v{VERSION}");
+    #const VERSION: i64 = 1;
+    println!("Orbitron v\{VERSION}");
 
     // Небольшое вычисление
-    var sum = x + 8;
-    println($"x + 8 = {sum}");
+    let sum = x + 8;
+    println!("x + 8 = \{sum}");
 }

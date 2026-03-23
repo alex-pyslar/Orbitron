@@ -1,105 +1,94 @@
 // examples/07_advanced/new_features.ot
 // Демонстрирует: все новые возможности языка Orbitron
-//   - Параметры по умолчанию
+//   - let/mut переменные, fn, #const, #import
+//   - Жирная стрелка => для тел функций
+//   - Строковая интерполяция "...\{var}..."
+//   - Макросы println!(), assert!(), assert_eq!()
 //   - Кортежи и деструктуризация
 //   - Лямбды
 //   - match-выражение
-//   - assert / assert_eq
-//   - for x in array
 //   - Статические методы и трейты
-//   - ^ (XOR), ~ (битовое NOT)
-//   - Аннотации @
+//   - Операторы ?. и ?:
 
 // ── Параметры по умолчанию ────────────────────────────────────────────────────
 
-func greet(n: int, times: int = 1) {
+fn greet(n: i64, times: i64 = 1) {
     for i in 0..times {
-        println($"Привет #{n}!");
+        println!("Привет #\{n}!");
     }
 }
 
-// Значение по умолчанию в вычислении
-func power_of(base: int, exp: int = 2): int {
-    return base ** exp;
-}
+fn power_of(base: i64, exp: i64 = 2): i64 => base ** exp;
 
 // ── Трейт и реализация ────────────────────────────────────────────────────────
 
 trait Describable {
-    func describe(self);
+    fn describe(self);
 }
 
 struct Point {
-    x: int,
-    y: int,
+    x: i64,
+    y: i64,
 }
 
 impl Describable for Point {
-    pub func describe(self) {
-        println($"Точка ({x}, {y})");
+    pub fn describe(self) {
+        println!("Точка (\{self.x}, \{self.y})");
     }
 }
 
 impl Point {
-    pub static func origin() -> Point {
-        return Point { x: 0, y: 0 };
-    }
-
-    pub func dist_sq(self): int {
-        return self.x * self.x + self.y * self.y;
-    }
+    pub static fn origin(): Point => Point { x: 0, y: 0 };
+    pub fn dist_sq(self): i64 => self.x * self.x + self.y * self.y;
 }
 
 // ── Наследование классов ──────────────────────────────────────────────────────
 
 class Animal {
-    private name: int,    // используем int-код вместо строки
-    init(n: int) { self.name = n; }
-    pub func sound(self): int { return 0; }
+    private name: i64,    // используем i64-код вместо строки
+    init(n: i64) { self.name = n; }
+    pub fn sound(self): i64 { return 0; }
 }
 
 class Dog extends Animal {
-    init(n: int) { self.name = n; }
-    pub func sound(self): int { return 1; }  // 1 = "Гав"
+    init(n: i64) { self.name = n; }
+    pub fn sound(self): i64 { return 1; }  // 1 = "Гав"
 }
 
 // ── Главная функция ───────────────────────────────────────────────────────────
 
-@main_section
-func main() {
-    println("=== Параметры по умолчанию ===");
+fn main() {
+    println!("=== Параметры по умолчанию ===");
     greet(1);          // times = 1
     greet(2, 3);       // times = 3
-    println(power_of(3));      // 9  (exp = 2)
-    println(power_of(2, 10));  // 1024
+    println!(power_of(3));      // 9  (exp = 2)
+    println!(power_of(2, 10));  // 1024
 
     // ── Кортежи ──────────────────────────────────────────────────────────────
-    println("\n=== Кортежи ===");
+    println!("\n=== Кортежи ===");
 
-    var coords = (10, 20);
-    var (cx, cy) = coords;
-    println($"x={cx}, y={cy}");     // x=10, y=20
+    let coords = (10, 20);
+    let (cx, cy) = coords;
+    println!("x=\{cx}, y=\{cy}");     // x=10, y=20
 
-    var rgb = (255, 128, 0);
-    var (r, g, b) = rgb;
-    println($"RGB: {r}, {g}, {b}"); // RGB: 255, 128, 0
+    let rgb = (255, 128, 0);
+    let (r, g, b) = rgb;
+    println!("RGB: \{r}, \{g}, \{b}"); // RGB: 255, 128, 0
 
     // ── Лямбды ───────────────────────────────────────────────────────────────
-    println("\n=== Лямбды ===");
+    println!("\n=== Лямбды ===");
 
-    var double = |x| x * 2;
-    var add    = |a, b| a + b;
-    var square = |n| n * n;
+    let dbl    = |x| x * 2;
+    let add_fn = |a, b| a + b;
+    let sq     = |n| n * n;
 
-    // Лямбды — это i64-указатели, вызвать напрямую пока нельзя,
-    // но их можно передавать через обычные функции
-    println(power_of(5, 3));   // 125
+    println!(power_of(5, 3));   // 125
 
     // ── match-выражение ───────────────────────────────────────────────────────
-    println("\n=== match как выражение ===");
+    println!("\n=== match как выражение ===");
 
     for score in 0..=10 {
-        var grade = match score {
+        let grade = match score {
             10 => 5,
             8  => 4,
             6  => 3,
@@ -107,62 +96,74 @@ func main() {
             _  => 1
         };
         if (score % 2 == 0) {
-            println($"Балл {score} → оценка {grade}");
+            println!("Балл \{score} → оценка \{grade}");
         }
     }
 
-    // ── assert / assert_eq ────────────────────────────────────────────────────
-    println("\n=== Assertions ===");
+    // ── assert! / assert_eq! ──────────────────────────────────────────────────
+    println!("\n=== Assertions ===");
 
-    var x = 42;
-    assert(x > 0);              // ОК
-    assert_eq(power_of(3), 9);  // ОК: 3^2 == 9
-    assert_eq(2 + 2, 4);        // ОК
-    println("Все утверждения прошли успешно!");
+    let x = 42;
+    assert!(x > 0);              // ОК
+    assert_eq!(power_of(3), 9);  // ОК: 3^2 == 9
+    assert_eq!(2 + 2, 4);        // ОК
+    println!("Все утверждения прошли успешно!");
 
     // ── for x in array ───────────────────────────────────────────────────────
-    println("\n=== for-in (итерация по массиву) ===");
+    println!("\n=== for-in (итерация по массиву) ===");
 
-    var primes = [2, 3, 5, 7, 11, 13];
-    var prime_sum = 0;
+    let primes = [2, 3, 5, 7, 11, 13];
+    mut prime_sum = 0;
     for p in primes {
         prime_sum += p;
-        println(p);
+        println!(p);
     }
-    println($"Сумма простых: {prime_sum}");   // 41
+    println!("Сумма простых: \{prime_sum}");   // 41
 
     // ── Статический метод ─────────────────────────────────────────────────────
-    println("\n=== Статические методы ===");
+    println!("\n=== Статические методы ===");
 
-    var origin = Point::origin();
+    let origin = Point::origin();
     origin.describe();
-    println($"Расстояние^2 от начала: {origin.dist_sq()}");  // 0
+    println!("Расстояние^2 от начала: \{origin.dist_sq()}");  // 0
 
-    var p = Point { x: 3, y: 4 };
+    let p = Point { x: 3, y: 4 };
     p.describe();
-    println($"Расстояние^2: {p.dist_sq()}");  // 25
+    println!("Расстояние^2: \{p.dist_sq()}");  // 25
+
+    // ── Операторы ?. и ?: ─────────────────────────────────────────────────────
+    println!("\n=== Операторы ?. и ?: ===");
+
+    let zero = 0;
+    let val  = 42;
+
+    // Elvis-оператор ?:
+    let result1 = zero ?: 99;   // zero == 0 → выбирает 99
+    let result2 = val  ?: 99;   // val  != 0 → выбирает val
+    println!("0 ?: 99 = \{result1}");    // 99
+    println!("42 ?: 99 = \{result2}");   // 42
 
     // ── Битовые операторы ─────────────────────────────────────────────────────
-    println("\n=== Битовые операторы ===");
+    println!("\n=== Битовые операторы ===");
 
-    var a = 0b1010;   // 10
-    var b_val = 0b1100;  // 12
-    var xor_r = a ^ b_val;
-    println($"10 XOR 12 = {xor_r}");    // 6
+    let a_val   = 0b1010;    // 10
+    let b_val   = 0b1100;    // 12
+    let xor_r   = a_val ^ b_val;
+    println!("10 XOR 12 = \{xor_r}");    // 6
 
-    var bitnot_r = ~0;   // все единицы = -1 в i64
-    println($"~0 = {bitnot_r}");        // -1
+    let bitnot_r = ~0;   // -1 в i64
+    println!("~0 = \{bitnot_r}");        // -1
 
     // ── Составное присваивание ────────────────────────────────────────────────
-    println("\n=== Составное присваивание ===");
+    println!("\n=== Составное присваивание ===");
 
-    var n = 100;
+    mut n = 100;
     n %= 7;
-    println($"100 % 7 = {n}");     // 2
+    println!("100 % 7 = \{n}");     // 2
 
-    var flags = 0b1111;
+    mut flags = 0b1111;
     flags ^= 0b0011;
-    println($"0b1111 ^ 0b0011 = {flags}");   // 12 (0b1100)
+    println!("0b1111 ^ 0b0011 = \{flags}");   // 12 (0b1100)
 
-    println("\nВсё работает!");
+    println!("\nВсё работает!");
 }

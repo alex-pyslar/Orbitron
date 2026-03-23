@@ -163,12 +163,17 @@ impl JvmCodeGen {
             }
         }
 
-        // Top-level constants
+        // Top-level constants (both old `const` and new `#const` → Stmt::Const)
         for s in program {
-            if let Stmt::Const { name, expr } = s {
-                let val = self.const_literal(expr);
-                let ty  = if val.contains('.') { "double" } else { "long" };
-                writeln!(out, "    static final {} {} = {};", ty, name, val).unwrap();
+            match s {
+                Stmt::Const { name, expr } => {
+                    let val = self.const_literal(expr);
+                    let ty  = if val.contains('.') { "double" } else { "long" };
+                    writeln!(out, "    static final {} {} = {};", ty, name, val).unwrap();
+                }
+                // type aliases → no Java output needed
+                Stmt::TypeAlias { .. } => {}
+                _ => {}
             }
         }
 
@@ -188,7 +193,7 @@ impl JvmCodeGen {
 
         // Top-level functions as static methods
         for s in program {
-            if let Stmt::FnDecl { name, params, body } = s {
+            if let Stmt::FnDecl { name, params, body, .. } = s {
                 let param_names: Vec<String> = params.iter().map(|(n, _)| n.clone()).collect();
                 self.emit_fn(&mut out, name, &param_names, body);
             }
@@ -369,6 +374,20 @@ impl JvmCodeGen {
                 let val = self.emit_expr(expr);
                 writeln!(out, "{}{} {} = {};", indent, ty, name, val).unwrap();
             }
+            // let / mut (new syntax) — same as var in JVM backend
+            Stmt::LetNew { name, mutable, expr, .. } => {
+                let ty  = self.infer_java_type(expr);
+                let val = self.emit_expr(expr);
+                if *mutable {
+                    writeln!(out, "{}{} {} = {};", indent, ty, name, val).unwrap();
+                } else {
+                    // immutable → final, but only for primitive types
+                    let final_kw = if matches!(ty, "long" | "double") { "final " } else { "" };
+                    writeln!(out, "{}{}{} {} = {};", indent, final_kw, ty, name, val).unwrap();
+                }
+            }
+            // type alias — no-op in JVM
+            Stmt::TypeAlias { .. } => {}
             Stmt::Const { name, expr } => {
                 // const inside a function body → local final
                 let val = self.const_literal(expr);
@@ -391,6 +410,15 @@ impl JvmCodeGen {
                 writeln!(out, "{}{}[(int)({})] = {};", indent, arr_s, idx_s, val_s).unwrap();
             }
             Stmt::Expr(e) => {
+                // println!(x) in expression position → print statement
+                if let Expr::MacroCall { name, args } = e {
+                    if name == "println" {
+                        let ea = args.first().cloned().unwrap_or(Expr::Number(0));
+                        let p = self.emit_printable(&ea);
+                        writeln!(out, "{}System.out.println({});", indent, p).unwrap();
+                        return out;
+                    }
+                }
                 let e_s = self.emit_expr(e);
                 writeln!(out, "{}{};", indent, e_s).unwrap();
             }
@@ -643,6 +671,22 @@ impl JvmCodeGen {
                 }
                 result.push_str(&chain);
                 result
+            }
+            // name!(args) — macro call: dispatch same as regular call in JVM
+            Expr::MacroCall { name, args } => {
+                let args_s = self.emit_args(args);
+                format!("{}({})", name, args_s)
+            }
+            // left ?: right — Elvis / null-coalescing  (Kotlin)
+            Expr::Elvis { left, right } => {
+                let l = self.emit_expr(left);
+                let r = self.emit_expr(right);
+                format!("(({}) != 0L ? ({}) : ({}))", l, l, r)
+            }
+            // expr?.field — optional chaining  (Swift / Kotlin)
+            Expr::OptChain { expr: inner, field } => {
+                let obj = self.emit_expr(inner);
+                format!("(({}) != 0L ? ({}).{} : 0L)", obj, obj, field)
             }
             // Low-level features not supported in the JVM backend
             Expr::AddrOf(_) =>

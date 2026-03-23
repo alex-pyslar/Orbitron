@@ -1,104 +1,98 @@
 // src/shapes.ot — геометрические фигуры
 
-import "vectors";
+#import "vectors";
 
 enum ShapeType { Circle, Rectangle, Triangle }
 
 struct Circle {
-    cx: int,
-    cy: int,
-    r:  int,
+    cx: i64,
+    cy: i64,
+    r:  i64,
 }
 
 impl Circle {
-    pub func area_x100(self): int {
-        return 314 * self.r * self.r / 100;
-    }
+    pub fn area_x100(self): i64 => 314 * self.r * self.r / 100;
 
-    pub func perimeter_x10(self): int {
-        return 628 * self.r / 100;
-    }
+    pub fn perimeter_x10(self): i64 => 628 * self.r / 100;
 
-    pub func contains(self, px: int, py: int): int {
-        var dx = px - self.cx;
-        var dy = py - self.cy;
+    pub fn contains(self, px: i64, py: i64): i64 {
+        let dx = px - self.cx;
+        let dy = py - self.cy;
         return dx*dx + dy*dy <= self.r*self.r ? 1 : 0;
     }
 
-    pub func describe(self) {
-        var a = self.area_x100();
-        println($"Окружность: центр=({self.cx},{self.cy}), r={self.r}, площадь≈{a}/100");
+    pub fn describe(self) {
+        let a = self.area_x100();
+        println!("Окружность: центр=(\{self.cx},\{self.cy}), r=\{self.r}, площадь≈\{a}/100");
     }
 }
 
 struct Rect {
-    x: int,
-    y: int,
-    w: int,
-    h: int,
+    x: i64,
+    y: i64,
+    w: i64,
+    h: i64,
 }
 
 impl Rect {
-    pub func area(self): int      { return self.w * self.h; }
-    pub func perimeter(self): int { return 2*(self.w + self.h); }
-    pub func is_square(self): int { return self.w == self.h ? 1 : 0; }
+    pub fn area(self): i64      => self.w * self.h;
+    pub fn perimeter(self): i64 => 2*(self.w + self.h);
+    pub fn is_square(self): i64 => self.w == self.h ? 1 : 0;
 
-    pub func contains(self, px: int, py: int): int {
+    pub fn contains(self, px: i64, py: i64): i64 {
         if (px < self.x || px > self.x + self.w) { return 0; }
         if (py < self.y || py > self.y + self.h) { return 0; }
         return 1;
     }
 
-    pub func scale(self, f: int) {
+    pub fn scale(self, f: i64) {
         self.w *= f;
         self.h *= f;
     }
 
-    pub func describe(self) {
-        var a = self.area();
-        var p = self.perimeter();
-        println($"Прямоугольник: ({self.x},{self.y}) {self.w}x{self.h}, площадь={a}, периметр={p}");
+    pub fn describe(self) {
+        let a = self.area();
+        let p = self.perimeter();
+        println!("Прямоугольник: (\{self.x},\{self.y}) \{self.w}x\{self.h}, площадь=\{a}, периметр=\{p}");
     }
 }
 
 struct Triangle {
-    a: int,
-    b: int,
-    c: int,
+    a: i64,
+    b: i64,
+    c: i64,
 }
 
 impl Triangle {
-    pub func is_valid(self): int {
+    pub fn is_valid(self): i64 {
         if (self.a + self.b <= self.c) { return 0; }
         if (self.b + self.c <= self.a) { return 0; }
         if (self.a + self.c <= self.b) { return 0; }
         return 1;
     }
 
-    pub func perimeter(self): int { return self.a + self.b + self.c; }
+    pub fn perimeter(self): i64 => self.a + self.b + self.c;
 
-    pub func is_equilateral(self): int {
-        return self.a == self.b && self.b == self.c ? 1 : 0;
-    }
+    pub fn is_equilateral(self): i64 => self.a == self.b && self.b == self.c ? 1 : 0;
 
-    pub func is_isosceles(self): int {
+    pub fn is_isosceles(self): i64 {
         return (self.a == self.b || self.b == self.c || self.a == self.c) ? 1 : 0;
     }
 
-    pub func is_right(self): int {
+    pub fn is_right(self): i64 {
         // Проверка теоремы Пифагора (a^2 + b^2 == c^2 или перестановки)
-        var a2 = self.a * self.a;
-        var b2 = self.b * self.b;
-        var c2 = self.c * self.c;
+        let a2 = self.a * self.a;
+        let b2 = self.b * self.b;
+        let c2 = self.c * self.c;
         if (a2 + b2 == c2) { return 1; }
         if (a2 + c2 == b2) { return 1; }
         if (b2 + c2 == a2) { return 1; }
         return 0;
     }
 
-    pub func describe(self) {
-        var p = self.perimeter();
-        var v = self.is_valid();
-        println($"Треугольник: ({self.a},{self.b},{self.c}), периметр={p}, допустим={v}");
+    pub fn describe(self) {
+        let p = self.perimeter();
+        let v = self.is_valid();
+        println!("Треугольник: (\{self.a},\{self.b},\{self.c}), периметр=\{p}, допустим=\{v}");
     }
 }

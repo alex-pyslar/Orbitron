@@ -178,6 +178,8 @@ impl<'ctx> CodeGen<'ctx> {
                         params.iter().map(|(_, d)| d.clone()).collect();
                     self.fn_defaults.insert(name.clone(), defaults);
                 }
+                // type Name = Type;  — no-op in pass 0
+                Stmt::TypeAlias { .. } => {}
                 _ => {}
             }
         }
@@ -188,11 +190,13 @@ impl<'ctx> CodeGen<'ctx> {
                 Stmt::FnDecl { name, params, .. } => {
                     let ptys: Vec<BasicMetadataTypeEnum> =
                         params.iter().map(|_| self.i64_ty.into()).collect();
-                    self.module.add_function(
-                        name,
-                        self.i64_ty.fn_type(&ptys, false),
-                        None,
-                    );
+                    if self.module.get_function(name).is_none() {
+                        self.module.add_function(
+                            name,
+                            self.i64_ty.fn_type(&ptys, false),
+                            None,
+                        );
+                    }
                 }
                 Stmt::ImplDecl { struct_name, methods } => {
                     for m in methods {
@@ -227,7 +231,7 @@ impl<'ctx> CodeGen<'ctx> {
         // Pass 2: generate bodies
         for stmt in program {
             match stmt {
-                Stmt::FnDecl { name, params, body } => {
+                Stmt::FnDecl { name, params, body, .. } => {
                     self.gen_fn(name, params, body);
                 }
                 Stmt::ImplDecl { struct_name, methods } => {
@@ -245,6 +249,7 @@ impl<'ctx> CodeGen<'ctx> {
                 | Stmt::Import    { .. }
                 | Stmt::ExternFn  { .. }
                 | Stmt::TraitDecl { .. }
+                | Stmt::TypeAlias { .. }
                 | Stmt::Annotation { .. } => {}
                 s => panic!("Unexpected top-level statement: {:?}", s),
             }

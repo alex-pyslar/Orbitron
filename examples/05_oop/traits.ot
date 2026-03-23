@@ -5,101 +5,94 @@
 // ── Трейты ───────────────────────────────────────────────────────────────────
 
 trait Shape {
-    func area(self): int;
-    func perimeter(self): int;
+    fn area(self): i64;
+    fn perimeter(self): i64;
 }
 
 trait Printable {
-    func print_info(self);
+    fn print_info(self);
 }
 
 // ── Прямоугольник ─────────────────────────────────────────────────────────────
 
 struct Rect {
-    w: int,
-    h: int,
+    w: i64,
+    h: i64,
 }
 
 impl Shape for Rect {
-    pub func area(self): int {
-        return self.w * self.h;
-    }
-
-    pub func perimeter(self): int {
-        return 2 * (self.w + self.h);
-    }
+    pub fn area(self): i64      => self.w * self.h;
+    pub fn perimeter(self): i64 => 2 * (self.w + self.h);
 }
 
 impl Printable for Rect {
-    pub func print_info(self) {
-        println($"Прямоугольник {self.w}x{self.h}: площадь={self.area()}, периметр={self.perimeter()}");
+    pub fn print_info(self) {
+        println!("Прямоугольник \{self.w}x\{self.h}: площадь=\{self.area()}, периметр=\{self.perimeter()}");
     }
 }
 
 impl Rect {
-    pub static func square(side: int): Rect {
+    pub static fn square(side: i64): Rect {
         return Rect { w: side, h: side };
     }
 }
-
-// ── Квадрат (статический конструктор) ────────────────────────────────────────
 
 // ── Наследование классов ──────────────────────────────────────────────────────
 
 // Базовый класс: животное
 class Animal {
-    private legs: int,
-    private weight: int,
+    private legs: i64,
+    private weight: i64,
 
-    init(legs: int, weight: int) {
+    init(legs: i64, weight: i64) {
         self.legs   = legs;
         self.weight = weight;
     }
 
-    pub func get_legs(self):   int { return self.legs; }
-    pub func get_weight(self): int { return self.weight; }
+    pub fn get_legs(self):   i64 => self.legs;
+    pub fn get_weight(self): i64 => self.weight;
 
-    pub func describe(self) {
-        println($"Животное: {self.legs} ног, вес {self.weight} кг");
+    pub fn describe(self) {
+        println!("Животное: \{self.legs} ног, вес \{self.weight} кг");
     }
 }
 
 // Собака наследует Animal
 class Dog extends Animal {
-    private breed_code: int,   // 1=лабрадор, 2=хаски, 3=другая
+    private breed_code: i64,   // 1=лабрадор, 2=хаски, 3=другая
 
-    init(breed: int, weight: int) {
+    init(breed: i64, weight: i64) {
         self.legs       = 4;
         self.weight     = weight;
         self.breed_code = breed;
     }
 
-    pub func bark(self) {
+    pub fn bark(self) {
         match self.breed_code {
-            1 => { println("Гав! (Лабрадор)"); }
-            2 => { println("Ауф! (Хаски)");    }
-            _ => { println("Гав!");             }
+            1 => { println!("Гав! (Лабрадор)"); }
+            2 => { println!("Ауф! (Хаски)");    }
+            _ => { println!("Гав!");             }
         }
     }
 
-    pub func get_breed(self): int { return self.breed_code; }
+    pub fn get_breed(self): i64 => self.breed_code;
 }
 
 // Птица наследует Animal
 class Bird extends Animal {
-    private can_fly: int,
+    private can_fly: i64,
 
-    init(can_fly: int, weight: int) {
+    init(can_fly: i64, weight: i64) {
         self.legs    = 2;
         self.weight  = weight;
         self.can_fly = can_fly;
     }
 
-    pub func fly(self) {
+    pub fn fly(self) {
         if (self.can_fly) {
-            println("Птица летит!");
+            println!("Птица летит!");
         } else {
-            println("Эта птица не летает.");
+            println!("Эта птица не летает.");
         }
     }
 }
@@ -107,67 +100,60 @@ class Bird extends Animal {
 // ── Статические фабричные методы ──────────────────────────────────────────────
 
 struct Vec2 {
-    x: int,
-    y: int,
+    x: i64,
+    y: i64,
 }
 
 impl Vec2 {
-    pub static func zero(): Vec2 {
-        return Vec2 { x: 0, y: 0 };
-    }
+    pub static fn zero(): Vec2   => Vec2 { x: 0, y: 0 };
+    pub static fn unit_x(): Vec2 => Vec2 { x: 1, y: 0 };
 
-    pub static func unit_x(): Vec2 {
-        return Vec2 { x: 1, y: 0 };
-    }
+    pub fn len_sq(self): i64 => self.x * self.x + self.y * self.y;
 
-    pub func len_sq(self): int {
-        return self.x * self.x + self.y * self.y;
-    }
-
-    pub func dot(self, other: Vec2): int {
+    pub fn dot(self, other: Vec2): i64 {
         return self.x * other.x + self.y * other.y;
     }
 }
 
 // ── Главная функция ───────────────────────────────────────────────────────────
 
-func main() {
-    println("=== Трейты ===");
+fn main() {
+    println!("=== Трейты ===");
 
-    var r = Rect { w: 5, h: 3 };
-    println($"Площадь:    {r.area()}");       // 15
-    println($"Периметр:   {r.perimeter()}");  // 16
+    let r = Rect { w: 5, h: 3 };
+    println!("Площадь:    \{r.area()}");       // 15
+    println!("Периметр:   \{r.perimeter()}");  // 16
     r.print_info();
 
     // Статический конструктор
-    var sq = Rect::square(4);
-    println($"Квадрат 4x4: площадь={sq.area()}");   // 16
+    let sq = Rect::square(4);
+    println!("Квадрат 4x4: площадь=\{sq.area()}");   // 16
 
-    println("\n=== Наследование классов ===");
+    println!("\n=== Наследование классов ===");
 
-    var dog = new Dog(1, 30);
-    dog.describe();       // выводит из Animal: "Животное: 4 ног..."
+    let dog = new Dog(1, 30);
+    dog.describe();       // "Животное: 4 ног..."
     dog.bark();           // "Гав! (Лабрадор)"
-    println($"Порода: {dog.get_breed()}");
+    println!("Порода: \{dog.get_breed()}");
 
-    var husky = new Dog(2, 25);
+    let husky = new Dog(2, 25);
     husky.bark();         // "Ауф! (Хаски)"
 
-    var eagle = new Bird(1, 5);
+    let eagle = new Bird(1, 5);
     eagle.describe();     // "Животное: 2 ног, вес 5 кг"
     eagle.fly();          // "Птица летит!"
 
-    var penguin = new Bird(0, 15);
+    let penguin = new Bird(0, 15);
     penguin.fly();        // "Эта птица не летает."
 
-    println("\n=== Статические методы Vec2 ===");
+    println!("\n=== Статические методы Vec2 ===");
 
-    var zero = Vec2::zero();
-    var ux   = Vec2::unit_x();
-    println($"zero: len_sq = {zero.len_sq()}");  // 0
-    println($"unit_x: len_sq = {ux.len_sq()}");  // 1
+    let zero = Vec2::zero();
+    let ux   = Vec2::unit_x();
+    println!("zero: len_sq = \{zero.len_sq()}");  // 0
+    println!("unit_x: len_sq = \{ux.len_sq()}");  // 1
 
-    var v = Vec2 { x: 3, y: 4 };
-    println($"(3,4): len_sq = {v.len_sq()}");    // 25
-    println($"dot((3,4), unit_x) = {v.dot(ux)}"); // 3
+    let v = Vec2 { x: 3, y: 4 };
+    println!("(3,4): len_sq = \{v.len_sq()}");    // 25
+    println!("dot((3,4), unit_x) = \{v.dot(ux)}"); // 3
 }

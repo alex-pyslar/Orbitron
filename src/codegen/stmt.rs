@@ -5,10 +5,19 @@ impl<'ctx> CodeGen<'ctx> {
     pub(super) fn gen_stmt(&mut self, stmt: &Stmt) {
         match stmt {
 
-            // var name = expr;
+            // var name = expr;  (old syntax)
             Stmt::Let { name, expr } => {
                 self.gen_let(name, expr);
             }
+
+            // let name = expr;  / mut name = expr;  (new syntax)
+            // Mutability flag is ignored in LLVM backend (everything is an alloca).
+            Stmt::LetNew { name, expr, .. } => {
+                self.gen_let(name, expr);
+            }
+
+            // type Name = Type;  — no code generated (type alias, for documentation only)
+            Stmt::TypeAlias { .. } => {}
 
             // const NAME = expr;  (from Rust / C++)
             // Inside a function body, treated as var (value inlined if literal).

@@ -5,216 +5,199 @@
 // Требует: Linux x86-64 (или WSL), backend LLVM.
 // Запуск:
 //   orbitron examples/07_advanced/net_demo.ot
-//
-// Примечание: примеры с реальными подключениями требуют
-// доступа к сети. Раздел «Симуляция» работает без сети.
 
-import "std/net";
-import "std/sys";
+#import "std/net";
+#import "std/sys";
 
 // ─────────────────────────────────────────────
 // Часть 1: Создание и закрытие сокета
 // ─────────────────────────────────────────────
 
-func demo_socket_create() {
-    println("=== Создание TCP-сокета ===");
+fn demo_socket_create() {
+    println!("=== Создание TCP-сокета ===");
 
-    // AF_INET=2, SOCK_STREAM=1, proto=0
-    var fd = net_socket_tcp();
+    let fd = tcp_socket();
 
     if (fd < 0) {
-        println($"  Ошибка создания сокета: {fd}");
+        println!("  Ошибка создания сокета: \{fd}");
         return;
     }
 
-    println($"  Сокет создан, fd = {fd}");
-    println("  (AF_INET, SOCK_STREAM, TCP)");
+    println!("  Сокет создан, fd = \{fd}");
+    println!("  (AF_INET, SOCK_STREAM, TCP)");
 
-    // Закрываем сокет
     net_close(fd);
-    println("  Сокет закрыт");
+    println!("  Сокет закрыт");
 }
 
 // ─────────────────────────────────────────────
 // Часть 2: Создание UDP-сокета
 // ─────────────────────────────────────────────
 
-func demo_socket_udp() {
-    println("\n=== Создание UDP-сокета ===");
+fn demo_socket_udp() {
+    println!("\n=== Создание UDP-сокета ===");
 
-    var fd = net_socket_udp();
+    let fd = udp_socket();
 
     if (fd < 0) {
-        println($"  Ошибка: {fd}");
+        println!("  Ошибка: \{fd}");
         return;
     }
 
-    println($"  UDP-сокет создан, fd = {fd}");
-    println("  (AF_INET, SOCK_DGRAM, UDP)");
+    println!("  UDP-сокет создан, fd = \{fd}");
+    println!("  (AF_INET, SOCK_DGRAM, UDP)");
 
     net_close(fd);
-    println("  Сокет закрыт");
+    println!("  Сокет закрыт");
 }
 
 // ─────────────────────────────────────────────
 // Часть 3: Подключение к localhost (TCP-эхо)
 // ─────────────────────────────────────────────
-// Этот раздел требует работающего TCP-сервера на порту 7.
-// Для теста: nc -l 7   (в другом терминале)
-// Или раздел пропускается, если сервер недоступен.
 
-func demo_tcp_connect() {
-    println("\n=== TCP-подключение к localhost:7777 ===");
+fn demo_tcp_connect() {
+    println!("\n=== TCP-подключение к localhost:7777 ===");
 
-    // Создаём сокет
-    var fd = net_socket_tcp();
+    let fd = tcp_socket();
     if (fd < 0) {
-        println($"  Ошибка создания сокета: {fd}");
+        println!("  Ошибка создания сокета: \{fd}");
         return;
     }
 
-    // Преобразуем IP "127.0.0.1" в числовой вид
-    // 127.0.0.1 = 0x7F000001 = 2130706433
-    var ip = net_ip(127, 0, 0, 1);
-    println($"  IP 127.0.0.1 → {ip}");
+    let ip   = net_ip(127, 0, 0, 1);
+    println!("  IP 127.0.0.1 → \{ip}");
 
-    // Подключаемся к порту 7777
-    var port = 7777;
-    var ret = tcp_connect(fd, ip, port);
+    let port = 7777;
+    let ret  = tcp_connect(fd, ip, port);
 
     if (ret < 0) {
-        println($"  Подключение не удалось (ret={ret}) — сервер не запущен");
-        println("  Для теста: запустите 'nc -l 7777' в другом терминале");
+        println!("  Подключение не удалось (ret=\{ret}) — сервер не запущен");
+        println!("  Для теста: запустите 'nc -l 7777' в другом терминале");
         net_close(fd);
         return;
     }
 
-    println($"  Подключено к 127.0.0.1:{port}");
+    println!("  Подключено к 127.0.0.1:\{port}");
 
-    // Отправляем сообщение
-    var msg = cstr("Hello from Orbitron!\n");
-    var sent = net_send(fd, msg, 21);
-    println($"  Отправлено {sent} байт");
+    let msg  = cstr("Hello from Orbitron!\n");
+    let sent = net_send(fd, msg, 21);
+    println!("  Отправлено \{sent} байт");
 
-    // Получаем ответ (буфер 256 байт — через переменную)
-    var buf = 0;
-    var buf_addr = &buf;
-    var received = net_recv(fd, buf_addr, 8);
-    println($"  Получено {received} байт");
+    mut buf      = 0;
+    let buf_addr = &buf;
+    let received = net_recv(fd, buf_addr, 8);
+    println!("  Получено \{received} байт");
 
     net_close(fd);
-    println("  Соединение закрыто");
+    println!("  Соединение закрыто");
 }
 
 // ─────────────────────────────────────────────
-// Часть 4: TCP-сервер (слушает входящие подключения)
+// Часть 4: TCP-сервер (пример)
 // ─────────────────────────────────────────────
-// Принимает одно подключение, читает данные, отвечает и закрывается.
 
-func demo_tcp_server() {
-    println("\n=== TCP-сервер на порту 8080 (одно подключение) ===");
-    println("  (Пропускаем — используйте в реальном проекте)");
-    println("  Пример кода:");
-    println("    var srv = net_socket_tcp();");
-    println("    tcp_bind(srv, 0, 8080);");
-    println("    tcp_listen(srv, 5);");
-    println("    var client = tcp_accept(srv);");
-    println("    // ... net_recv / net_send ...");
-    println("    net_close(client);");
-    println("    net_close(srv);");
+fn demo_tcp_server() {
+    println!("\n=== TCP-сервер на порту 8080 (одно подключение) ===");
+    println!("  (Пропускаем — используйте в реальном проекте)");
+    println!("  Пример кода:");
+    println!("    let srv = tcp_socket();");
+    println!("    net_bind(srv, 0, 8080);");
+    println!("    net_listen(srv, 5);");
+    println!("    let client = net_accept(srv);");
+    println!("    // ... net_recv / net_send ...");
+    println!("    net_close(client);");
+    println!("    net_close(srv);");
 }
 
 // ─────────────────────────────────────────────
 // Часть 5: Утилиты net_ip и конвертация
 // ─────────────────────────────────────────────
 
-func demo_net_ip() {
-    println("\n=== Конвертация IP-адресов ===");
+fn demo_net_ip() {
+    println!("\n=== Конвертация IP-адресов ===");
 
-    // net_ip(a, b, c, d) объединяет октеты в i64
-    var ip1 = net_ip(127, 0, 0, 1);
-    var ip2 = net_ip(192, 168, 1, 100);
-    var ip3 = net_ip(10, 0, 0, 1);
-    var ip4 = net_ip(8, 8, 8, 8);       // Google DNS
+    let ip1 = net_ip(127, 0, 0, 1);
+    let ip2 = net_ip(192, 168, 1, 100);
+    let ip3 = net_ip(10, 0, 0, 1);
+    let ip4 = net_ip(8, 8, 8, 8);       // Google DNS
 
-    println($"  127.0.0.1       → {ip1}");
-    println($"  192.168.1.100   → {ip2}");
-    println($"  10.0.0.1        → {ip3}");
-    println($"  8.8.8.8 (DNS)   → {ip4}");
+    println!("  127.0.0.1       → \{ip1}");
+    println!("  192.168.1.100   → \{ip2}");
+    println!("  10.0.0.1        → \{ip3}");
+    println!("  8.8.8.8 (DNS)   → \{ip4}");
 
     // Вычисляем октеты обратно
-    var d = ip2 % 256;
-    var c = ip2 / 256 % 256;
-    var b = ip2 / 65536 % 256;
-    var a = ip2 / 16777216 % 256;
-    println($"\n  Обратно: {a}.{b}.{c}.{d}");
+    let d = ip2 % 256;
+    let c = ip2 / 256 % 256;
+    let b = ip2 / 65536 % 256;
+    let a = ip2 / 16777216 % 256;
+    println!("\n  Обратно: \{a}.\{b}.\{c}.\{d}");
 }
 
 // ─────────────────────────────────────────────
 // Часть 6: Работа с несколькими сокетами
 // ─────────────────────────────────────────────
 
-func demo_multiple_sockets() {
-    println("\n=== Несколько сокетов одновременно ===");
+fn demo_multiple_sockets() {
+    println!("\n=== Несколько сокетов одновременно ===");
 
-    var fd1 = net_socket_tcp();
-    var fd2 = net_socket_tcp();
-    var fd3 = net_socket_udp();
+    let fd1 = tcp_socket();
+    let fd2 = tcp_socket();
+    let fd3 = udp_socket();
 
     if (fd1 < 0 || fd2 < 0 || fd3 < 0) {
-        println("  Ошибка создания сокетов");
+        println!("  Ошибка создания сокетов");
         if (fd1 >= 0) { net_close(fd1); }
         if (fd2 >= 0) { net_close(fd2); }
         if (fd3 >= 0) { net_close(fd3); }
         return;
     }
 
-    println($"  TCP сокет 1: fd={fd1}");
-    println($"  TCP сокет 2: fd={fd2}");
-    println($"  UDP сокет 3: fd={fd3}");
+    println!("  TCP сокет 1: fd=\{fd1}");
+    println!("  TCP сокет 2: fd=\{fd2}");
+    println!("  UDP сокет 3: fd=\{fd3}");
 
-    // Закрываем все
     net_close(fd1);
     net_close(fd2);
     net_close(fd3);
-    println("  Все сокеты закрыты");
+    println!("  Все сокеты закрыты");
 }
 
 // ─────────────────────────────────────────────
-// Часть 7: Пример паттерна «подключение с retry»
+// Часть 7: Подключение с retry
 // ─────────────────────────────────────────────
 
-func connect_with_retry(ip: int, port: int, attempts: int): int {
-    var i = 0;
+fn connect_with_retry(ip: i64, port: i64, attempts: i64): i64 {
+    mut i = 0;
     while (i < attempts) {
-        var fd = net_socket_tcp();
+        let fd = tcp_socket();
         if (fd < 0) {
             i += 1;
             continue;
         }
 
-        var ret = tcp_connect(fd, ip, port);
+        let ret = tcp_connect(fd, ip, port);
         if (ret >= 0) {
             return fd;   // успешное подключение
         }
 
         net_close(fd);
         i += 1;
-        println($"  Попытка {i}/{attempts} не удалась");
+        println!("  Попытка \{i}/\{attempts} не удалась");
     }
-    return -1;   // все попытки исчерпаны
+    return -1;
 }
 
-func demo_retry() {
-    println("\n=== Паттерн: подключение с повторными попытками ===");
+fn demo_retry() {
+    println!("\n=== Паттерн: подключение с повторными попытками ===");
 
-    var ip = net_ip(127, 0, 0, 1);
-    var fd = connect_with_retry(ip, 9999, 3);
+    let ip = net_ip(127, 0, 0, 1);
+    let fd = connect_with_retry(ip, 9999, 3);
 
     if (fd < 0) {
-        println("  Сервер недоступен после 3 попыток (ожидаемо)");
+        println!("  Сервер недоступен после 3 попыток (ожидаемо)");
     } else {
-        println($"  Подключено, fd={fd}");
+        println!("  Подключено, fd=\{fd}");
         net_close(fd);
     }
 }
@@ -223,26 +206,25 @@ func demo_retry() {
 // Часть 8: Ошибки и коды возврата
 // ─────────────────────────────────────────────
 
-func net_error_name(code: int): int {
-    // Распространённые коды ошибок (negated errno)
+fn net_error_name(code: i64): i64 {
     match code {
-        -1  => { println("EPERM — нет прав"); }
-        -2  => { println("ENOENT — файл/ресурс не найден"); }
-        -9  => { println("EBADF — неверный дескриптор"); }
-        -11 => { println("EAGAIN — повторить позже"); }
-        -13 => { println("EACCES — доступ запрещён"); }
-        -22 => { println("EINVAL — неверный аргумент"); }
-        -98 => { println("EADDRINUSE — адрес занят"); }
-        -111 => { println("ECONNREFUSED — соединение отклонено"); }
-        _   => { println($"Код ошибки: {code}"); }
+        -1   => { println!("EPERM — нет прав"); }
+        -2   => { println!("ENOENT — файл/ресурс не найден"); }
+        -9   => { println!("EBADF — неверный дескриптор"); }
+        -11  => { println!("EAGAIN — повторить позже"); }
+        -13  => { println!("EACCES — доступ запрещён"); }
+        -22  => { println!("EINVAL — неверный аргумент"); }
+        -98  => { println!("EADDRINUSE — адрес занят"); }
+        -111 => { println!("ECONNREFUSED — соединение отклонено"); }
+        _    => { println!("Код ошибки: \{code}"); }
     }
     return 0;
 }
 
-func demo_errors() {
-    println("\n=== Коды ошибок сети ===");
+fn demo_errors() {
+    println!("\n=== Коды ошибок сети ===");
 
-    println("  Типичные ошибки:");
+    println!("  Типичные ошибки:");
     net_error_name(-111);   // connection refused
     net_error_name(-98);    // address in use
     net_error_name(-22);    // invalid argument
@@ -253,11 +235,11 @@ func demo_errors() {
 // main
 // ─────────────────────────────────────────────
 
-func main() {
-    println("╔══════════════════════════════════════════════╗");
-    println("║   Демонстрация: TCP/UDP сетевое программир. ║");
-    println("╚══════════════════════════════════════════════╝");
-    println("(Только LLVM-backend, Linux x86-64 / WSL)\n");
+fn main() {
+    println!("╔══════════════════════════════════════════════╗");
+    println!("║   Демонстрация: TCP/UDP сетевое программир. ║");
+    println!("╚══════════════════════════════════════════════╝");
+    println!("(Только LLVM-backend, Linux x86-64 / WSL)\n");
 
     demo_socket_create();
     demo_socket_udp();
@@ -268,7 +250,7 @@ func main() {
     demo_retry();
     demo_errors();
 
-    println("\n=== Готово ===");
-    println("Подробнее: docs/ch11_lowlevel.md, docs/ch09_stdlib.md");
-    println("Стандартная библиотека: stdlib/net.ot");
+    println!("\n=== Готово ===");
+    println!("Подробнее: docs/ch11_lowlevel.md, docs/ch09_stdlib.md");
+    println!("Стандартная библиотека: stdlib/net.ot");
 }

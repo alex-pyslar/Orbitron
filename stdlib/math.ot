@@ -1,33 +1,33 @@
 // Orbitron Standard Library — math
-// import "std/math";
+// #import "std/math";
 
-const PI: float = 3.14159265358979;
-const E: float = 2.71828182845905;
-const INT_MAX: int = 9223372036854775807;
+#const PI: f64 = 3.14159265358979;
+#const E: f64 = 2.71828182845905;
+#const INT_MAX: i64 = 9223372036854775807;
 
 // Absolute value of an integer
-func abs(x: int): int {
+fn abs(x: i64): i64 {
     return x > 0 ? x : -x;
 }
 
 // Larger of two integers
-func max(a: int, b: int): int {
+fn max(a: i64, b: i64): i64 {
     return a > b ? a : b;
 }
 
 // Smaller of two integers
-func min(a: int, b: int): int {
+fn min(a: i64, b: i64): i64 {
     return a < b ? a : b;
 }
 
 // Clamp val to [lo, hi]
-func clamp(val: int, lo: int, hi: int): int {
+fn clamp(val: i64, lo: i64, hi: i64): i64 {
     return val < lo ? lo : (val > hi ? hi : val);
 }
 
 // n! (factorial), n >= 0
-func factorial(n: int): int {
-    var result = 1;
+fn factorial(n: i64): i64 {
+    mut result = 1;
     for i in 1..=n {
         result = result * i;
     }
@@ -35,12 +35,12 @@ func factorial(n: int): int {
 }
 
 // n-th Fibonacci number (0-indexed: fib(0)=0, fib(1)=1)
-func fib(n: int): int {
+fn fib(n: i64): i64 {
     if (n <= 1) { return n; }
-    var a = 0;
-    var b = 1;
+    mut a = 0;
+    mut b = 1;
     for i in 2..=n {
-        var tmp = a + b;
+        mut tmp = a + b;
         a = b;
         b = tmp;
     }
@@ -48,11 +48,11 @@ func fib(n: int): int {
 }
 
 // Greatest common divisor (Euclidean)
-func gcd(a: int, b: int): int {
-    var x = abs(a);
-    var y = abs(b);
+fn gcd(a: i64, b: i64): i64 {
+    mut x = abs(a);
+    mut y = abs(b);
     while (y != 0) {
-        var tmp = y;
+        mut tmp = y;
         y = x - (x / y) * y;
         x = tmp;
     }
@@ -60,29 +60,29 @@ func gcd(a: int, b: int): int {
 }
 
 // Least common multiple
-func lcm(a: int, b: int): int {
-    var g = gcd(a, b);
+fn lcm(a: i64, b: i64): i64 {
+    mut g = gcd(a, b);
     return abs(a * b) / g;
 }
 
 // Sum of integers from a to b inclusive
-func sum_range(a: int, b: int): int {
-    var lo = min(a, b);
-    var hi = max(a, b);
-    var n = hi - lo + 1;
+fn sum_range(a: i64, b: i64): i64 {
+    mut lo = min(a, b);
+    mut hi = max(a, b);
+    mut n = hi - lo + 1;
     return n * (lo + hi) / 2;
 }
 
 // Sign: returns -1, 0, or 1
-func sign(x: int): int {
+fn sign(x: i64): i64 {
     return x > 0 ? 1 : (x < 0 ? -1 : 0);
 }
 
 // Check if n is prime (n > 1)
-func is_prime(n: int): int {
+fn is_prime(n: i64): i64 {
     if (n < 2) { return 0; }
     if (n == 2) { return 1; }
-    var i = 2;
+    mut i = 2;
     while (i * i <= n) {
         if (n - (n / i) * i == 0) { return 0; }
         i = i + 1;

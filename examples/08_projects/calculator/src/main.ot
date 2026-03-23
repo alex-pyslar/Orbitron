@@ -1,30 +1,30 @@
 // src/main.ot — точка входа калькулятора
 // Многофайловый проект: импортирует математический модуль.
 
-import "math";
+#import "math";
 
 // Вывод результата операции
-func print_op(op_name: int, a: int, b: int, result: int) {
+fn print_op(op_name: i64, a: i64, b: i64, result: i64) {
     // op_name закодировано: 1=+, 2=-, 3=*, 4=/, 5=%, 6=^
     match op_name {
-        1 => { println($"  {a} + {b} = {result}"); }
-        2 => { println($"  {a} - {b} = {result}"); }
-        3 => { println($"  {a} * {b} = {result}"); }
-        4 => { println($"  {a} / {b} = {result}"); }
-        5 => { println($"  {a} % {b} = {result}"); }
-        6 => { println($"  {a} ^ {b} = {result}"); }
-        _ => { println($"  ? = {result}"); }
+        1 => { println!("  \{a} + \{b} = \{result}"); }
+        2 => { println!("  \{a} - \{b} = \{result}"); }
+        3 => { println!("  \{a} * \{b} = \{result}"); }
+        4 => { println!("  \{a} / \{b} = \{result}"); }
+        5 => { println!("  \{a} % \{b} = \{result}"); }
+        6 => { println!("  \{a} ^ \{b} = \{result}"); }
+        _ => { println!("  ? = \{result}"); }
     }
 }
 
-func main() {
-    println("=== Калькулятор Orbitron ===");
-    println("(Многофайловый проект: main.ot + math.ot)");
+fn main() {
+    println!("=== Калькулятор Orbitron ===");
+    println!("(Многофайловый проект: main.ot + math.ot)");
 
-    var a = 12;
-    var b = 5;
+    let a = 12;
+    let b = 5;
 
-    println($"\nОперации с a={a} и b={b}:");
+    println!("\nОперации с a=\{a} и b=\{b}:");
     print_op(1, a, b, calc_add(a, b));       // 17
     print_op(2, a, b, calc_sub(a, b));       // 7
     print_op(3, a, b, calc_mul(a, b));       // 60
@@ -33,41 +33,41 @@ func main() {
     print_op(6, a, b, calc_pow(a, b));       // 248832
 
     // Деление на ноль
-    println("\nЗащита от деления на ноль:");
+    println!("\nЗащита от деления на ноль:");
     print_op(4, 10, 0, calc_div(10, 0));    // 0
 
     // Абсолютное значение
-    println("\nАбсолютные значения:");
-    println(calc_abs(-42));     // 42
-    println(calc_abs(0));       // 0
-    println(calc_abs(100));     // 100
+    println!("\nАбсолютные значения:");
+    println!(calc_abs(-42));     // 42
+    println!(calc_abs(0));       // 0
+    println!(calc_abs(100));     // 100
 
     // НОД и НОК
-    println("\nНОД и НОК:");
-    var x = 48;
-    var y = 18;
-    println($"НОД({x},{y}) = {calc_gcd(x, y)}");    // 6
-    println($"НОК({x},{y}) = {calc_lcm(x, y)}");    // 144
+    println!("\nНОД и НОК:");
+    let x = 48;
+    let y = 18;
+    println!("НОД(\{x},\{y}) = \{calc_gcd(x, y)}");    // 6
+    println!("НОК(\{x},\{y}) = \{calc_lcm(x, y)}");    // 144
 
     // Факториалы
-    println("\nФакториалы:");
+    println!("\nФакториалы:");
     for i in 0..=8 {
-        var f = calc_factorial(i);
-        println($"  {i}! = {f}");
+        let f = calc_factorial(i);
+        println!("  \{i}! = \{f}");
     }
 
     // Простые числа
-    println("\nПростые числа до 20:");
+    println!("\nПростые числа до 20:");
     for i in 2..=20 {
         if (calc_is_prime(i)) {
-            println(i);
+            println!(i);
         }
     }
 
     // Таблица умножения (3×3)
-    println("\nТаблица умножения 3x3:");
+    println!("\nТаблица умножения 3x3:");
     for i in 1..=3, j in 1..=3 {
-        var p = calc_mul(i, j);
-        println($"  {i}*{j}={p}");
+        let p = calc_mul(i, j);
+        println!("  \{i}*\{j}=\{p}");
     }
 }

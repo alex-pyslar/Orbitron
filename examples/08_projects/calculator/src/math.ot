@@ -1,56 +1,54 @@
 // src/math.ot — математический модуль калькулятора
 
-func calc_add(a: int, b: int): int { return a + b; }
-func calc_sub(a: int, b: int): int { return a - b; }
-func calc_mul(a: int, b: int): int { return a * b; }
+fn calc_add(a: i64, b: i64): i64 => a + b;
+fn calc_sub(a: i64, b: i64): i64 => a - b;
+fn calc_mul(a: i64, b: i64): i64 => a * b;
 
-func calc_div(a: int, b: int): int {
+fn calc_div(a: i64, b: i64): i64 {
     unless (b == 0) { return a / b; }
     return 0;
 }
 
-func calc_mod(a: int, b: int): int {
+fn calc_mod(a: i64, b: i64): i64 {
     unless (b == 0) { return a % b; }
     return 0;
 }
 
-func calc_pow(base: int, exp: int): int {
+fn calc_pow(base: i64, exp: i64): i64 {
     if (exp < 0)  { return 0; }
     if (exp == 0) { return 1; }
-    var result = 1;
+    mut result = 1;
     for i in 0..exp { result = result * base; }
     return result;
 }
 
-func calc_abs(n: int): int {
-    return n >= 0 ? n : -n;
-}
+fn calc_abs(n: i64): i64 => n >= 0 ? n : -n;
 
-func calc_gcd(a: int, b: int): int {
-    a = calc_abs(a);
-    b = calc_abs(b);
-    while (b != 0) {
-        var tmp = b;
-        b = a % b;
-        a = tmp;
+fn calc_gcd(a: i64, b: i64): i64 {
+    mut aa = calc_abs(a);
+    mut bb = calc_abs(b);
+    while (bb != 0) {
+        let tmp = bb;
+        bb = aa % bb;
+        aa = tmp;
     }
-    return a;
+    return aa;
 }
 
-func calc_lcm(a: int, b: int): int {
-    var g = calc_gcd(a, b);
+fn calc_lcm(a: i64, b: i64): i64 {
+    let g = calc_gcd(a, b);
     unless (g == 0) { return a / g * b; }
     return 0;
 }
 
-func calc_factorial(n: int): int {
+fn calc_factorial(n: i64): i64 {
     if (n <= 1) { return 1; }
     return n * calc_factorial(n - 1);
 }
 
-func calc_is_prime(n: int): int {
+fn calc_is_prime(n: i64): i64 {
     if (n < 2) { return 0; }
-    var i = 2;
+    mut i = 2;
     while (i * i <= n) {
         if (n % i == 0) { return 0; }
         i += 1;

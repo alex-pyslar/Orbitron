@@ -1,164 +1,164 @@
 // examples/07_advanced/features.ot
 // Демонстрирует ВСЕ 10 специальных возможностей языка Orbitron в одной программе.
 //
-// Возможность 1:  const          — константы
+// Возможность 1:  #const         — константы
 // Возможность 2:  **             — оператор степени
 // Возможность 3:  |>             — оператор конвейера
 // Возможность 4:  unless         — инвертированное условие
-// Возможность 5:  $"..."         — строковая интерполяция
+// Возможность 5:  "...\{}"      — строковая интерполяция
 // Возможность 6:  [...]          — массивы
 // Возможность 7:  enum           — перечисления
 // Возможность 8:  defer          — отложенное выполнение
 // Возможность 9:  repeat N       — повтор N раз
 // Возможность 10: ? :            — тернарный оператор
 
-// --- Возможность 1: const ---
-const MAX_SCORE: int = 100;
-const MIN_SCORE: int = 0;
-const LEVELS:    int = 5;
+// --- Возможность 1: #const ---
+#const MAX_SCORE: i64 = 100;
+#const MIN_SCORE: i64 = 0;
+#const LEVELS:    i64 = 5;
 
 // --- Возможность 7: enum ---
 enum Grade   { Fail, Pass, Good, Excellent }
 enum Status  { Active, Done, Error }
 
 // --- Функции для конвейера (Возможность 3) ---
-func double(n: int): int   { return n * 2; }
-func inc(n: int):    int   { return n + 1; }
-func halve(n: int):  int   { return n / 2; }
-func bonus(n: int):  int   { return n + 10; }
+fn double(n: i64): i64 => n * 2;
+fn inc(n: i64):    i64 => n + 1;
+fn halve(n: i64):  i64 => n / 2;
+fn bonus(n: i64):  i64 => n + 10;
 
 // --- Возможность 10: тернарный оператор ---
-func get_grade(score: int): int {
+fn get_grade(score: i64): i64 {
     return score >= 90 ? Grade.Excellent :
            score >= 70 ? Grade.Good     :
            score >= 50 ? Grade.Pass     : Grade.Fail;
 }
 
-func grade_name(g: int): int {
+fn grade_name(g: i64): i64 {
     match g {
-        Grade.Excellent => { println("Отлично"); }
-        Grade.Good      => { println("Хорошо"); }
-        Grade.Pass      => { println("Зачтено"); }
-        Grade.Fail      => { println("Не сдано"); }
+        Grade.Excellent => { println!("Отлично"); }
+        Grade.Good      => { println!("Хорошо"); }
+        Grade.Pass      => { println!("Зачтено"); }
+        Grade.Fail      => { println!("Не сдано"); }
     }
     return 0;
 }
 
 // --- Возможность 8: defer ---
-func process_scores(scores: int, n: int) {
-    defer println("--- Обработка завершена ---");   // выполнится последней
+fn process_scores(scores: i64, n: i64) {
+    defer println!("--- Обработка завершена ---");   // выполнится последней
 
     for i in 0..n {
-        var s = scores[i];
+        let s = scores[i];
 
         // Возможность 4: unless
         unless (s > MAX_SCORE) {
-            var g = get_grade(s);
+            let g = get_grade(s);
 
             // Возможность 5: строковая интерполяция
-            println($"Балл {s}:");
+            println!("Балл \{s}:");
             grade_name(g);
         }
     }
 }
 
 // --- Демо оператора степени (Возможность 2) ---
-func powers_demo() {
-    defer println("(конец степеней)");
+fn powers_demo() {
+    defer println!("(конец степеней)");
 
-    println("\n-- Возможность 2: оператор ** --");
+    println!("\n-- Возможность 2: оператор ** --");
     for i in 0..=8 {
-        var p = 2 ** i;
-        println($"  2^{i} = {p}");
+        let p = 2 ** i;
+        println!("  2^\{i} = \{p}");
     }
 }
 
-func main() {
-    println("=== 10 специальных возможностей Orbitron ===");
+fn main() {
+    println!("=== 10 специальных возможностей Orbitron ===");
 
-    // --- Возможность 1: const ---
-    println("\n-- const --");
-    println($"MAX_SCORE = {MAX_SCORE}");
-    println($"LEVELS    = {LEVELS}");
+    // --- Возможность 1: #const ---
+    println!("\n-- #const --");
+    println!("MAX_SCORE = \{MAX_SCORE}");
+    println!("LEVELS    = \{LEVELS}");
 
     // --- Возможность 2: ** ---
     powers_demo();
 
     // --- Возможность 3: |> ---
-    println("\n-- Оператор конвейера |> --");
-    var r = 3 |> double |> inc |> double;
-    println($"3 |> double |> inc |> double = {r}");    // 14
+    println!("\n-- Оператор конвейера |> --");
+    let r = 3 |> double |> inc |> double;
+    println!("3 |> double |> inc |> double = \{r}");    // 14
 
-    var pipeline = 10 |> bonus |> double |> halve;
-    println($"10 |> bonus |> double |> halve = {pipeline}");  // (10+10)*2/2 = 20
+    let pipeline = 10 |> bonus |> double |> halve;
+    println!("10 |> bonus |> double |> halve = \{pipeline}");  // 20
 
     // --- Возможность 4: unless ---
-    println("\n-- unless --");
-    var divisor = 7;
+    println!("\n-- unless --");
+    let divisor = 7;
     unless (divisor == 0) {
-        var result = 100 / divisor;
-        println($"100 / {divisor} = {result}");
+        let result = 100 / divisor;
+        println!("100 / \{divisor} = \{result}");
     }
 
-    var error_code = 0;
+    let error_code = 0;
     unless (error_code) {
-        println("Нет ошибок — всё хорошо!");
+        println!("Нет ошибок — всё хорошо!");
     }
 
-    // --- Возможность 5: $"..." ---
-    println("\n-- Строковая интерполяция $\"...\" --");
-    var name = 7;
-    var level = 3;
-    var score = 2500;
-    println($"Игрок #{name}: уровень {level}, очки {score}");
+    // --- Возможность 5: "...\{}" ---
+    println!("\n-- Строковая интерполяция \"...\\{...}\" --");
+    let name  = 7;
+    let level = 3;
+    let score = 2500;
+    println!("Игрок #\{name}: уровень \{level}, очки \{score}");
 
     // --- Возможность 6: массивы ---
-    println("\n-- Массивы --");
-    var scores = [55, 78, 90, 42, 85, 63, 97, 71];
-    var n = 8;
+    println!("\n-- Массивы --");
+    let scores = [55, 78, 90, 42, 85, 63, 97, 71];
+    let n      = 8;
 
-    var total = 0;
+    mut total = 0;
     for i in 0..n { total += scores[i]; }
-    var avg = total / n;
-    println($"Среднее из {n} баллов: {avg}");
+    let avg = total / n;
+    println!("Среднее из \{n} баллов: \{avg}");
 
     // --- Возможность 7: enum ---
-    println("\n-- enum --");
-    var st = Status.Active;
+    println!("\n-- enum --");
+    let st = Status.Active;
     match st {
-        Status.Active => { println("Статус: активен"); }
-        Status.Done   => { println("Статус: готово"); }
-        Status.Error  => { println("Статус: ошибка"); }
+        Status.Active => { println!("Статус: активен"); }
+        Status.Done   => { println!("Статус: готово"); }
+        Status.Error  => { println!("Статус: ошибка"); }
     }
 
     // --- Возможность 8: defer ---
-    println("\n-- defer --");
+    println!("\n-- defer --");
     process_scores(scores, n);
 
     // --- Возможность 9: repeat N ---
-    println("\n-- repeat N --");
-    var counter = 0;
+    println!("\n-- repeat N --");
+    mut counter = 0;
     repeat 5 {
         counter += 1;
-        println($"  Итерация {counter}");
+        println!("  Итерация \{counter}");
     }
 
     // --- Возможность 10: тернарный оператор ---
-    println("\n-- Тернарный оператор ? : --");
-    var x = 42;
-    var abs_x = x >= 0 ? x : -x;
-    println($"|{x}| = {abs_x}");
+    println!("\n-- Тернарный оператор ? : --");
+    let x = 42;
+    let abs_x = x >= 0 ? x : -x;
+    println!("|\{x}| = \{abs_x}");
 
-    var is_even  = x % 2 == 0 ? 1 : 0;
-    println($"{x} чётное: {is_even}");
+    let is_even = x % 2 == 0 ? 1 : 0;
+    println!("\{x} чётное: \{is_even}");
 
     // Цепочка тернарных
-    var grade = score >= 2000 ? Grade.Excellent :
+    let grade = score >= 2000 ? Grade.Excellent :
                 score >= 1000 ? Grade.Good      :
                 score >= 500  ? Grade.Pass      : Grade.Fail;
 
-    println($"Оценка за {score} очков:");
+    println!("Оценка за \{score} очков:");
     grade_name(grade);
 
-    println("\n=== Все 10 возможностей продемонстрированы! ===");
+    println!("\n=== Все 10 возможностей продемонстрированы! ===");
 }

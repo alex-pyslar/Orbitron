@@ -79,15 +79,18 @@ impl Parser {
             return self.parse_annotation();
         }
         match self.peek() {
-            Token::Func   => self.parse_fn_decl(),
-            Token::Struct => self.parse_struct_decl(),
-            Token::Impl   => self.parse_impl_or_trait_impl(),
-            Token::Class  => self.parse_class_decl(),
-            Token::Enum   => self.parse_enum_decl(),
-            Token::Const  => self.parse_const(),
-            Token::Import => self.parse_import(),
-            Token::Extern => self.parse_extern_fn(),
-            Token::Trait  => self.parse_trait_decl(),
+            Token::Func | Token::Fn => self.parse_fn_decl(),
+            Token::Struct   => self.parse_struct_decl(),
+            Token::Impl     => self.parse_impl_or_trait_impl(),
+            Token::Class    => self.parse_class_decl(),
+            Token::Enum     => self.parse_enum_decl(),
+            Token::Const    => self.parse_const(),
+            Token::Import   => self.parse_import(),
+            Token::HashImport => self.parse_hash_import(),
+            Token::HashConst  => self.parse_hash_const(),
+            Token::Extern   => self.parse_extern_fn(),
+            Token::Trait    => self.parse_trait_decl(),
+            Token::Type     => self.parse_type_alias(),
             t => Err(format!(
                 "Expected top-level declaration, got {:?}", t.clone()
             )),
@@ -117,9 +120,45 @@ impl Parser {
         Ok(Stmt::Import { path })
     }
 
+    /// `#import "path";`  — new-style import directive
+    fn parse_hash_import(&mut self) -> Result<Stmt, String> {
+        self.advance(); // consume '#import'
+        let path = match self.advance() {
+            Token::Str(s) => s,
+            t => return Err(format!("#import expects a string, got {:?}", t)),
+        };
+        self.eat(&Token::Semicolon);
+        Ok(Stmt::Import { path })
+    }
+
+    /// `#const NAME: type = val;`  — new-style constant directive
+    fn parse_hash_const(&mut self) -> Result<Stmt, String> {
+        self.advance(); // consume '#const'
+        let name = self.expect_ident()?;
+        if self.eat(&Token::Colon) { self.skip_type_annotation()?; }
+        self.expect(&Token::Assign)?;
+        let expr = self.parse_expr()?;
+        self.eat(&Token::Semicolon);
+        Ok(Stmt::Const { name, expr })
+    }
+
+    /// `type Name = Type;`  — type alias
+    fn parse_type_alias(&mut self) -> Result<Stmt, String> {
+        self.advance(); // 'type'
+        let name = self.expect_ident()?;
+        self.expect(&Token::Assign)?;
+        let ty = self.expect_ident()?;
+        self.eat(&Token::Semicolon);
+        Ok(Stmt::TypeAlias { name, ty })
+    }
+
     fn parse_extern_fn(&mut self) -> Result<Stmt, String> {
         self.advance(); // 'extern'
-        self.expect(&Token::Func)?;
+        // Accept both 'func' and 'fn'
+        match self.peek() {
+            Token::Func | Token::Fn => { self.advance(); }
+            t => return Err(format!("Expected 'fn' or 'func' after 'extern', got {:?}", t)),
+        }
         let name = self.expect_ident()?;
         self.expect(&Token::LParen)?;
 
@@ -152,16 +191,34 @@ impl Parser {
     }
 
     fn parse_fn_decl(&mut self) -> Result<Stmt, String> {
-        self.advance(); // 'func'
+        self.advance(); // 'func' or 'fn'
         let name = self.expect_ident()?;
         self.expect(&Token::LParen)?;
         let params = self.parse_param_list_with_defaults()?;
         self.expect(&Token::RParen)?;
-        // accept `:` or `->` as return-type annotation  (Rust / Swift)
+        // accept `:` or `->` or `where` as return-type / constraint annotation
         if self.eat(&Token::Colon) { self.skip_type_annotation()?; }
         if self.eat(&Token::Arrow) { self.skip_type_annotation()?; }
-        let body = self.parse_block_stmts()?;
-        Ok(Stmt::FnDecl { name, params, body })
+        // `where` keyword: parse and ignore (placeholder for future trait bounds)
+        if self.eat(&Token::Where) {
+            // skip until LBrace or FatArrow
+            while !matches!(self.peek(), Token::LBrace | Token::FatArrow | Token::Eof) {
+                self.advance();
+            }
+        }
+        // Fat-arrow expression body: `fn name(params) => expr;`
+        if self.eat(&Token::FatArrow) {
+            let expr = self.parse_expr()?;
+            self.eat(&Token::Semicolon);
+            return Ok(Stmt::FnDecl {
+                name,
+                params,
+                body: vec![Stmt::Return(expr.clone())],
+                expr_body: Some(expr),
+            });
+        }
+        let body = self.parse_block_stmts_with_implicit_return()?;
+        Ok(Stmt::FnDecl { name, params, body, expr_body: None })
     }
 
     /// Parse parameter list with optional default values:
@@ -188,7 +245,7 @@ impl Parser {
         Ok((name, default))
     }
 
-    /// Skip over a type name token (int / float / identifier).
+    /// Skip over a type name token (int / float / i64 / f64 / identifier).
     fn skip_type_annotation(&mut self) -> Result<(), String> {
         match self.peek().clone() {
             Token::Ident(_) => { self.advance(); Ok(()) }
@@ -198,7 +255,7 @@ impl Parser {
 
     // ── Trait declaration ──────────────────────────────────────────────────
 
-    /// `trait Name { [pub] func method(self [, params]); ... }`
+    /// `trait Name { [pub] func/fn method(self [, params]); ... }`
     fn parse_trait_decl(&mut self) -> Result<Stmt, String> {
         self.advance(); // 'trait'
         let name = self.expect_ident()?;
@@ -207,7 +264,11 @@ impl Parser {
         while !self.check(&Token::RBrace) && !self.check(&Token::Eof) {
             self.eat(&Token::Pub);
             self.eat(&Token::Private);
-            self.expect(&Token::Func)?;
+            // Accept both 'func' and 'fn'
+            match self.peek() {
+                Token::Func | Token::Fn => { self.advance(); }
+                t => return Err(format!("Expected 'fn' or 'func' in trait, got {:?}", t.clone())),
+            }
             let mname = self.expect_method_name()?;
             self.expect(&Token::LParen)?;
             let mut params = Vec::new();
@@ -254,9 +315,9 @@ impl Parser {
             Token::Ident(s) => {
                 self.advance();
                 match s.as_str() {
-                    "int"   => Ok(FieldType::Int),
-                    "float" => Ok(FieldType::Float),
-                    other   => Ok(FieldType::Named(other.to_string())),
+                    "int" | "i64"   => Ok(FieldType::Int),
+                    "float" | "f64" => Ok(FieldType::Float),
+                    other           => Ok(FieldType::Named(other.to_string())),
                 }
             }
             t => Err(format!("Expected field type, got {:?}", t)),
@@ -320,7 +381,7 @@ impl Parser {
             let access = self.parse_access_modifier();
             let is_static = self.eat(&Token::Static);
 
-            if self.check(&Token::Func) || self.check(&Token::Init) {
+            if matches!(self.peek(), Token::Func | Token::Fn | Token::Init) {
                 let mut m = self.parse_method_decl()?;
                 m.access    = access;
                 m.is_static = is_static;
@@ -357,7 +418,7 @@ impl Parser {
         if self.eat(&Token::Colon) { self.skip_type_annotation()?; }
         self.expect(&Token::Assign)?;
         let expr = self.parse_expr()?;
-        self.expect(&Token::Semicolon)?;
+        self.eat(&Token::Semicolon);
         Ok(Stmt::Const { name, expr })
     }
 
@@ -369,7 +430,15 @@ impl Parser {
 
     fn parse_method_decl(&mut self) -> Result<MethodDecl, String> {
         let is_init = self.check(&Token::Init);
-        if is_init { self.advance(); } else { self.expect(&Token::Func)?; }
+        if is_init {
+            self.advance();
+        } else {
+            // Accept both 'func' and 'fn'
+            match self.peek() {
+                Token::Func | Token::Fn => { self.advance(); }
+                t => return Err(format!("Expected 'fn' or 'func', got {:?}", t.clone())),
+            }
+        }
 
         let name = if is_init { "new".to_string() } else { self.expect_method_name()? };
 
@@ -408,8 +477,27 @@ impl Parser {
         self.expect(&Token::RParen)?;
         if self.eat(&Token::Colon) { self.skip_type_annotation()?; }
         if self.eat(&Token::Arrow) { self.skip_type_annotation()?; }
-        let body = self.parse_block_stmts()?;
-        Ok(MethodDecl { name, params, has_self, is_static: false, body, access: Access::Public })
+        if self.eat(&Token::Where) {
+            while !matches!(self.peek(), Token::LBrace | Token::FatArrow | Token::Eof) {
+                self.advance();
+            }
+        }
+        // Fat-arrow expression body for methods
+        if self.eat(&Token::FatArrow) {
+            let expr = self.parse_expr()?;
+            self.eat(&Token::Semicolon);
+            return Ok(MethodDecl {
+                name,
+                params,
+                has_self,
+                is_static: false,
+                body: vec![Stmt::Return(expr.clone())],
+                access: Access::Public,
+                expr_body: Some(expr),
+            });
+        }
+        let body = self.parse_block_stmts_with_implicit_return()?;
+        Ok(MethodDecl { name, params, has_self, is_static: false, body, access: Access::Public, expr_body: None })
     }
 
     // ── Block ──────────────────────────────────────────────────────────────
@@ -422,6 +510,101 @@ impl Parser {
         }
         self.expect(&Token::RBrace)?;
         Ok(stmts)
+    }
+
+    /// Parse a block, converting the last bare expression (without `;`) to an
+    /// implicit return. If the last statement already ends with `;`, no implicit
+    /// return is added.
+    fn parse_block_stmts_with_implicit_return(&mut self) -> Result<Vec<Stmt>, String> {
+        self.expect(&Token::LBrace)?;
+        let mut stmts = Vec::new();
+        while !self.check(&Token::RBrace) && !self.check(&Token::Eof) {
+            // Check if this is the last expression (no semicolon — implicit return)
+            // We do this by peeking ahead: if it's an expression and next would be `}`
+            // parse it as an expression and see if semicolon follows
+            let stmt = self.parse_stmt_or_implicit_return()?;
+            stmts.push(stmt);
+        }
+        self.expect(&Token::RBrace)?;
+        Ok(stmts)
+    }
+
+    /// Parse a statement, allowing the last expression without `;` to become
+    /// an implicit return.
+    fn parse_stmt_or_implicit_return(&mut self) -> Result<Stmt, String> {
+        // annotations inside function bodies
+        if self.check(&Token::At) {
+            return self.parse_annotation();
+        }
+        if self.is_field_assign_stmt() {
+            return self.parse_field_assign_stmt();
+        }
+
+        // Check for compound or simple assignments first
+        match self.peek().clone() {
+            Token::Var      => return self.parse_var(),
+            Token::Let      => return self.parse_let_decl(),
+            Token::Mut      => return self.parse_mut_decl(),
+            Token::Const    => return self.parse_const(),
+            Token::HashConst => return self.parse_hash_const(),
+            Token::Type     => return self.parse_type_alias(),
+            Token::If       => return self.parse_if(),
+            Token::Unless   => return self.parse_unless(),
+            Token::While    => return self.parse_while(),
+            Token::Do       => return self.parse_do_while(),
+            Token::For      => return self.parse_for(),
+            Token::Loop     => return self.parse_loop(),
+            Token::Repeat   => return self.parse_repeat(),
+            Token::Defer    => return self.parse_defer_stmt(),
+            Token::Return   => return self.parse_return(),
+            Token::Println  => return self.parse_println(),
+            Token::Match    => return self.parse_match_stmt(),
+            Token::Break    => {
+                self.advance();
+                self.expect(&Token::Semicolon)?;
+                return Ok(Stmt::Break);
+            }
+            Token::Continue => {
+                self.advance();
+                self.expect(&Token::Semicolon)?;
+                return Ok(Stmt::Continue);
+            }
+            Token::LBrace => {
+                let body = self.parse_block_stmts()?;
+                return Ok(Stmt::Block(body));
+            }
+            Token::Ident(_) if matches!(
+                self.peek2(),
+                Token::PlusAssign | Token::MinusAssign |
+                Token::StarAssign | Token::SlashAssign |
+                Token::PercentAssign | Token::CaretAssign
+            ) => return self.parse_compound_assign(),
+            Token::Ident(_) if matches!(self.peek2(), Token::Assign) => {
+                return self.parse_assign();
+            }
+            _ => {}
+        }
+
+        // Expression — check if followed by semicolon or `}` (implicit return)
+        let e = self.parse_expr()?;
+
+        if self.eat(&Token::Assign) {
+            let val = self.parse_expr()?;
+            self.expect(&Token::Semicolon)?;
+            return match e {
+                Expr::Index { arr, idx } =>
+                    Ok(Stmt::IndexAssign { arr, idx, val }),
+                _ => Err("Invalid left-hand side of assignment".into()),
+            };
+        }
+
+        if self.check(&Token::RBrace) {
+            // No semicolon and next is `}` — implicit return
+            return Ok(Stmt::Return(e));
+        }
+
+        self.expect(&Token::Semicolon)?;
+        Ok(Stmt::Expr(e))
     }
 
     // ── Statements ─────────────────────────────────────────────────────────
@@ -449,7 +632,11 @@ impl Parser {
 
         match self.peek().clone() {
             Token::Var      => self.parse_var(),
+            Token::Let      => self.parse_let_decl(),
+            Token::Mut      => self.parse_mut_decl(),
             Token::Const    => self.parse_const(),
+            Token::HashConst => self.parse_hash_const(),
+            Token::Type     => self.parse_type_alias(),
             Token::If       => self.parse_if(),
             Token::Unless   => self.parse_unless(),
             Token::While    => self.parse_while(),
@@ -498,6 +685,58 @@ impl Parser {
         }
     }
 
+    /// `let name [: type] = expr;`  — immutable binding (new syntax)
+    fn parse_let_decl(&mut self) -> Result<Stmt, String> {
+        self.advance(); // 'let'
+        // Tuple destructuring: let (a, b) = expr;
+        if self.check(&Token::LParen) {
+            self.advance();
+            let mut names = Vec::new();
+            names.push(self.expect_ident()?);
+            while self.eat(&Token::Comma) {
+                names.push(self.expect_ident()?);
+            }
+            self.expect(&Token::RParen)?;
+            self.expect(&Token::Assign)?;
+            let expr = self.parse_expr()?;
+            self.eat(&Token::Semicolon);
+            return Ok(Stmt::LetTuple { names, expr });
+        }
+        let name = self.expect_ident()?;
+        let ty = if self.eat(&Token::Colon) {
+            Some(self.consume_type_annotation()?)
+        } else {
+            None
+        };
+        self.expect(&Token::Assign)?;
+        let expr = self.parse_expr()?;
+        self.eat(&Token::Semicolon);
+        Ok(Stmt::LetNew { name, mutable: false, ty, expr })
+    }
+
+    /// `mut name [: type] = expr;`  — mutable binding (new syntax)
+    fn parse_mut_decl(&mut self) -> Result<Stmt, String> {
+        self.advance(); // 'mut'
+        let name = self.expect_ident()?;
+        let ty = if self.eat(&Token::Colon) {
+            Some(self.consume_type_annotation()?)
+        } else {
+            None
+        };
+        self.expect(&Token::Assign)?;
+        let expr = self.parse_expr()?;
+        self.eat(&Token::Semicolon);
+        Ok(Stmt::LetNew { name, mutable: true, ty, expr })
+    }
+
+    /// Consume a type annotation and return the type name as a String.
+    fn consume_type_annotation(&mut self) -> Result<String, String> {
+        match self.advance() {
+            Token::Ident(s) => Ok(s),
+            t => Err(format!("Expected type name, got {:?}", t)),
+        }
+    }
+
     fn parse_var(&mut self) -> Result<Stmt, String> {
         self.advance(); // 'var'
         // Tuple destructuring: var (a, b) = expr;
@@ -511,14 +750,14 @@ impl Parser {
             self.expect(&Token::RParen)?;
             self.expect(&Token::Assign)?;
             let expr = self.parse_expr()?;
-            self.expect(&Token::Semicolon)?;
+            self.eat(&Token::Semicolon);
             return Ok(Stmt::LetTuple { names, expr });
         }
         let name = self.expect_ident()?;
         if self.eat(&Token::Colon) { self.skip_type_annotation()?; }
         self.expect(&Token::Assign)?;
         let expr = self.parse_expr()?;
-        self.expect(&Token::Semicolon)?;
+        self.eat(&Token::Semicolon);
         Ok(Stmt::Let { name, expr })
     }
 
@@ -526,7 +765,7 @@ impl Parser {
         let name = self.expect_ident()?;
         self.expect(&Token::Assign)?;
         let expr = self.parse_expr()?;
-        self.expect(&Token::Semicolon)?;
+        self.eat(&Token::Semicolon);
         Ok(Stmt::Assign { name, expr })
     }
 
@@ -542,7 +781,7 @@ impl Parser {
             t => return Err(format!("Expected assignment operator, got {:?}", t)),
         };
         let rhs = self.parse_expr()?;
-        self.expect(&Token::Semicolon)?;
+        self.eat(&Token::Semicolon);
         Ok(Stmt::Assign {
             name: name.clone(),
             expr: Expr::Binary(Box::new(Expr::Ident(name)), op, Box::new(rhs)),
@@ -559,7 +798,7 @@ impl Parser {
         let field = self.expect_ident()?;
         self.expect(&Token::Assign)?;
         let val = self.parse_expr()?;
-        self.expect(&Token::Semicolon)?;
+        self.eat(&Token::Semicolon);
         Ok(Stmt::FieldAssign { obj: Expr::Ident(obj_name), field, val })
     }
 
@@ -614,7 +853,7 @@ impl Parser {
         self.expect(&Token::LParen)?;
         let cond = self.parse_expr()?;
         self.expect(&Token::RParen)?;
-        self.expect(&Token::Semicolon)?;
+        self.eat(&Token::Semicolon);
         Ok(Stmt::DoWhile { body: Box::new(Stmt::Block(body)), cond })
     }
 
@@ -622,19 +861,14 @@ impl Parser {
     fn parse_for(&mut self) -> Result<Stmt, String> {
         self.advance(); // 'for'
 
-        // Check for array iteration: `for x in arr { }`
-        // If after `ident in expr` there is no `..` or `..=`, it's ForIn.
-        let saved_pos = self.pos;
-
         let var = self.expect_ident()?;
         self.expect(&Token::In)?;
 
         // Parse the expression after 'in'
-        let iter_expr = self.parse_add()?; // parse up to addition level to avoid consuming range ops
+        let iter_expr = self.parse_add()?;
 
         // If next token is `..` or `..=` → range for; else → ForIn
         if self.check(&Token::DotDot) || self.check(&Token::DotDotEq) {
-            // Restore full range parsing
             let inclusive = if self.eat(&Token::DotDotEq) { true } else { self.eat(&Token::DotDot); false };
             let to = self.parse_expr()?;
 
@@ -669,7 +903,6 @@ impl Parser {
         }
 
         // ForIn — array/collection iteration
-        let _ = saved_pos; // pos already advanced correctly
         let body_stmts = self.parse_block_stmts()?;
         Ok(Stmt::ForIn {
             var,
@@ -703,9 +936,15 @@ impl Parser {
         let inner = match self.peek() {
             Token::Println => self.parse_println()?,
             _ => {
+                // Check if it's a macro-style println!(...)
                 let e = self.parse_expr()?;
-                self.expect(&Token::Semicolon)?;
-                Stmt::Expr(e)
+                self.eat(&Token::Semicolon);
+                match e {
+                    Expr::MacroCall { name, args } if name == "println" => {
+                        Stmt::Print(args.into_iter().next().unwrap_or(Expr::Number(0)))
+                    }
+                    other => Stmt::Expr(other),
+                }
             }
         };
         Ok(Stmt::Defer(Box::new(inner)))
@@ -717,17 +956,19 @@ impl Parser {
             Ok(Stmt::Return(Expr::Number(0)))
         } else {
             let e = self.parse_expr()?;
-            self.expect(&Token::Semicolon)?;
+            self.eat(&Token::Semicolon);
             Ok(Stmt::Return(e))
         }
     }
 
     fn parse_println(&mut self) -> Result<Stmt, String> {
         self.advance(); // 'println'
+        // Support both `println(x)` and `println!(x)` (macro style)
+        self.eat(&Token::Bang); // optional !
         self.expect(&Token::LParen)?;
         let e = self.parse_expr()?;
         self.expect(&Token::RParen)?;
-        self.expect(&Token::Semicolon)?;
+        self.eat(&Token::Semicolon);
         Ok(Stmt::Print(e))
     }
 
@@ -760,6 +1001,7 @@ impl Parser {
                     t => Err(format!("Expected integer after '-', got {:?}", t)),
                 }
             }
+            // `_` wildcard — either as Token::Ident("_") or Token::Ident("_")
             Token::Ident(s) if s == "_" => { self.advance(); Ok(MatchPat::Wildcard) }
             Token::Ident(first) if matches!(self.peek2(), Token::Dot)
                 && matches!(self.peek3(), Token::Ident(_)) =>
@@ -778,17 +1020,18 @@ impl Parser {
     //  Precedence (low → high):
     //    pipe       :  |>             (Elixir / F#)
     //    ternary    :  ? :            (C / Java)
+    //    elvis      :  ?:             (Kotlin)
     //    or_expr    :  ||
     //    and_expr   :  &&
-    //    xor_expr   :  ^             (C / Java) — NEW
+    //    xor_expr   :  ^             (C / Java)
     //    cmp_expr   :  == != < <= > >=
     //    add_expr   :  + -
     //    mul_expr   :  * / %
-    //    unary      :  - ! ~         (~ is bitwise NOT — NEW)
+    //    unary      :  - ! ~         (~ is bitwise NOT)
     //    power      :  **            (Python) — right-associative
-    //    postfix    :  expr.field / expr.method(args) / expr[idx] / expr::method(args)
-    //    call_base  :  name(args) / Type::method(args) / StructName { ... } / new ...
-    //    primary    :  literal | ident | self | (expr) | [arr] | $"..." | |x| expr | match
+    //    postfix    :  expr.field / expr?.field / expr.method(args) / expr[idx]
+    //    call_base  :  name(args) / name!(args) / Type::method(args) / StructName { ... } / new ...
+    //    primary    :  literal | ident | self | (expr) | [arr] | $"..." | "...\{...}" | |x| expr | match
 
     pub fn parse_expr(&mut self) -> Result<Expr, String> { self.parse_pipe() }
 
@@ -798,7 +1041,16 @@ impl Parser {
             match self.peek().clone() {
                 Token::Ident(name) => {
                     self.advance();
-                    if self.eat(&Token::LParen) {
+                    // Check for macro call: name!(args)
+                    if self.check(&Token::Bang) && matches!(self.peek2(), Token::LParen) {
+                        self.advance(); // '!'
+                        self.advance(); // '('
+                        let mut extra = self.parse_arg_list()?;
+                        self.expect(&Token::RParen)?;
+                        let mut args = vec![lhs];
+                        args.append(&mut extra);
+                        lhs = Expr::MacroCall { name, args };
+                    } else if self.eat(&Token::LParen) {
                         let mut extra = self.parse_arg_list()?;
                         self.expect(&Token::RParen)?;
                         let mut args = vec![lhs];
@@ -815,9 +1067,9 @@ impl Parser {
     }
 
     fn parse_ternary(&mut self) -> Result<Expr, String> {
-        let cond = self.parse_or()?;
+        let cond = self.parse_elvis()?;
         if self.eat(&Token::Question) {
-            let then = self.parse_or()?;
+            let then = self.parse_elvis()?;
             self.expect(&Token::Colon)?;
             let els = self.parse_ternary()?;
             return Ok(Expr::Ternary {
@@ -827,6 +1079,16 @@ impl Parser {
             });
         }
         Ok(cond)
+    }
+
+    /// `left ?: right`  — Elvis / null-coalescing operator  (Kotlin / Groovy)
+    fn parse_elvis(&mut self) -> Result<Expr, String> {
+        let lhs = self.parse_or()?;
+        if self.eat(&Token::Elvis) {
+            let rhs = self.parse_or()?;
+            return Ok(Expr::Elvis { left: Box::new(lhs), right: Box::new(rhs) });
+        }
+        Ok(lhs)
     }
 
     fn parse_or(&mut self) -> Result<Expr, String> {
@@ -911,6 +1173,9 @@ impl Parser {
                 Ok(Expr::Unary(UnaryOp::Neg, Box::new(self.parse_unary()?)))
             }
             Token::Bang => {
+                // Check if it's a standalone `!expr` or the start of a macro call
+                // A macro call is `ident!(`, handled in parse_call_base.
+                // If we see `!` here, it's the prefix NOT operator.
                 self.advance();
                 Ok(Expr::Unary(UnaryOp::Not, Box::new(self.parse_unary()?)))
             }
@@ -955,6 +1220,11 @@ impl Parser {
                 } else {
                     expr = Expr::FieldAccess { obj: Box::new(expr), field: member };
                 }
+            } else if self.check(&Token::QuestionDot) {
+                // `?.field` — optional chaining  (Swift / Kotlin)
+                self.advance();
+                let field = self.expect_ident()?;
+                expr = Expr::OptChain { expr: Box::new(expr), field };
             } else if self.check(&Token::LBracket) {
                 self.advance();
                 let idx = self.parse_expr()?;
@@ -997,6 +1267,20 @@ impl Parser {
                 let args = self.parse_arg_list()?;
                 self.expect(&Token::RParen)?;
                 return Ok(Expr::StaticCall { type_name: name, method, args });
+            }
+
+            // `name!(args)` — macro call  (println!, assert!, assert_eq!, etc.)
+            if matches!(self.peek2(), Token::Bang) {
+                if matches!(self.tokens.get(self.pos + 2), Some(Token::LParen)) {
+                    self.advance(); // name
+                    self.advance(); // '!'
+                    self.advance(); // '('
+                    let args = self.parse_arg_list()?;
+                    self.expect(&Token::RParen)?;
+                    // println! is special — becomes Stmt::Print, but in expression context
+                    // we return MacroCall and let the statement parser handle it
+                    return Ok(Expr::MacroCall { name, args });
+                }
             }
 
             // `readInt()` → Expr::Input

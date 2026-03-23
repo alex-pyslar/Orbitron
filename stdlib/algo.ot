@@ -1,58 +1,58 @@
 // Orbitron Standard Library — algo
-// import "std/algo";
+// #import "std/algo";
 //
-// Вспомогательные алгоритмы и утилиты для целых чисел.
+// Utility algorithms and helpers for integers.
 
-// ── Трёхзначные сравнения ─────────────────────────────────────────────────────
+// ── Three-way comparisons ─────────────────────────────────────────────────────
 
-// Минимум из трёх чисел
-func min3(a: int, b: int, c: int): int {
-    var m = a < b ? a : b;
+// Minimum of three numbers
+fn min3(a: i64, b: i64, c: i64): i64 {
+    mut m = a < b ? a : b;
     return m < c ? m : c;
 }
 
-// Максимум из трёх чисел
-func max3(a: int, b: int, c: int): int {
-    var m = a > b ? a : b;
+// Maximum of three numbers
+fn max3(a: i64, b: i64, c: i64): i64 {
+    mut m = a > b ? a : b;
     return m > c ? m : c;
 }
 
-// Медиана из трёх чисел
-func median3(a: int, b: int, c: int): int {
-    var lo = min3(a, b, c);
-    var hi = max3(a, b, c);
+// Median of three numbers
+fn median3(a: i64, b: i64, c: i64): i64 {
+    mut lo = min3(a, b, c);
+    mut hi = max3(a, b, c);
     return (a + b + c) - lo - hi;
 }
 
-// ── Целочисленная арифметика ───────────────────────────────────────────────────
+// ── Integer arithmetic ────────────────────────────────────────────────────────
 
-// Целочисленная линейная интерполяция: lo + t*(hi-lo)/100
-// t в диапазоне [0..100] (вместо [0.0..1.0])
-func lerp(lo: int, hi: int, t: int): int {
+// Integer linear interpolation: lo + t*(hi-lo)/100
+// t in range [0..100] (instead of [0.0..1.0])
+fn lerp(lo: i64, hi: i64, t: i64): i64 {
     return lo + (hi - lo) * t / 100;
 }
 
-// Перевести значение из одного диапазона в другой (целочисленно)
-// map_range(val, 0, 100, 0, 255)  →  val*255/100
-func map_range(val: int, in_lo: int, in_hi: int, out_lo: int, out_hi: int): int {
-    var in_span  = in_hi  - in_lo;
-    var out_span = out_hi - out_lo;
+// Map a value from one range to another (integer)
+// map_range(val, 0, 100, 0, 255) → val*255/100
+fn map_range(val: i64, in_lo: i64, in_hi: i64, out_lo: i64, out_hi: i64): i64 {
+    mut in_span  = in_hi  - in_lo;
+    mut out_span = out_hi - out_lo;
     if (in_span == 0) { return out_lo; }
     return out_lo + (val - in_lo) * out_span / in_span;
 }
 
-// Расстояние между двумя целыми числами (|a - b|)
-func dist(a: int, b: int): int {
-    var d = a - b;
+// Distance between two integers (|a - b|)
+fn dist(a: i64, b: i64): i64 {
+    mut d = a - b;
     return d > 0 ? d : -d;
 }
 
-// Число цифр в десятичной записи |x| (1 для 0)
-func digit_count(x: int): int {
-    var n = x;
+// Number of decimal digits in |x| (1 for 0)
+fn digit_count(x: i64): i64 {
+    mut n = x;
     if (n < 0) { n = -n; }
     if (n == 0) { return 1; }
-    var count = 0;
+    mut count = 0;
     while (n > 0) {
         count = count + 1;
         n = n / 10;
@@ -60,11 +60,11 @@ func digit_count(x: int): int {
     return count;
 }
 
-// Сумма цифр |x|
-func digit_sum(x: int): int {
-    var n = x;
+// Sum of digits of |x|
+fn digit_sum(x: i64): i64 {
+    mut n = x;
     if (n < 0) { n = -n; }
-    var s = 0;
+    mut s = 0;
     while (n > 0) {
         s = s + (n - (n / 10) * 10);
         n = n / 10;
@@ -72,11 +72,11 @@ func digit_sum(x: int): int {
     return s;
 }
 
-// Разворот цифр числа: reverse_digits(1234) = 4321
-func reverse_digits(x: int): int {
-    var n = x;
+// Reverse digits: reverse_digits(1234) = 4321
+fn reverse_digits(x: i64): i64 {
+    mut n = x;
     if (n < 0) { n = -n; }
-    var rev = 0;
+    mut rev = 0;
     while (n > 0) {
         rev = rev * 10 + (n - (n / 10) * 10);
         n   = n / 10;
@@ -84,24 +84,22 @@ func reverse_digits(x: int): int {
     return rev;
 }
 
-// Истина (1), если |x| — палиндром в десятичной записи
-func is_palindrome_num(x: int): int {
-    var n = x;
+// True (1) if |x| is a palindrome in decimal
+fn is_palindrome_num(x: i64): i64 {
+    mut n = x;
     if (n < 0) { n = -n; }
     return n == reverse_digits(n) ? 1 : 0;
 }
 
-// ── Целочисленная степень ─────────────────────────────────────────────────────
+// ── Integer power ─────────────────────────────────────────────────────────────
 
-// Целочисленное возведение в степень: base^exp (exp >= 0)
-// Быстрое возведение в степень (O(log exp))
-func ipow(base: int, exp: int): int {
-    var result = 1;
-    var b = base;
-    var e = exp;
+// Fast integer exponentiation: base^exp (exp >= 0), O(log exp)
+fn ipow(base: i64, exp: i64): i64 {
+    mut result = 1;
+    mut b = base;
+    mut e = exp;
     while (e > 0) {
-        // if e is odd: result *= b
-        var odd = e - (e / 2) * 2;
+        mut odd = e - (e / 2) * 2;
         if (odd == 1) {
             result = result * b;
         }
@@ -111,53 +109,48 @@ func ipow(base: int, exp: int): int {
     return result;
 }
 
-// ── Последовательности ────────────────────────────────────────────────────────
+// ── Sequences ─────────────────────────────────────────────────────────────────
 
-// Триангулярное число T(n) = n*(n+1)/2
-func triangle(n: int): int {
-    return n * (n + 1) / 2;
-}
+// Triangular number T(n) = n*(n+1)/2
+fn triangle(n: i64): i64 => n * (n + 1) / 2;
 
-// Проверить, является ли n треугольным числом
-func is_triangle(n: int): int {
+// Check if n is a triangular number
+fn is_triangle(n: i64): i64 {
     if (n < 0) { return 0; }
-    // solve 8n+1 must be perfect square
-    var t = 8 * n + 1;
-    // integer sqrt
-    var s = 1;
+    mut t = 8 * n + 1;
+    mut s = 1;
     while (s * s < t) { s = s + 1; }
     if (s * s != t) { return 0; }
-    // (s-1) must be divisible by 2
     return (s - 1) - ((s - 1) / 2) * 2 == 0 ? 1 : 0;
 }
 
-// Целочисленный квадратный корень (floor): isqrt(n) = floor(sqrt(n))
-func isqrt(n: int): int {
+// Integer square root (floor): isqrt(n) = floor(sqrt(n))
+fn isqrt(n: i64): i64 {
     if (n <= 0) { return 0; }
-    var s = 1;
+    mut s = 1;
     while (s * s <= n) { s = s + 1; }
     return s - 1;
 }
 
-// Является ли n точным квадратом?
-func is_square(n: int): int {
+// Check if n is a perfect square
+fn is_square(n: i64): i64 {
     if (n < 0) { return 0; }
-    var s = isqrt(n);
+    mut s = isqrt(n);
     return s * s == n ? 1 : 0;
 }
 
-// ── Сравнение с допуском ──────────────────────────────────────────────────────
+// ── Near comparison ───────────────────────────────────────────────────────────
 
-// Истина, если |a - b| <= tolerance
-func near(a: int, b: int, tolerance: int): int {
-    var d = a - b;
+// True if |a - b| <= tolerance
+fn near(a: i64, b: i64, tolerance: i64): i64 {
+    mut d = a - b;
     if (d < 0) { d = -d; }
     return d <= tolerance ? 1 : 0;
 }
 
-// Циклическое смещение: (x + delta) mod n, результат всегда >= 0
-func cycle(x: int, delta: int, n: int): int {
-    var r = (x + delta) - ((x + delta) / n) * n;
+// Cyclic shift: (x + delta) mod n, result always >= 0
+fn cycle(x: i64, delta: i64, n: i64): i64 {
+    mut r = (x + delta) - ((x + delta) / n) * n;
     if (r < 0) { r = r + n; }
     return r;
 }

@@ -7,116 +7,102 @@
 //   или из проекта:
 //   orbitron build && ./bin/syscall_demo
 
-import "std/sys";
+#import "std/sys";
 
 // ─────────────────────────────────────────────
 // Часть 1: Адреса и указатели
 // ─────────────────────────────────────────────
 
-func demo_pointers() {
-    println("=== Указатели ===");
+fn demo_pointers() {
+    println!("=== Указатели ===");
 
-    var x = 42;
-    var addr = &x;          // адрес переменной x
+    mut x = 42;
+    let addr = &x;          // адрес переменной x
 
-    println($"  x = {x}");
-    println($"  &x (адрес) = {addr}");
+    println!("  x = \{x}");
+    println!("  &x (адрес) = \{addr}");
 
     // Чтение через указатель
-    var val = *addr;
-    println($"  *addr = {val}");    // 42
+    let val = *addr;
+    println!("  *addr = \{val}");    // 42
 
     // Запись через указатель
     ptr_write(addr, 100);
-    println($"  после ptr_write: x = {x}");  // 100
+    println!("  после ptr_write: x = \{x}");  // 100
 
     // Арифметика с несколькими переменными
-    var a = 10;
-    var b = 20;
-    var c = 30;
+    mut a = 10;
+    let b = 20;
+    let c = 30;
 
-    var pa = &a;
-    var pb = &b;
-    var pc = &c;
+    let pa = &a;
+    let pb = &b;
+    let pc = &c;
 
-    println($"\n  a={a}, b={b}, c={c}");
-    println($"  адреса: a={pa}, b={pb}, c={pc}");
+    println!("\n  a=\{a}, b=\{b}, c=\{c}");
+    println!("  адреса: a=\{pa}, b=\{pb}, c=\{pc}");
 
     // Копирование через указатели
     ptr_write(pa, *pb + *pc);
-    println($"  a = *pb + *pc = {a}");  // 50
+    println!("  a = *pb + *pc = \{a}");  // 50
 }
 
 // ─────────────────────────────────────────────
 // Часть 2: C-строки и cstr()
 // ─────────────────────────────────────────────
 
-func demo_cstr() {
-    println("\n=== C-строки (cstr) ===");
+fn demo_cstr() {
+    println!("\n=== C-строки (cstr) ===");
 
-    var hello_ptr = cstr("Привет из cstr!\n");
-    println($"  адрес строки: {hello_ptr}");
+    let hello_ptr = cstr("Привет из cstr!\n");
+    println!("  адрес строки: \{hello_ptr}");
 
-    // Используем sys_write напрямую (fd=1 — stdout)
-    // sys_write(1, ptr, len) — системный вызов write
-    // Длина "Hello, syscall!\n" = 17 байт
-    var msg = cstr("Hello, syscall!\n");
-    var written = sys_write(1, msg, 16);
-    println($"  sys_write вернул: {written}");
+    let msg     = cstr("Hello, syscall!\n");
+    let written = sys_write(1, msg, 16);
+    println!("  sys_write вернул: \{written}");
 }
 
 // ─────────────────────────────────────────────
 // Часть 3: Прямые системные вызовы
 // ─────────────────────────────────────────────
 
-func demo_syscalls() {
-    println("\n=== Прямые системные вызовы ===");
+fn demo_syscalls() {
+    println!("\n=== Прямые системные вызовы ===");
 
-    // getpid() — номер 39 на x86-64
-    var pid = syscall(SYS_GETPID);
-    println($"  PID процесса: {pid}");
+    let pid  = syscall(SYS_GETPID);
+    println!("  PID процесса: \{pid}");
 
-    // getppid() — номер 110 на x86-64
-    var ppid = syscall(SYS_GETPPID);
-    println($"  PPID (родитель): {ppid}");
+    let ppid = syscall(SYS_GETPPID);
+    println!("  PPID (родитель): \{ppid}");
 
-    // getuid() — номер 102
-    var uid = syscall(SYS_GETUID);
-    println($"  UID пользователя: {uid}");
+    let uid  = syscall(SYS_GETUID);
+    println!("  UID пользователя: \{uid}");
 
-    // getgid() — номер 104
-    var gid = syscall(SYS_GETGID);
-    println($"  GID группы: {gid}");
+    let gid  = syscall(SYS_GETGID);
+    println!("  GID группы: \{gid}");
 
-    println("\n  (все вызовы выполнены через syscall(NR, ...))");
+    println!("\n  (все вызовы выполнены через syscall(NR, ...))");
 }
 
 // ─────────────────────────────────────────────
 // Часть 4: Время через gettimeofday
 // ─────────────────────────────────────────────
 
-// Объявляем внешнюю функцию gettimeofday
-extern func gettimeofday(tv_ptr: int, tz_ptr: int): int;
+extern fn gettimeofday(tv_ptr: i64, tz_ptr: i64): i64;
 
-func demo_time() {
-    println("\n=== Получение времени ===");
+fn demo_time() {
+    println!("\n=== Получение времени ===");
 
-    // struct timeval занимает 16 байт (tv_sec: 8, tv_usec: 8)
-    // Выделяем память через переменные (упрощённый способ)
-    var tv_sec  = 0;
-    var tv_usec = 0;
-
-    // Адрес первого поля — начало timeval
-    var tv_ptr = &tv_sec;
-    var ret = gettimeofday(tv_ptr, 0);
+    mut tv_sec  = 0;
+    let tv_ptr  = &tv_sec;
+    let ret     = gettimeofday(tv_ptr, 0);
 
     if (ret == 0) {
-        println($"  gettimeofday успешен");
-        println($"  tv_sec  ≈ {tv_sec}  (секунды с эпохи Unix)");
-        // tv_usec лежит по адресу tv_ptr + 8, здесь — соседняя переменная
-        println($"  Подробнее: смотрите docs/ch11_lowlevel.md");
+        println!("  gettimeofday успешен");
+        println!("  tv_sec  ≈ \{tv_sec}  (секунды с эпохи Unix)");
+        println!("  Подробнее: смотрите docs/ch11_lowlevel.md");
     } else {
-        println($"  ошибка gettimeofday: {ret}");
+        println!("  ошибка gettimeofday: \{ret}");
     }
 }
 
@@ -124,46 +110,41 @@ func demo_time() {
 // Часть 5: ptr_write_byte — побайтовая запись
 // ─────────────────────────────────────────────
 
-func demo_bytes() {
-    println("\n=== Побайтовая запись ===");
+fn demo_bytes() {
+    println!("\n=== Побайтовая запись ===");
 
-    var word = 0;
-    var addr = &word;
+    mut word = 0;
+    let addr = &word;
 
-    // Записываем байт 0xAB (171) в младший байт
     ptr_write_byte(addr, 171);
-    println($"  word после ptr_write_byte(addr, 0xAB): {word}");
-    // Значение = 171 (0x000000AB)
+    println!("  word после ptr_write_byte(addr, 0xAB): \{word}");
 
-    var word2 = 0;
+    mut word2 = 0;
     ptr_write_byte(&word2, 255);
-    println($"  word2 после ptr_write_byte(addr, 255): {word2}");
+    println!("  word2 после ptr_write_byte(addr, 255): \{word2}");
 }
 
 // ─────────────────────────────────────────────
 // Часть 6: sign_ext — расширение знака
 // ─────────────────────────────────────────────
 
-// Внешние функции возвращают int (32-бит).
-// Без sign_ext значение -1 приходит как 4294967295.
-extern func open(path: int, flags: int, mode: int): int;
-extern func close(fd: int): int;
+extern fn open(path: i64, flags: i64, mode: i64): i64;
+extern fn close(fd: i64): i64;
 
-func demo_sign_ext() {
-    println("\n=== sign_ext — расширение знака ===");
+fn demo_sign_ext() {
+    println!("\n=== sign_ext — расширение знака ===");
 
-    // Попробуем открыть несуществующий файл — вернёт -1
-    var path = cstr("/nonexistent/file.txt");
-    var raw = open(path, 0, 0);           // O_RDONLY = 0
-    var fd  = sign_ext(raw);              // -1 правильно
+    let path = cstr("/nonexistent/file.txt");
+    let raw  = open(path, 0, 0);           // O_RDONLY = 0
+    let fd   = sign_ext(raw);              // -1 правильно
 
-    println($"  raw от open(): {raw}");   // может быть 4294967295
-    println($"  sign_ext(raw): {fd}");    // -1
+    println!("  raw от open(): \{raw}");   // может быть 4294967295
+    println!("  sign_ext(raw): \{fd}");    // -1
 
     if (fd < 0) {
-        println("  Файл не найден (ожидаемо), fd < 0");
+        println!("  Файл не найден (ожидаемо), fd < 0");
     } else {
-        println($"  Файл открыт, fd={fd}");
+        println!("  Файл открыт, fd=\{fd}");
         close(fd);
     }
 }
@@ -172,37 +153,34 @@ func demo_sign_ext() {
 // Часть 7: Выделение памяти через mmap (sys_alloc)
 // ─────────────────────────────────────────────
 
-func demo_alloc() {
-    println("\n=== Выделение памяти (sys_alloc) ===");
+fn demo_alloc() {
+    println!("\n=== Выделение памяти (sys_alloc) ===");
 
-    // Запрашиваем 64 байта
-    var ptr = sys_alloc(64);
+    let ptr = sys_alloc(64);
 
     if (ptr == 0) {
-        println("  Ошибка выделения памяти");
+        println!("  Ошибка выделения памяти");
         return;
     }
 
-    println($"  Выделено 64 байта по адресу: {ptr}");
+    println!("  Выделено 64 байта по адресу: \{ptr}");
 
-    // Записываем значения
     ptr_write(ptr, 1234);
-    println($"  Записали 1234, прочитали: {ptr_read(ptr)}");
+    println!("  Записали 1234, прочитали: \{ptr_read(ptr)}");
 
-    // Освобождаем память
     sys_free(ptr, 64);
-    println("  Память освобождена (sys_free)");
+    println!("  Память освобождена (sys_free)");
 }
 
 // ─────────────────────────────────────────────
 // main
 // ─────────────────────────────────────────────
 
-func main() {
-    println("╔══════════════════════════════════════════╗");
-    println("║  Демонстрация: системные вызовы / указатели ║");
-    println("╚══════════════════════════════════════════╝");
-    println("(Только LLVM-backend, Linux x86-64 / WSL)\n");
+fn main() {
+    println!("╔══════════════════════════════════════════╗");
+    println!("║  Демонстрация: системные вызовы / указатели ║");
+    println!("╚══════════════════════════════════════════╝");
+    println!("(Только LLVM-backend, Linux x86-64 / WSL)\n");
 
     demo_pointers();
     demo_cstr();
@@ -212,6 +190,6 @@ func main() {
     demo_sign_ext();
     demo_alloc();
 
-    println("\n=== Готово ===");
-    println("Подробнее: docs/ch11_lowlevel.md");
+    println!("\n=== Готово ===");
+    println!("Подробнее: docs/ch11_lowlevel.md");
 }

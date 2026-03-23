@@ -474,6 +474,102 @@ impl<'ctx> CodeGen<'ctx> {
                 Val::Int(phi.as_basic_value().into_int_value())
             }
 
+            // name!(args) — macro-style call: dispatch same as regular calls
+            // println!(x) → same as println(x); assert!(x) → same; etc.
+            Expr::MacroCall { name, args } => {
+                if name == "println" {
+                    let e = args.first().cloned().unwrap_or(Expr::Number(0));
+                    match &e {
+                        Expr::Str(s) => self.print_str(s),
+                        Expr::Interpolated(parts) => {
+                            let parts = parts.clone();
+                            self.print_interpolated(&parts);
+                        }
+                        _ => match self.gen_expr(&e) {
+                            Val::Int(i)       => self.print_int(i),
+                            Val::Float(f)     => self.print_float(f),
+                            Val::Struct(_, n) => panic!("Cannot print struct '{}' directly", n),
+                            Val::Array(_)     => panic!("Cannot print an array directly"),
+                        }
+                    }
+                    return Val::Int(self.i64_ty.const_int(0, false));
+                }
+                // For other macros, dispatch as a regular call
+                return self.gen_expr(&Expr::Call { name: name.clone(), args: args.clone() });
+            }
+
+            // left ?: right — Elvis / null-coalescing  (Kotlin)
+            // If left != 0, return left; otherwise return right.
+            Expr::Elvis { left, right } => {
+                // Evaluate left once before branching
+                let left_val = self.gen_expr(left);
+                let left_int = self.as_int(left_val);
+                let func     = self.cur_fn();
+                let nz_bb    = self.ctx.append_basic_block(func, "elvis.nz");
+                let zero_bb  = self.ctx.append_basic_block(func, "elvis.zero");
+                let merge_bb = self.ctx.append_basic_block(func, "elvis.merge");
+
+                let cond = self.builder.build_int_compare(
+                    inkwell::IntPredicate::NE, left_int, self.i64_ty.const_zero(), "elvis.cond"
+                ).unwrap();
+                self.builder.build_conditional_branch(cond, nz_bb, zero_bb).unwrap();
+
+                // non-zero branch: use already-computed left_int
+                self.builder.position_at_end(nz_bb);
+                // left_int is still valid here (it's an LLVM value from the current block)
+                let nz_end = self.builder.get_insert_block().unwrap();
+                self.builder.build_unconditional_branch(merge_bb).unwrap();
+
+                // zero branch: return right
+                self.builder.position_at_end(zero_bb);
+                let rhs_val  = self.gen_expr(right);
+                let rhs_int  = self.as_int(rhs_val);
+                let zero_end = self.builder.get_insert_block().unwrap();
+                self.builder.build_unconditional_branch(merge_bb).unwrap();
+
+                self.builder.position_at_end(merge_bb);
+                let phi = self.builder.build_phi(self.i64_ty, "elvis.val").unwrap();
+                phi.add_incoming(&[(&left_int, nz_end), (&rhs_int, zero_end)]);
+                Val::Int(phi.as_basic_value().into_int_value())
+            }
+
+            // expr?.field — optional chaining  (Swift / Kotlin)
+            // If expr evaluates to 0 (null), return 0; otherwise access field.
+            Expr::OptChain { expr: inner, field } => {
+                let obj_val  = self.gen_expr(inner);
+                let obj_int  = self.as_int(obj_val.clone());
+                let func     = self.cur_fn();
+                let acc_bb   = self.ctx.append_basic_block(func, "optch.acc");
+                let null_bb  = self.ctx.append_basic_block(func, "optch.null");
+                let merge_bb = self.ctx.append_basic_block(func, "optch.merge");
+
+                let cond = self.builder.build_int_compare(
+                    inkwell::IntPredicate::NE, obj_int, self.i64_ty.const_zero(), "optch.cond"
+                ).unwrap();
+                self.builder.build_conditional_branch(cond, acc_bb, null_bb).unwrap();
+
+                // non-null: access the field
+                self.builder.position_at_end(acc_bb);
+                let accessed = self.gen_expr(&Expr::FieldAccess {
+                    obj: inner.clone(),
+                    field: field.clone(),
+                });
+                let acc_int = self.as_int(accessed);
+                let acc_end = self.builder.get_insert_block().unwrap();
+                self.builder.build_unconditional_branch(merge_bb).unwrap();
+
+                // null: return 0
+                self.builder.position_at_end(null_bb);
+                let null_int = self.i64_ty.const_zero();
+                let null_end = self.builder.get_insert_block().unwrap();
+                self.builder.build_unconditional_branch(merge_bb).unwrap();
+
+                self.builder.position_at_end(merge_bb);
+                let phi = self.builder.build_phi(self.i64_ty, "optch.val").unwrap();
+                phi.add_incoming(&[(&acc_int, acc_end), (&null_int, null_end)]);
+                Val::Int(phi.as_basic_value().into_int_value())
+            }
+
             Expr::Call { name, args } => {
                 // ── ptr_write(addr, val) — store i64 val at raw address addr ──
                 if name == "ptr_write" {

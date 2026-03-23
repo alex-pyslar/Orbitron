@@ -78,8 +78,8 @@ backend = "llvm"
         .map_err(|e| format!("Failed to create orbitron.toml: {e}"))?;
 
     let main_content = format!(
-r#"func main() {{
-    println("Hello from {name}!");
+r#"fn main() {{
+    println!("Hello from {name}!");
 }}
 "#
     );

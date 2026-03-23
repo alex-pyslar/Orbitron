@@ -3,25 +3,25 @@
 // двоичный поиск, быстрое возведение в степень.
 
 // --- Факториал ---
-func factorial(n: int): int {
+fn factorial(n: i64): i64 {
     if (n <= 1) { return 1; }
     return n * factorial(n - 1);
 }
 
 // --- Числа Фибоначчи (рекурсивно, медленно) ---
-func fib_rec(n: int): int {
+fn fib_rec(n: i64): i64 {
     if (n <= 1) { return n; }
     return fib_rec(n - 1) + fib_rec(n - 2);
 }
 
 // --- Числа Фибоначчи (итеративно, быстро) ---
-func fib_iter(n: int): int {
+fn fib_iter(n: i64): i64 {
     if (n <= 1) { return n; }
-    var a = 0;
-    var b = 1;
-    var i = 2;
+    mut a = 0;
+    mut b = 1;
+    mut i = 2;
     while (i <= n) {
-        var tmp = a + b;
+        let tmp = a + b;
         a = b;
         b = tmp;
         i += 1;
@@ -30,101 +30,95 @@ func fib_iter(n: int): int {
 }
 
 // --- НОД (алгоритм Евклида) ---
-func gcd(a: int, b: int): int {
+fn gcd(a: i64, b: i64): i64 {
     if (b == 0) { return a; }
     return gcd(b, a % b);
 }
 
 // --- НОК ---
-func lcm(a: int, b: int): int {
-    return a / gcd(a, b) * b;
-}
+fn lcm(a: i64, b: i64): i64 => a / gcd(a, b) * b;
 
 // --- Быстрое возведение в степень (O(log n)) ---
-func pow_fast(base: int, exp: int): int {
+fn pow_fast(base: i64, exp: i64): i64 {
     if (exp == 0) { return 1; }
     if (exp % 2 == 0) {
-        var half = pow_fast(base, exp / 2);
+        let half = pow_fast(base, exp / 2);
         return half * half;
     }
     return base * pow_fast(base, exp - 1);
 }
 
 // --- Подсчёт цифр числа ---
-func digit_count(n: int): int {
+fn digit_count(n: i64): i64 {
     if (n < 0) { n = -n; }
     if (n < 10) { return 1; }
     return 1 + digit_count(n / 10);
 }
 
 // --- Сумма цифр числа ---
-func digit_sum(n: int): int {
+fn digit_sum(n: i64): i64 {
     if (n < 0) { n = -n; }
     if (n < 10) { return n; }
     return n % 10 + digit_sum(n / 10);
 }
 
 // --- Палиндром? (число) ---
-func reverse_num(n: int): int {
+fn reverse_num(n: i64): i64 {
     if (n < 10) { return n; }
     return n % 10 * pow_fast(10, digit_count(n) - 1) + reverse_num(n / 10);
 }
 
-func is_palindrome(n: int): int {
-    return n == reverse_num(n) ? 1 : 0;
-}
+fn is_palindrome(n: i64): i64 => n == reverse_num(n) ? 1 : 0;
 
 // --- Числа Трибоначчи ---
-func tribonacci(n: int): int {
+fn tribonacci(n: i64): i64 {
     if (n <= 0) { return 0; }
     if (n == 1) { return 0; }
     if (n == 2) { return 1; }
     return tribonacci(n - 1) + tribonacci(n - 2) + tribonacci(n - 3);
 }
 
-func main() {
-    println("=== Рекурсия ===");
+fn main() {
+    println!("=== Рекурсия ===");
 
     // --- Факториал ---
-    println("\n-- Факториал --");
+    println!("\n-- Факториал --");
     for i in 0..=10 {
-        println(factorial(i));
+        println!(factorial(i));
     }
-    // 1 1 2 6 24 120 720 5040 40320 362880 3628800
 
     // --- Фибоначчи ---
-    println("\n-- Фибоначчи (первые 15) --");
+    println!("\n-- Фибоначчи (первые 15) --");
     for i in 0..15 {
-        println(fib_iter(i));
+        println!(fib_iter(i));
     }
 
     // --- НОД и НОК ---
-    println("\n-- НОД и НОК --");
-    println(gcd(48, 18));     // 6
-    println(gcd(100, 75));    // 25
-    println(gcd(17, 13));     // 1 (взаимно простые)
-    println(lcm(4, 6));       // 12
-    println(lcm(15, 10));     // 30
+    println!("\n-- НОД и НОК --");
+    println!(gcd(48, 18));     // 6
+    println!(gcd(100, 75));    // 25
+    println!(gcd(17, 13));     // 1
+    println!(lcm(4, 6));       // 12
+    println!(lcm(15, 10));     // 30
 
     // --- Быстрое возведение в степень ---
-    println("\n-- Быстрое возведение в степень --");
-    println(pow_fast(2, 10));    // 1024
-    println(pow_fast(3, 5));     // 243
-    println(pow_fast(10, 6));    // 1000000
+    println!("\n-- Быстрое возведение в степень --");
+    println!(pow_fast(2, 10));    // 1024
+    println!(pow_fast(3, 5));     // 243
+    println!(pow_fast(10, 6));    // 1000000
 
     // --- Цифры числа ---
-    println("\n-- Цифры числа --");
-    println(digit_count(12345));     // 5
-    println(digit_sum(12345));       // 15
-    println(digit_sum(999));         // 27
-    println(is_palindrome(12321));   // 1
-    println(is_palindrome(12345));   // 0
-    println(is_palindrome(9));       // 1
+    println!("\n-- Цифры числа --");
+    println!(digit_count(12345));     // 5
+    println!(digit_sum(12345));       // 15
+    println!(digit_sum(999));         // 27
+    println!(is_palindrome(12321));   // 1
+    println!(is_palindrome(12345));   // 0
+    println!(is_palindrome(9));       // 1
 
     // --- Трибоначчи ---
-    println("\n-- Трибоначчи (первые 10) --");
+    println!("\n-- Трибоначчи (первые 10) --");
     for i in 1..=10 {
-        println(tribonacci(i));
+        println!(tribonacci(i));
     }
-    // 0 1 1 2 4 7 13 24 44 81
 }

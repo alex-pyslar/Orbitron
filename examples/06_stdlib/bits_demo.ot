@@ -1,132 +1,131 @@
 // examples/06_stdlib/bits_demo.ot
 // Демонстрирует все функции модуля std/bits.
 
-import "std/bits";
+#import "std/bits";
 
-func main() {
-    println("=== std/bits — Побитовые операции ===");
+fn main() {
+    println!("=== std/bits — Побитовые операции ===");
 
     // --- bit_count: количество установленных битов (popcount) ---
-    println("\n-- bit_count --");
-    println(bit_count(0));      // 0    (0000 0000)
-    println(bit_count(1));      // 1    (0000 0001)
-    println(bit_count(3));      // 2    (0000 0011)
-    println(bit_count(7));      // 3    (0000 0111)
-    println(bit_count(15));     // 4    (0000 1111)
-    println(bit_count(255));    // 8    (1111 1111)
-    println(bit_count(1023));   // 10
-    println(bit_count(42));     // 3    (101010₂)
+    println!("\n-- bit_count --");
+    println!(bit_count(0));      // 0
+    println!(bit_count(1));      // 1
+    println!(bit_count(3));      // 2
+    println!(bit_count(7));      // 3
+    println!(bit_count(15));     // 4
+    println!(bit_count(255));    // 8
+    println!(bit_count(1023));   // 10
+    println!(bit_count(42));     // 3    (101010₂)
 
     // --- bit_len: длина числа в битах ---
-    println("\n-- bit_len --");
-    println(bit_len(0));     // 0 (или 1, зависит от реализации)
-    println(bit_len(1));     // 1
-    println(bit_len(2));     // 2
-    println(bit_len(4));     // 3
-    println(bit_len(8));     // 4
-    println(bit_len(255));   // 8
-    println(bit_len(256));   // 9
-    println(bit_len(1023));  // 10
-    println(bit_len(1024));  // 11
+    println!("\n-- bit_len --");
+    println!(bit_len(0));     // 0
+    println!(bit_len(1));     // 1
+    println!(bit_len(2));     // 2
+    println!(bit_len(4));     // 3
+    println!(bit_len(8));     // 4
+    println!(bit_len(255));   // 8
+    println!(bit_len(256));   // 9
+    println!(bit_len(1023));  // 10
+    println!(bit_len(1024));  // 11
 
     // --- is_pow2: степень двойки? ---
-    println("\n-- is_pow2 --");
-    println(is_pow2(0));     // 0
-    println(is_pow2(1));     // 1
-    println(is_pow2(2));     // 1
-    println(is_pow2(3));     // 0
-    println(is_pow2(4));     // 1
-    println(is_pow2(16));    // 1
-    println(is_pow2(15));    // 0
-    println(is_pow2(1024));  // 1
-    println(is_pow2(1025));  // 0
+    println!("\n-- is_pow2 --");
+    println!(is_pow2(0));     // 0
+    println!(is_pow2(1));     // 1
+    println!(is_pow2(2));     // 1
+    println!(is_pow2(3));     // 0
+    println!(is_pow2(4));     // 1
+    println!(is_pow2(16));    // 1
+    println!(is_pow2(15));    // 0
+    println!(is_pow2(1024));  // 1
+    println!(is_pow2(1025));  // 0
 
     // --- next_pow2: следующая степень двойки ≥ x ---
-    println("\n-- next_pow2 --");
-    println(next_pow2(1));    // 1
-    println(next_pow2(2));    // 2
-    println(next_pow2(3));    // 4
-    println(next_pow2(5));    // 8
-    println(next_pow2(8));    // 8
-    println(next_pow2(9));    // 16
-    println(next_pow2(100));  // 128
-    println(next_pow2(513));  // 1024
+    println!("\n-- next_pow2 --");
+    println!(next_pow2(1));    // 1
+    println!(next_pow2(2));    // 2
+    println!(next_pow2(3));    // 4
+    println!(next_pow2(5));    // 8
+    println!(next_pow2(8));    // 8
+    println!(next_pow2(9));    // 16
+    println!(next_pow2(100));  // 128
+    println!(next_pow2(513));  // 1024
 
     // --- prev_pow2: предыдущая степень двойки ≤ x ---
-    println("\n-- prev_pow2 --");
-    println(prev_pow2(1));    // 1
-    println(prev_pow2(2));    // 2
-    println(prev_pow2(3));    // 2
-    println(prev_pow2(7));    // 4
-    println(prev_pow2(8));    // 8
-    println(prev_pow2(100));  // 64
-    println(prev_pow2(1024)); // 1024
+    println!("\n-- prev_pow2 --");
+    println!(prev_pow2(1));    // 1
+    println!(prev_pow2(2));    // 2
+    println!(prev_pow2(3));    // 2
+    println!(prev_pow2(7));    // 4
+    println!(prev_pow2(8));    // 8
+    println!(prev_pow2(100));  // 64
+    println!(prev_pow2(1024)); // 1024
 
     // --- low_bit: младший установленный бит ---
-    println("\n-- low_bit --");
-    println(low_bit(1));    // 1   (001)
-    println(low_bit(2));    // 2   (010)
-    println(low_bit(3));    // 1   (011 → 001)
-    println(low_bit(4));    // 4   (100)
-    println(low_bit(12));   // 4   (1100 → 100)
-    println(low_bit(24));   // 8   (11000 → 1000)
-    println(low_bit(40));   // 8   (101000 → 1000)
+    println!("\n-- low_bit --");
+    println!(low_bit(1));    // 1
+    println!(low_bit(2));    // 2
+    println!(low_bit(3));    // 1
+    println!(low_bit(4));    // 4
+    println!(low_bit(12));   // 4
+    println!(low_bit(24));   // 8
+    println!(low_bit(40));   // 8
 
     // --- shl, shr: битовые сдвиги ---
-    println("\n-- shl, shr --");
-    println(shl(1, 0));    // 1
-    println(shl(1, 1));    // 2
-    println(shl(1, 4));    // 16
-    println(shl(1, 10));   // 1024
-    println(shl(3, 3));    // 24
+    println!("\n-- shl, shr --");
+    println!(shl(1, 0));    // 1
+    println!(shl(1, 1));    // 2
+    println!(shl(1, 4));    // 16
+    println!(shl(1, 10));   // 1024
+    println!(shl(3, 3));    // 24
 
-    println(shr(1024, 0));   // 1024
-    println(shr(1024, 1));   // 512
-    println(shr(1024, 3));   // 128
-    println(shr(1024, 10));  // 1
-    println(shr(100, 2));    // 25
+    println!(shr(1024, 0));   // 1024
+    println!(shr(1024, 1));   // 512
+    println!(shr(1024, 3));   // 128
+    println!(shr(1024, 10));  // 1
+    println!(shr(100, 2));    // 25
 
     // --- floor_log2: целочисленный логарифм по основанию 2 ---
-    println("\n-- floor_log2 --");
-    println(floor_log2(1));      // 0
-    println(floor_log2(2));      // 1
-    println(floor_log2(3));      // 1
-    println(floor_log2(4));      // 2
-    println(floor_log2(8));      // 3
-    println(floor_log2(10));     // 3
-    println(floor_log2(100));    // 6
-    println(floor_log2(1000));   // 9
-    println(floor_log2(1024));   // 10
+    println!("\n-- floor_log2 --");
+    println!(floor_log2(1));      // 0
+    println!(floor_log2(2));      // 1
+    println!(floor_log2(3));      // 1
+    println!(floor_log2(4));      // 2
+    println!(floor_log2(8));      // 3
+    println!(floor_log2(10));     // 3
+    println!(floor_log2(100));    // 6
+    println!(floor_log2(1000));   // 9
+    println!(floor_log2(1024));   // 10
 
     // --- reverse_bits: обратить n младших битов ---
-    println("\n-- reverse_bits(x, n) --");
-    println(reverse_bits(1, 4));    // 8  (0001 → 1000)
-    println(reverse_bits(3, 4));    // 12 (0011 → 1100)
-    println(reverse_bits(5, 4));    // 10 (0101 → 1010)
-    println(reverse_bits(6, 4));    // 6  (0110 → 0110)
+    println!("\n-- reverse_bits(x, n) --");
+    println!(reverse_bits(1, 4));    // 8  (0001 → 1000)
+    println!(reverse_bits(3, 4));    // 12 (0011 → 1100)
+    println!(reverse_bits(5, 4));    // 10 (0101 → 1010)
+    println!(reverse_bits(6, 4));    // 6  (0110 → 0110)
 
     // --- Практические применения ---
-    println("\n-- Практика: выравнивание размера буфера --");
-    var needed = 100;
-    var buf_size = next_pow2(needed);
-    println($"Нужно {needed} байт → выделяем {buf_size} байт");   // 128
+    println!("\n-- Практика: выравнивание размера буфера --");
+    let needed   = 100;
+    let buf_size = next_pow2(needed);
+    println!("Нужно \{needed} байт → выделяем \{buf_size} байт");   // 128
 
-    println("\n-- Практика: количество шагов делением пополам --");
-    var n = 1000;
-    var steps = floor_log2(n);
-    println($"log2({n}) = {steps}");   // 9 (двоичный поиск по 1000 элементам)
+    println!("\n-- Практика: количество шагов делением пополам --");
+    let n     = 1000;
+    let steps = floor_log2(n);
+    println!("log2(\{n}) = \{steps}");   // 9
 
-    println("\n-- Практика: чётность/нечётность через биты --");
+    println!("\n-- Практика: чётность/нечётность через биты --");
     for i in 0..8 {
-        var parity = low_bit(i) == 1 ? 1 : 0;
-        println($"  {i}: нечётное={parity}");
+        let parity = low_bit(i) == 1 ? 1 : 0;
+        println!("  \{i}: нечётное=\{parity}");
     }
 
-    println("\n-- Практика: маски битов --");
-    // Проверяем, установлен ли бит k в числе x
-    var x = 42;   // 101010₂
+    println!("\n-- Практика: маски битов --");
+    let x = 42;   // 101010₂
     for k in 0..7 {
-        var bit = shr(x, k) % 2;
-        println($"  бит {k} числа {x} = {bit}");
+        let bit = shr(x, k) % 2;
+        println!("  бит \{k} числа \{x} = \{bit}");
     }
 }

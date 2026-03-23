@@ -43,11 +43,24 @@ fn fmt_stmt(stmt: &Stmt, depth: usize) -> String {
         Stmt::Let { name, expr } =>
             format!("{}var {} = {};\n", ind, name, fmt_expr(expr)),
 
+        // New-syntax let/mut — format using the new keywords
+        Stmt::LetNew { name, mutable, ty, expr } => {
+            let kw = if *mutable { "mut" } else { "let" };
+            if let Some(t) = ty {
+                format!("{}{} {}: {} = {};\n", ind, kw, name, t, fmt_expr(expr))
+            } else {
+                format!("{}{} {} = {};\n", ind, kw, name, fmt_expr(expr))
+            }
+        }
+
         Stmt::LetTuple { names, expr } =>
-            format!("{}var ({}) = {};\n", ind, names.join(", "), fmt_expr(expr)),
+            format!("{}let ({}) = {};\n", ind, names.join(", "), fmt_expr(expr)),
 
         Stmt::Const { name, expr } =>
-            format!("{}const {} = {};\n", ind, name, fmt_expr(expr)),
+            format!("{}#const {} = {};\n", ind, name, fmt_expr(expr)),
+
+        Stmt::TypeAlias { name, ty } =>
+            format!("{}type {} = {};\n", ind, name, ty),
 
         Stmt::Assign { name, expr } =>
             format!("{}{} = {};\n", ind, name, fmt_expr(expr)),
@@ -62,7 +75,7 @@ fn fmt_stmt(stmt: &Stmt, depth: usize) -> String {
             format!("{}{};\n", ind, fmt_expr(e)),
 
         Stmt::Print(e) =>
-            format!("{}println({});\n", ind, fmt_print_arg(e)),
+            format!("{}println!({});\n", ind, fmt_print_arg(e)),
 
         Stmt::Return(e) =>
             format!("{}return {};\n", ind, fmt_expr(e)),
@@ -144,12 +157,16 @@ fn fmt_stmt(stmt: &Stmt, depth: usize) -> String {
             s
         }
 
-        Stmt::FnDecl { name, params, body } => {
+        Stmt::FnDecl { name, params, body, expr_body } => {
             let ps = fmt_params(params);
-            let mut s = format!("{}func {}({}) {{\n", ind, name, ps);
-            for st in body { s.push_str(&fmt_stmt(st, depth + 1)); }
-            s.push_str(&format!("{}}}\n", ind));
-            s
+            if let Some(e) = expr_body {
+                format!("{}fn {}({}) => {};\n", ind, name, ps, fmt_expr(e))
+            } else {
+                let mut s = format!("{}fn {}({}) {{\n", ind, name, ps);
+                for st in body { s.push_str(&fmt_stmt(st, depth + 1)); }
+                s.push_str(&format!("{}}}\n", ind));
+                s
+            }
         }
 
         Stmt::StructDecl { name, fields } => {
@@ -179,7 +196,7 @@ fn fmt_stmt(stmt: &Stmt, depth: usize) -> String {
             let mut s = format!("{}trait {} {{\n", ind, name);
             for (mname, params) in methods {
                 let ps = params.join(", ");
-                s.push_str(&format!("{}    func {}({});\n", ind, mname, ps));
+                s.push_str(&format!("{}    fn {}({});\n", ind, mname, ps));
             }
             s.push_str(&format!("{}}}\n", ind));
             s
@@ -209,15 +226,15 @@ fn fmt_stmt(stmt: &Stmt, depth: usize) -> String {
             format!("{}defer {};\n", ind, fmt_stmt_inline(s)),
 
         Stmt::Import { path } =>
-            format!("{}import \"{}\";\n", ind, path),
+            format!("{}#import \"{}\";\n", ind, path),
 
         Stmt::ExternFn { name, params, variadic } => {
             let ellipsis = if *variadic { ", ..." } else { "" };
             let ps: String = (0..*params)
-                .map(|i| format!("p{}: int", i))
+                .map(|i| format!("p{}: i64", i))
                 .collect::<Vec<_>>()
                 .join(", ");
-            format!("{}extern func {}({}{});\n", ind, name, ps, ellipsis)
+            format!("{}extern fn {}({}{});\n", ind, name, ps, ellipsis)
         }
 
         Stmt::Annotation { name } =>
@@ -238,9 +255,9 @@ fn fmt_expr(expr: &Expr) -> String {
         Expr::Interpolated(parts) => {
             let inner: String = parts.iter().map(|p| match p {
                 InterpolPart::Lit(s) => escape_str(s),
-                InterpolPart::Var(v) => format!("{{{}}}", v),
+                InterpolPart::Var(v) => format!("\\{{{}}}", v),
             }).collect();
-            format!("$\"{}\"", inner)
+            format!("\"{}\"", inner)
         }
         Expr::Ident(n)       => n.clone(),
         Expr::Binary(l, op, r) =>
@@ -252,6 +269,14 @@ fn fmt_expr(expr: &Expr) -> String {
         },
         Expr::Ternary { cond, then, els } =>
             format!("{} ? {} : {}", fmt_expr(cond), fmt_expr(then), fmt_expr(els)),
+        Expr::Elvis { left, right } =>
+            format!("{} ?: {}", fmt_expr(left), fmt_expr(right)),
+        Expr::OptChain { expr, field } =>
+            format!("{}?.{}", fmt_expr(expr), field),
+        Expr::MacroCall { name, args } => {
+            let as_ = args.iter().map(fmt_expr).collect::<Vec<_>>().join(", ");
+            format!("{}!({})", name, as_)
+        }
         Expr::Call { name, args } => {
             let as_ = args.iter().map(fmt_expr).collect::<Vec<_>>().join(", ");
             format!("{}({})", name, as_)
@@ -348,7 +373,10 @@ fn fmt_method(m: &MethodDecl, depth: usize) -> String {
     let ps    = fmt_params(&m.params);
     let full_params = if self_.is_empty() { ps } else if ps.is_empty() { self_.to_string() }
                       else { format!("{}, {}", self_, ps) };
-    let mut s = format!("{}{}{}func {}({}) {{\n", ind, acc, stat, m.name, full_params);
+    if let Some(e) = &m.expr_body {
+        return format!("{}{}{}fn {}({}) => {};\n", ind, acc, stat, m.name, full_params, fmt_expr(e));
+    }
+    let mut s = format!("{}{}{}fn {}({}) {{\n", ind, acc, stat, m.name, full_params);
     for st in &m.body { s.push_str(&fmt_stmt(st, depth + 1)); }
     s.push_str(&format!("{}}}\n", ind));
     s
@@ -377,7 +405,7 @@ fn fmt_block_body(stmt: &Stmt, depth: usize) -> String {
 fn fmt_stmt_inline(stmt: &Stmt) -> String {
     match stmt {
         Stmt::Expr(e)     => fmt_expr(e),
-        Stmt::Print(e)    => format!("println({})", fmt_print_arg(e)),
+        Stmt::Print(e)    => format!("println!({})", fmt_print_arg(e)),
         Stmt::Return(e)   => format!("return {}", fmt_expr(e)),
         _                 => fmt_stmt(stmt, 0).trim_end_matches('\n').to_string(),
     }

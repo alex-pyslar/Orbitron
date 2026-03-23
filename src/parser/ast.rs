@@ -83,6 +83,8 @@ pub struct MethodDecl {
     pub is_static: bool,
     pub body:      Vec<Stmt>,
     pub access:    Access,
+    /// Fat-arrow expression body: `fn name(params) => expr;`
+    pub expr_body: Option<Expr>,
 }
 
 // ── Function default parameter ────────────────────────────────────────────────
@@ -97,19 +99,25 @@ pub enum Expr {
     Number(i64),
     Float(f64),
     Str(String),
-    /// $"Hello {name}!"  — interpolated string   (C# / Kotlin)
+    /// Interpolated string — `$"Hello {name}!"` or `"Hello \{name}!"`
     Interpolated(Vec<InterpolPart>),
     Ident(String),
     Binary(Box<Expr>, BinOp, Box<Expr>),
     Unary(UnaryOp, Box<Expr>),
     /// cond ? then : els — ternary operator       (C / Java)
     Ternary { cond: Box<Expr>, then: Box<Expr>, els: Box<Expr> },
+    /// left ?: right — Elvis / null-coalescing    (Kotlin / Groovy)
+    Elvis { left: Box<Expr>, right: Box<Expr> },
     /// name(args)  — regular function call
     Call { name: String, args: Vec<Expr> },
+    /// name!(args)  — macro-style call            (Rust-inspired)
+    MacroCall { name: String, args: Vec<Expr> },
     /// Type::method(args)  — static method call   (C++ / Rust)
     StaticCall { type_name: String, method: String, args: Vec<Expr> },
     /// obj.field
     FieldAccess { obj: Box<Expr>, field: String },
+    /// obj?.field — optional chaining             (Swift / Kotlin)
+    OptChain { expr: Box<Expr>, field: String },
     /// obj.method(args)
     MethodCall { obj: Box<Expr>, method: String, args: Vec<Expr> },
     /// StructName { field: expr, ... }  — struct literal (no `new`)
@@ -142,12 +150,16 @@ pub enum Expr {
 
 #[derive(Debug, Clone)]
 pub enum Stmt {
-    /// var name = expr;
+    /// var name = expr;  (old syntax)
     Let { name: String, expr: Expr },
+    /// let name = expr;  / mut name = expr;  (new syntax)
+    LetNew { name: String, mutable: bool, ty: Option<String>, expr: Expr },
     /// var (a, b) = expr;  — tuple destructuring   (Python / Rust)
     LetTuple { names: Vec<String>, expr: Expr },
     /// const NAME = expr;                           (Rust / C++)
     Const { name: String, expr: Expr },
+    /// type Name = Type;  — type alias              (Swift / Kotlin)
+    TypeAlias { name: String, ty: String },
     /// name = expr;
     Assign { name: String, expr: Expr },
     /// obj.field = expr;
@@ -200,11 +212,12 @@ pub enum Stmt {
     Continue,
     /// match expr { pat => { body }, ... }
     Match { expr: Expr, arms: Vec<MatchArm> },
-    /// func name(params) { body }
+    /// func/fn name(params) { body }
     FnDecl {
-        name:   String,
-        params: Vec<Param>,
-        body:   Vec<Stmt>,
+        name:      String,
+        params:    Vec<Param>,
+        body:      Vec<Stmt>,
+        expr_body: Option<Expr>,  // fat-arrow body: fn f(x) => expr;
     },
     /// @annotation
     Annotation { name: String },
@@ -244,7 +257,7 @@ pub enum Stmt {
     },
     /// defer stmt;                          (Go) — executes at function exit
     Defer(Box<Stmt>),
-    /// import "module";                     — multi-file import
+    /// import "module";                     — multi-file import (old syntax)
     Import { path: String },
     /// extern func name(p0, p1, ...): ret;  — declare external C function
     ExternFn {
