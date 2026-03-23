@@ -66,7 +66,7 @@ import "std/math";
 ```orbitron
 import "std/math";
 
-func main() {
+fn main() {
     // Константы
     println(PI);                    // 3.141593
     println(E);                     // 2.718282
@@ -125,7 +125,7 @@ import "std/bits";
 ```orbitron
 import "std/bits";
 
-func main() {
+fn main() {
     // Подсчёт битов
     println(bit_count(0));       // 0
     println(bit_count(255));     // 8  (все 8 битов установлены)
@@ -162,7 +162,7 @@ func main() {
 ```orbitron
 import "std/bits";
 
-func main() {
+fn main() {
     // Проверить чётность через биты
     var n = 42;
     var is_even = low_bit(n) == 1 ? 0 : 1;    // чётно если младший бит == 0
@@ -231,7 +231,7 @@ import "std/algo";
 ```orbitron
 import "std/algo";
 
-func main() {
+fn main() {
     // Сравнения
     println(min3(5, 2, 8));               // 2
     println(max3(5, 2, 8));               // 8
@@ -328,7 +328,7 @@ import "std/sys";
 ```orbitron
 import "std/sys";
 
-func main() {
+fn main() {
     // Получить PID процесса
     var pid = sys_getpid();
     println($"Мой PID: {pid}");
@@ -393,7 +393,7 @@ import "std/net";
 import "std/net";
 import "std/sys";
 
-func main() {
+fn main() {
     // Подключиться к localhost:8080
     var sock = tcp_socket();
     var ip   = net_ip(127, 0, 0, 1);
@@ -428,7 +428,7 @@ func main() {
 import "std/net";
 import "std/sys";
 
-func main() {
+fn main() {
     var server = tcp_socket();
     net_reuseaddr(server);
     net_bind(server, INADDR_ANY, 8080);
@@ -491,7 +491,7 @@ import "std/db";
 import "std/db";
 import "std/sys";
 
-func main() {
+fn main() {
     // Открыть базу данных
     var db = db_open(cstr("data.db"));
 
@@ -537,13 +537,13 @@ import "net/http";   // загружает src/net/http.ot
 
 const DEFAULT_TIMEOUT: int = 30;
 
-func clamp_score(s: int): int {
+fn clamp_score(s: int): int {
     if (s < 0)   { return 0; }
     if (s > 100) { return 100; }
     return s;
 }
 
-func sign(x: int): int {
+fn sign(x: int): int {
     if (x > 0) { return 1; }
     if (x < 0) { return -1; }
     return 0;
@@ -555,7 +555,7 @@ func sign(x: int): int {
 ```orbitron
 import "utils";
 
-func main() {
+fn main() {
     println(clamp_score(150));    // 100
     println(clamp_score(-10));    // 0
     println(sign(-5));            // -1

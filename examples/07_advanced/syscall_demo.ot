@@ -17,13 +17,13 @@ fn demo_pointers() {
     println!("=== Указатели ===");
 
     mut x = 42;
-    let addr = &x;          // адрес переменной x
+    var addr = &x;          // адрес переменной x
 
     println!("  x = \{x}");
     println!("  &x (адрес) = \{addr}");
 
     // Чтение через указатель
-    let val = *addr;
+    var val = *addr;
     println!("  *addr = \{val}");    // 42
 
     // Запись через указатель
@@ -32,12 +32,12 @@ fn demo_pointers() {
 
     // Арифметика с несколькими переменными
     mut a = 10;
-    let b = 20;
-    let c = 30;
+    var b = 20;
+    var c = 30;
 
-    let pa = &a;
-    let pb = &b;
-    let pc = &c;
+    var pa = &a;
+    var pb = &b;
+    var pc = &c;
 
     println!("\n  a=\{a}, b=\{b}, c=\{c}");
     println!("  адреса: a=\{pa}, b=\{pb}, c=\{pc}");
@@ -54,11 +54,11 @@ fn demo_pointers() {
 fn demo_cstr() {
     println!("\n=== C-строки (cstr) ===");
 
-    let hello_ptr = cstr("Привет из cstr!\n");
+    var hello_ptr = cstr("Привет из cstr!\n");
     println!("  адрес строки: \{hello_ptr}");
 
-    let msg     = cstr("Hello, syscall!\n");
-    let written = sys_write(1, msg, 16);
+    var msg     = cstr("Hello, syscall!\n");
+    var written = sys_write(1, msg, 16);
     println!("  sys_write вернул: \{written}");
 }
 
@@ -69,16 +69,16 @@ fn demo_cstr() {
 fn demo_syscalls() {
     println!("\n=== Прямые системные вызовы ===");
 
-    let pid  = syscall(SYS_GETPID);
+    var pid  = syscall(SYS_GETPID);
     println!("  PID процесса: \{pid}");
 
-    let ppid = syscall(SYS_GETPPID);
+    var ppid = syscall(SYS_GETPPID);
     println!("  PPID (родитель): \{ppid}");
 
-    let uid  = syscall(SYS_GETUID);
+    var uid  = syscall(SYS_GETUID);
     println!("  UID пользователя: \{uid}");
 
-    let gid  = syscall(SYS_GETGID);
+    var gid  = syscall(SYS_GETGID);
     println!("  GID группы: \{gid}");
 
     println!("\n  (все вызовы выполнены через syscall(NR, ...))");
@@ -94,8 +94,8 @@ fn demo_time() {
     println!("\n=== Получение времени ===");
 
     mut tv_sec  = 0;
-    let tv_ptr  = &tv_sec;
-    let ret     = gettimeofday(tv_ptr, 0);
+    var tv_ptr  = &tv_sec;
+    var ret     = gettimeofday(tv_ptr, 0);
 
     if (ret == 0) {
         println!("  gettimeofday успешен");
@@ -114,7 +114,7 @@ fn demo_bytes() {
     println!("\n=== Побайтовая запись ===");
 
     mut word = 0;
-    let addr = &word;
+    var addr = &word;
 
     ptr_write_byte(addr, 171);
     println!("  word после ptr_write_byte(addr, 0xAB): \{word}");
@@ -134,9 +134,9 @@ extern fn close(fd: i64): i64;
 fn demo_sign_ext() {
     println!("\n=== sign_ext — расширение знака ===");
 
-    let path = cstr("/nonexistent/file.txt");
-    let raw  = open(path, 0, 0);           // O_RDONLY = 0
-    let fd   = sign_ext(raw);              // -1 правильно
+    var path = cstr("/nonexistent/file.txt");
+    var raw  = open(path, 0, 0);           // O_RDONLY = 0
+    var fd   = sign_ext(raw);              // -1 правильно
 
     println!("  raw от open(): \{raw}");   // может быть 4294967295
     println!("  sign_ext(raw): \{fd}");    // -1
@@ -156,7 +156,7 @@ fn demo_sign_ext() {
 fn demo_alloc() {
     println!("\n=== Выделение памяти (sys_alloc) ===");
 
-    let ptr = sys_alloc(64);
+    var ptr = sys_alloc(64);
 
     if (ptr == 0) {
         println!("  Ошибка выделения памяти");

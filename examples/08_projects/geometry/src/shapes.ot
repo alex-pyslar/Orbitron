@@ -16,13 +16,13 @@ impl Circle {
     public fn perimeter_x10(self): i64 => 628 * self.r / 100;
 
     public fn contains(self, px: i64, py: i64): i64 {
-        let dx = px - self.cx;
-        let dy = py - self.cy;
+        var dx = px - self.cx;
+        var dy = py - self.cy;
         return dx*dx + dy*dy <= self.r*self.r ? 1 : 0;
     }
 
     public fn describe(self) {
-        let a = self.area_x100();
+        var a = self.area_x100();
         println!("Окружность: центр=(\{self.cx},\{self.cy}), r=\{self.r}, площадь≈\{a}/100");
     }
 }
@@ -51,8 +51,8 @@ impl Rect {
     }
 
     public fn describe(self) {
-        let a = self.area();
-        let p = self.perimeter();
+        var a = self.area();
+        var p = self.perimeter();
         println!("Прямоугольник: (\{self.x},\{self.y}) \{self.w}x\{self.h}, площадь=\{a}, периметр=\{p}");
     }
 }
@@ -81,9 +81,9 @@ impl Triangle {
 
     public fn is_right(self): i64 {
         // Проверка теоремы Пифагора (a^2 + b^2 == c^2 или перестановки)
-        let a2 = self.a * self.a;
-        let b2 = self.b * self.b;
-        let c2 = self.c * self.c;
+        var a2 = self.a * self.a;
+        var b2 = self.b * self.b;
+        var c2 = self.c * self.c;
         if (a2 + b2 == c2) { return 1; }
         if (a2 + c2 == b2) { return 1; }
         if (b2 + c2 == a2) { return 1; }
@@ -91,8 +91,8 @@ impl Triangle {
     }
 
     public fn describe(self) {
-        let p = self.perimeter();
-        let v = self.is_valid();
+        var p = self.perimeter();
+        var v = self.is_valid();
         println!("Треугольник: (\{self.a},\{self.b},\{self.c}), периметр=\{p}, допустим=\{v}");
     }
 }

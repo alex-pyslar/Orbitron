@@ -90,19 +90,19 @@ fn main() {
 
     // --- Практический пример ---
     println!("\n-- Пример: НОД и НОК для набора чисел --");
-    let a = 12;
-    let b = 18;
-    let c = 24;
+    var a = 12;
+    var b = 18;
+    var c = 24;
 
-    let g = gcd(gcd(a, b), c);
+    var g = gcd(gcd(a, b), c);
     println!("НОД(\{a},\{b},\{c}) = \{g}");   // 6
 
-    let l = lcm(lcm(a, b), c);
+    var l = lcm(lcm(a, b), c);
     println!("НОК(\{a},\{b},\{c}) = \{l}");   // 72
 
     // --- Использование PI ---
     println!("\n-- Вычисления с PI --");
-    let r         = 5;
-    let area_float = PI * r * r;   // PI — f64, r повышается
+    var r         = 5;
+    var area_float = PI * r * r;   // PI — f64, r повышается
     println!("Площадь круга r=\{r}: \{area_float}");   // ≈ 78.54
 }

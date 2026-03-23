@@ -47,7 +47,7 @@ fn max2(a: i64, b: i64): i64 => a > b ? a : b;
 ```orbitron
 fn main() {
     greet();               // вызов без аргументов
-    let sum = add(3, 4);   // вызов с аргументами, захват возвращаемого значения
+    var sum = add(3, 4);   // вызов с аргументами, захват возвращаемого значения
     println!(sum);         // 7
 }
 ```
@@ -141,7 +141,7 @@ fn main() {
 
 ```orbitron
 fn create_rect(width: i64, height: i64 = 10, filled: i64 = 0): i64 {
-    let area = width * height;
+    var area = width * height;
     println!("прямоугольник \{width}x\{height}, заполнен=\{filled}, площадь=\{area}");
     return area;
 }
@@ -192,7 +192,7 @@ fn main() {
 
 ```orbitron
 fn compute() {
-    let x = 10;   // локальна для compute
+    var x = 10;   // локальна для compute
     println!(x);
 }
 
@@ -271,7 +271,7 @@ fn fib_iter(n: i64): i64 {
     mut b = 1;
     mut i = 2;
     while (i <= n) {
-        let tmp = a + b;
+        var tmp = a + b;
         a = b;
         b = tmp;
         i += 1;
@@ -302,15 +302,15 @@ fn main() {
 Используется синтаксис `|параметры| тело`:
 
 ```orbitron
-let double = |x| x * 2;
-let add    = |a, b| a + b;
-let square = |x| x * x;
+var double = |x| x * 2;
+var add    = |a, b| a + b;
+var square = |x| x * x;
 ```
 
 ### Вызов лямбды
 
 ```orbitron
-let double = |x| x * 2;
+var double = |x| x * 2;
 println!(double(5));    // 10
 println!(double(21));   // 42
 ```
@@ -318,7 +318,7 @@ println!(double(21));   // 42
 ### Лямбды с несколькими параметрами
 
 ```orbitron
-let clamp = |x, lo, hi| x < lo ? lo : x > hi ? hi : x;
+var clamp = |x, lo, hi| x < lo ? lo : x > hi ? hi : x;
 
 println!(clamp(5, 0, 10));    // 5
 println!(clamp(-3, 0, 10));   // 0
@@ -330,11 +330,11 @@ println!(clamp(15, 0, 10));   // 10
 Лямбды удобно комбинировать с оператором `|>`:
 
 ```orbitron
-let double  = |x| x * 2;
-let inc     = |x| x + 1;
-let negate  = |x| -x;
+var double  = |x| x * 2;
+var inc     = |x| x + 1;
+var negate  = |x| -x;
 
-let result = 5 |> double |> inc |> negate;
+var result = 5 |> double |> inc |> negate;
 println!(result);   // -(5*2+1) = -11
 ```
 
@@ -343,9 +343,9 @@ println!(result);   // -(5*2+1) = -11
 Если тело лямбды сложнее одного выражения, используйте блок `{ ... }`:
 
 ```orbitron
-let process = |x| {
-    let doubled = x * 2;
-    let shifted = doubled + 10;
+var process = |x| {
+    var doubled = x * 2;
+    var shifted = doubled + 10;
     return shifted;
 };
 
@@ -398,8 +398,8 @@ class Counter {
 }
 
 fn main() {
-    let start = Counter::zero();   // статический вызов
-    let c = new Counter(start);
+    var start = Counter::zero();   // статический вызов
+    var c = new Counter(start);
     c.inc();
     c.inc();
     println!(c.get());   // 2
@@ -438,9 +438,9 @@ fn inc(n: i64):    i64 => n + 1;
 fn square(n: i64): i64 => n * n;
 
 fn main() {
-    let r1 = 3 |> double;                     // double(3) = 6
-    let r2 = 3 |> double |> inc;              // inc(double(3)) = 7
-    let r3 = 3 |> double |> inc |> square;    // square(inc(double(3))) = 49
+    var r1 = 3 |> double;                     // double(3) = 6
+    var r2 = 3 |> double |> inc;              // inc(double(3)) = 7
+    var r3 = 3 |> double |> inc |> square;    // square(inc(double(3))) = 49
 
     println!(r1);   // 6
     println!(r2);   // 7
@@ -455,10 +455,10 @@ fn main() {
 
 ```orbitron
 // Вложенные вызовы — читать справа налево, изнутри наружу
-let r1 = square(inc(double(3)));
+var r1 = square(inc(double(3)));
 
 // Конвейер — читать слева направо, данные текут естественно
-let r2 = 3 |> double |> inc |> square;
+var r2 = 3 |> double |> inc |> square;
 ```
 
 ### Конвейер с дополнительными аргументами
@@ -474,7 +474,7 @@ fn clamp(x: i64, lo: i64, hi: i64): i64 {
 
 fn main() {
     // Эквивалентно: clamp(150, 0, 100)
-    let r = 150 |> clamp(0, 100);
+    var r = 150 |> clamp(0, 100);
     println!(r);   // 100
 }
 ```
@@ -482,7 +482,7 @@ fn main() {
 ### Конвейер с лямбдами
 
 ```orbitron
-let result = 5
+var result = 5
     |> |x| x * 2
     |> |x| x + 1
     |> |x| x * x;
@@ -575,7 +575,7 @@ fn main() {
 | Лямбда | `\|x, y\| x + y` | Анонимная функция |
 | Конвейер | `x \|> f \|> g` | То же что `g(f(x))` |
 | Статический метод | `pub static fn f()` | Вызов: `Type::f()` |
-| Область видимости | `let`/`mut` переменные локальны | `#const` верхнего уровня доступны везде |
+| Область видимости | `var`/`mut` переменные локальны | `#const` верхнего уровня доступны везде |
 
 ---
 
@@ -606,7 +606,7 @@ fn double(n: i64): i64 => n * 2;
 fn inc(n: i64):    i64 => n + 1;
 
 // Лямбда
-let clamp100 = |x| x > 100 ? 100 : x;
+var clamp100 = |x| x > 100 ? 100 : x;
 
 fn main() {
     println!(square(7));       // 49
@@ -617,7 +617,7 @@ fn main() {
     println!(power(5));        // 25 — exp = 2 по умолчанию
 
     // Лямбда в конвейере
-    let result = 5 |> double |> inc |> square;
+    var result = 5 |> double |> inc |> square;
     println!(result);          // (5*2+1)^2 = 121
 
     // Лямбда напрямую

@@ -107,25 +107,25 @@ fn main() {
 
     // --- Практические применения ---
     println!("\n-- Практика: выравнивание размера буфера --");
-    let needed   = 100;
-    let buf_size = next_pow2(needed);
+    var needed   = 100;
+    var buf_size = next_pow2(needed);
     println!("Нужно \{needed} байт → выделяем \{buf_size} байт");   // 128
 
     println!("\n-- Практика: количество шагов делением пополам --");
-    let n     = 1000;
-    let steps = floor_log2(n);
+    var n     = 1000;
+    var steps = floor_log2(n);
     println!("log2(\{n}) = \{steps}");   // 9
 
     println!("\n-- Практика: чётность/нечётность через биты --");
     for i in 0..8 {
-        let parity = low_bit(i) == 1 ? 1 : 0;
+        var parity = low_bit(i) == 1 ? 1 : 0;
         println!("  \{i}: нечётное=\{parity}");
     }
 
     println!("\n-- Практика: маски битов --");
-    let x = 42;   // 101010₂
+    var x = 42;   // 101010₂
     for k in 0..7 {
-        let bit = shr(x, k) % 2;
+        var bit = shr(x, k) % 2;
         println!("  бит \{k} числа \{x} = \{bit}");
     }
 }

@@ -12,23 +12,23 @@ fn main() {
     println!("=== Переменные и типы ===");
 
     // --- Целые числа ---
-    let height:   i64 = 100;   // метры
+    var height:   i64 = 100;   // метры
     mut velocity: i64 = 0;
-    let count         = 10;    // тип выводится как i64
+    var count         = 10;    // тип выводится как i64
 
     println!("height = \{height}");
     println!("count  = \{count}");
 
     // --- Числа с плавающей точкой ---
-    let ratio: f64 = 1.618;
-    let temp        = 36.6;   // тип выводится как f64
+    var ratio: f64 = 1.618;
+    var temp        = 36.6;   // тип выводится как f64
 
     println!("ratio = \{ratio}");
     println!("temp  = \{temp}");
 
     // --- Булевы значения (true=1, false=0) ---
-    let is_positive = true;    // == 1
-    let is_done     = false;   // == 0
+    var is_positive = true;    // == 1
+    var is_done     = false;   // == 0
 
     println!("is_positive = \{is_positive}");
     println!("is_done     = \{is_done}");
@@ -47,31 +47,31 @@ fn main() {
     println!("total = \{total}");
 
     // --- Оператор ** (степень) ---
-    let v_sq = velocity ** 2;    // 900
-    let kb   = 2 ** 10;          // 1024 = 1 килобайт
-    let mb   = 2 ** 20;          // 1048576 = 1 мегабайт
+    var v_sq = velocity ** 2;    // 900
+    var kb   = 2 ** 10;          // 1024 = 1 килобайт
+    var mb   = 2 ** 20;          // 1048576 = 1 мегабайт
 
     println!("velocity^2 = \{v_sq}");
     println!("1 KB = \{kb} байт");
     println!("1 MB = \{mb} байт");
 
     // --- Использование констант ---
-    let force  = MASS * GRAVITY;            // 750 Н
-    let energy = MASS * GRAVITY * height;   // J
+    var force  = MASS * GRAVITY;            // 750 Н
+    var energy = MASS * GRAVITY * height;   // J
 
     println!("Сила: \{force} Н");
     println!("Потенциальная энергия: \{energy} Дж");
 
     // --- Деление ---
-    let a = 10;
-    let b = 3;
-    let q = a / b;     // 3 (целочисленное)
-    let r = a % b;     // 1 (остаток)
+    var a = 10;
+    var b = 3;
+    var q = a / b;     // 3 (целочисленное)
+    var r = a % b;     // 1 (остаток)
 
     println!("\{a} / \{b} = \{q} (остаток \{r})");
 
     // --- Числа с плавающей точкой ---
-    let fd: f64 = 10.0;
-    let result = fd / 3.0;    // 3.333...
+    var fd: f64 = 10.0;
+    var result = fd / 3.0;    // 3.333...
     println!("10.0 / 3.0 = \{result}");
 }

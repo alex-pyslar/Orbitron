@@ -89,7 +89,7 @@ entry:
 
 - Указатели (`&x`, `*x`, `ptr_write`, `ptr_read`)
 - Системные вызовы (`syscall`)
-- Внешние C-функции (`extern func`)
+- Внешние C-функции (`extern fn`)
 - `cstr()` — C-строки
 - Стандартная библиотека `std/sys`, `std/net`, `std/db`
 
@@ -164,11 +164,11 @@ backend = "jvm"
 
 Orbitron:
 ```orbitron
-func add(a: int, b: int): int {
+fn add(a: int, b: int): int {
     return a + b;
 }
 
-func main() {
+fn main() {
     println(add(3, 4));
 }
 ```
@@ -196,7 +196,7 @@ public class Main {
 | Кросс-платформенность | Нет (нужна перекомпиляция) | ✓ (везде, где есть JVM) |
 | Указатели и `&x`, `*x` | ✓ | ✗ (паника) |
 | `syscall()` | ✓ | ✗ |
-| `extern func` | ✓ | ✗ (игнорируется) |
+| `extern fn` | ✓ | ✗ (игнорируется) |
 | `cstr()` | ✓ | ✗ |
 | `std/sys`, `std/net`, `std/db` | ✓ | ✗ |
 | `std/math`, `std/bits`, `std/algo` | ✓ | ✓ |
@@ -325,19 +325,19 @@ orbitron fmt --write
 
 До (`fmt` не применён):
 ```orbitron
-func add(a:int,b:int):int{
+fn add(a:int,b:int):int{
 return a+b;
 }
-func main(){var x=add(3,4);println(x);}
+fn main(){var x=add(3,4);println(x);}
 ```
 
 После (`orbitron fmt --write`):
 ```orbitron
-func add(a: int, b: int): int {
+fn add(a: int, b: int): int {
     return a + b;
 }
 
-func main() {
+fn main() {
     var x = add(3, 4);
     println(x);
 }

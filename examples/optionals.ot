@@ -64,9 +64,9 @@ fn main() {
     // ── Оператор ?: (Elvis / null-coalescing) ──────────────────────────────────
     println!("\n=== Оператор ?: ===");
 
-    let present = 42;
-    let absent  = 0;
-    let small   = 1;
+    var present = 42;
+    var absent  = 0;
+    var small   = 1;
 
     // Базовое использование
     println!("42 ?: 99  = \{present ?: 99}");   // 42  (present != 0)
@@ -74,26 +74,26 @@ fn main() {
     println!("1  ?: 99  = \{small   ?: 99}");   // 1   (small  != 0)
 
     // Цепочка ?: (возвращает первое ненулевое)
-    let a = 0;
-    let b = 0;
-    let c = 7;
-    let first_nonzero = a ?: b ?: c ?: 100;
+    var a = 0;
+    var b = 0;
+    var c = 7;
+    var first_nonzero = a ?: b ?: c ?: 100;
     println!("0 ?: 0 ?: 7 ?: 100 = \{first_nonzero}");   // 7
 
     // В сочетании с вычислениями
-    let divisor = 0;
-    let safe = safe_div(100, divisor) ?: -1;   // делим на 0 → 0 → ?: -1
+    var divisor = 0;
+    var safe = safe_div(100, divisor) ?: -1;   // делим на 0 → 0 → ?: -1
     println!("safe_div(100, 0) ?: -1 = \{safe}");   // -1
 
-    let d2 = 5;
-    let safe2 = safe_div(100, d2) ?: -1;   // 100/5=20, не ноль → 20
+    var d2 = 5;
+    var safe2 = safe_div(100, d2) ?: -1;   // 100/5=20, не ноль → 20
     println!("safe_div(100, 5) ?: -1 = \{safe2}");   // 20
 
     // ── Конфигурация с ?: ────────────────────────────────────────────────────
     println!("\n=== Config с ?: (значения по умолчанию) ===");
 
-    let cfg_empty = Config::default();
-    let cfg_full  = Config::full();
+    var cfg_empty = Config::default();
+    var cfg_full  = Config::full();
 
     println!("  Пустая конфигурация (с дефолтами):");
     cfg_empty.describe();   // port=80 timeout=10 retries=1
@@ -104,21 +104,21 @@ fn main() {
     // ── Поиск с ?: для подстановки дефолта ───────────────────────────────────
     println!("\n=== Поиск с дефолтом через ?: ===");
 
-    let data = [10, 20, 30, 40, 50];
-    let n    = 5;
+    var data = [10, 20, 30, 40, 50];
+    var n    = 5;
 
-    let found1 = find_first(data, n, 30) ?: -1;
-    let found2 = find_first(data, n, 99) ?: -1;
+    var found1 = find_first(data, n, 30) ?: -1;
+    var found2 = find_first(data, n, 99) ?: -1;
     println!("find(30) ?: -1 = \{found1}");   // 30
     println!("find(99) ?: -1 = \{found2}");   // -1 (не найден)
 
     // ── Конфигурационные значения ─────────────────────────────────────────────
     println!("\n=== config_get с ?: ===");
 
-    let port    = config_get(1) ?: 80;      // 8080
-    let timeout = config_get(2) ?: 30;     // 60
-    let flag    = config_get(3) ?: 0;      // 0 (отключено, ?: 0 = 0)
-    let missing = config_get(9) ?: 42;     // 42 (не задано → дефолт)
+    var port    = config_get(1) ?: 80;      // 8080
+    var timeout = config_get(2) ?: 30;     // 60
+    var flag    = config_get(3) ?: 0;      // 0 (отключено, ?: 0 = 0)
+    var missing = config_get(9) ?: 42;     // 42 (не задано → дефолт)
 
     println!("  port    = \{port}");      // 8080
     println!("  timeout = \{timeout}");   // 60
@@ -128,16 +128,16 @@ fn main() {
     // ── Цепочка ?: для каскадных дефолтов ────────────────────────────────────
     println!("\n=== Каскадные дефолты ===");
 
-    let user_val   = 0;
-    let env_val    = 0;
-    let system_val = 9090;
-    let hardcoded  = 3000;
+    var user_val   = 0;
+    var env_val    = 0;
+    var system_val = 9090;
+    var hardcoded  = 3000;
 
-    let effective = user_val ?: env_val ?: system_val ?: hardcoded;
+    var effective = user_val ?: env_val ?: system_val ?: hardcoded;
     println!("  user=0, env=0, sys=9090 → effective=\{effective}");   // 9090
 
-    let user_val2  = 4000;
-    let effective2 = user_val2 ?: env_val ?: system_val ?: hardcoded;
+    var user_val2  = 4000;
+    var effective2 = user_val2 ?: env_val ?: system_val ?: hardcoded;
     println!("  user=4000, env=0, sys=9090 → effective=\{effective2}"); // 4000
 
     // ── assert! для проверки ──────────────────────────────────────────────────

@@ -8,7 +8,7 @@ fn main() {
     // --- Создание и чтение ---
     println!("\n-- Создание и чтение --");
 
-    let primes = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29];
+    var primes = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29];
     println!("Первое простое:    \{primes[0]}");    // 2
     println!("Последнее (из 10): \{primes[9]}");   // 29
 
@@ -24,7 +24,7 @@ fn main() {
     // --- Перебор через индекс ---
     println!("\n-- Перебор через индекс --");
 
-    let nums = [5, 10, 15, 20, 25, 30];
+    var nums = [5, 10, 15, 20, 25, 30];
     for i in 0..6 {
         println!("  nums[\{i}] = \{nums[i]}");
     }
@@ -32,7 +32,7 @@ fn main() {
     // --- Перебор for-in (Python-стиль) ---
     println!("\n-- Перебор for-in --");
 
-    let fib = [1, 1, 2, 3, 5, 8, 13, 21];
+    var fib = [1, 1, 2, 3, 5, 8, 13, 21];
     mut fib_sum = 0;
     for x in fib {
         fib_sum += x;
@@ -43,19 +43,19 @@ fn main() {
     // --- Сумма ---
     println!("\n-- Сумма элементов --");
 
-    let data = [3, 1, 4, 1, 5, 9, 2, 6, 5, 3];
+    var data = [3, 1, 4, 1, 5, 9, 2, 6, 5, 3];
     mut sum = 0;
     for i in 0..10 { sum += data[i]; }
     println!("Сумма: \{sum}");    // 39
 
     // --- Среднее ---
-    let avg = sum / 10;
+    var avg = sum / 10;
     println!("Среднее: \{avg}");  // 3
 
     // --- Поиск максимума и минимума ---
     println!("\n-- Максимум и минимум --");
 
-    let vals = [42, 17, 83, 55, 6, 99, 31, 78, 24, 66];
+    var vals = [42, 17, 83, 55, 6, 99, 31, 78, 24, 66];
     mut max = vals[0];
     mut min = vals[0];
     mut max_idx = 0;
@@ -72,7 +72,7 @@ fn main() {
     // --- Подсчёт элементов по условию ---
     println!("\n-- Фильтрация --");
 
-    let scores = [85, 92, 47, 73, 96, 58, 81, 64, 90, 77];
+    var scores = [85, 92, 47, 73, 96, 58, 81, 64, 90, 77];
     mut passed = 0;
     mut failed = 0;
 
@@ -90,13 +90,13 @@ fn main() {
     println!("\n-- Реверс массива --");
 
     mut rev = [1, 2, 3, 4, 5, 6, 7, 8];
-    let n   = 8;
+    var n   = 8;
 
     mut left  = 0;
     mut right = n - 1;
 
     while (left < right) {
-        let tmp    = rev[left];
+        var tmp    = rev[left];
         rev[left]  = rev[right];
         rev[right] = tmp;
         left  += 1;
@@ -109,13 +109,13 @@ fn main() {
     println!("\n-- Сортировка пузырьком --");
 
     mut sort = [64, 34, 25, 12, 22, 11, 90];
-    let sz   = 7;
+    var sz   = 7;
 
     for pass in 0..sz {
         for j in 0..sz {
             if (j + 1 < sz) {
                 if (sort[j] > sort[j + 1]) {
-                    let tmp      = sort[j];
+                    var tmp      = sort[j];
                     sort[j]      = sort[j + 1];
                     sort[j + 1]  = tmp;
                 }
@@ -129,8 +129,8 @@ fn main() {
     // --- Линейный поиск ---
     println!("\n-- Линейный поиск --");
 
-    let haystack = [10, 30, 50, 70, 90, 110, 130];
-    let needle   = 70;
+    var haystack = [10, 30, 50, 70, 90, 110, 130];
+    var needle   = 70;
     mut found    = -1;
 
     for i in 0..7 {
@@ -145,7 +145,7 @@ fn main() {
     // --- Накопительная сумма ---
     println!("\n-- Накопительная сумма --");
 
-    let src = [1, 2, 3, 4, 5];
+    var src = [1, 2, 3, 4, 5];
     mut acc = [0, 0, 0, 0, 0];
     acc[0] = src[0];
     for i in 1..5 {

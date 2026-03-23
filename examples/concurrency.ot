@@ -1,4 +1,4 @@
-func worker(id) {
+fn worker(id) {
     println(id);
 }
 
@@ -7,7 +7,7 @@ async fn fetch(url) {
     return 42;
 }
 
-func main() {
+fn main() {
     // var mut — mutable variable
     var mut counter = 0;
     counter = counter + 1;

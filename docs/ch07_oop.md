@@ -17,7 +17,7 @@ Orbitron поддерживает несколько стилей ООП, вдо
 Оба основных стиля поддерживают:
 - Именованные поля (данные)
 - Методы (функции, работающие с данными)
-- Статические методы (`static func`)
+- Статические методы (`static fn`)
 - Модификаторы доступа `pub` и `private`
 - Явный параметр `self`
 
@@ -120,7 +120,7 @@ impl Rectangle {
     }
 }
 
-func main() {
+fn main() {
     var r = Rectangle { width: 5, height: 3 };
     r.describe();           // Прямоугольник 5x3: площадь=15, периметр=16
     println(r.is_square()); // 0
@@ -154,7 +154,7 @@ impl Vec3 {
     }
 }
 
-func main() {
+fn main() {
     var v2 = Vec2 { x: 3, y: 4 };
     println(v2.len_sq());          // 25
     println(v2.dot(1, 0));         // 3
@@ -261,7 +261,7 @@ class BankAccount {
     }
 }
 
-func main() {
+fn main() {
     var acc = new BankAccount(1000);
     println(acc.get_balance());   // 1000
 
@@ -280,7 +280,7 @@ func main() {
 
 ---
 
-## 7.4 — Статические методы (`static func`)
+## 7.4 — Статические методы (`static fn`)
 
 Статические методы принадлежат **типу**, а не конкретному экземпляру.
 Они не принимают `self` и вызываются через синтаксис `Тип::метод(аргументы)`.
@@ -298,17 +298,17 @@ impl Vector {
     }
 
     // Статический метод — не принимает self
-    static func zero() -> int {
+    static fn zero() -> int {
         return 0;
     }
 
-    static func from_angle(deg: int): int {
+    static fn from_angle(deg: int): int {
         // упрощение: возвращает код направления
         return deg / 90;
     }
 }
 
-func main() {
+fn main() {
     var v = Vector { x: 3, y: 4 };
     println(v.len_sq());              // 25 — вызов обычного метода
 
@@ -335,16 +335,16 @@ class Config {
     public fn get_timeout(self): int { return self.timeout; }
 
     // Фабричный статический метод — создаёт «дефолтный» экземпляр
-    static func default_timeout(): int {
+    static fn default_timeout(): int {
         return 30;
     }
 
-    static func default_max(): int {
+    static fn default_max(): int {
         return 100;
     }
 }
 
-func main() {
+fn main() {
     var t = Config::default_timeout();   // 30
     var m = Config::default_max();       // 100
     var cfg = new Config(m, t);
@@ -363,12 +363,12 @@ func main() {
 
 ```orbitron
 trait Printable {
-    func print_info(self);
+    fn print_info(self);
 }
 
 trait Measurable {
-    func area(self): int;
-    func perimeter(self): int;
+    fn area(self): int;
+    fn perimeter(self): int;
 }
 ```
 
@@ -383,12 +383,12 @@ struct Circle {
 }
 
 impl Measurable for Circle {
-    func area(self): int {
+    fn area(self): int {
         // приближение: PI ≈ 314/100
         return 314 * self.radius * self.radius / 100;
     }
 
-    func perimeter(self): int {
+    fn perimeter(self): int {
         return 628 * self.radius / 100;
     }
 }
@@ -398,16 +398,16 @@ struct Square {
 }
 
 impl Measurable for Square {
-    func area(self): int {
+    fn area(self): int {
         return self.side * self.side;
     }
 
-    func perimeter(self): int {
+    fn perimeter(self): int {
         return 4 * self.side;
     }
 }
 
-func main() {
+fn main() {
     var c = Circle { radius: 5 };
     println(c.area());       // 78 (≈ π·25)
     println(c.perimeter());  // 31 (≈ 2π·5)
@@ -422,8 +422,8 @@ func main() {
 
 ```orbitron
 trait Comparable {
-    func less_than(self, other: int): int;
-    func equal_to(self, other: int): int;
+    fn less_than(self, other: int): int;
+    fn equal_to(self, other: int): int;
 }
 
 struct Score {
@@ -431,16 +431,16 @@ struct Score {
 }
 
 impl Comparable for Score {
-    func less_than(self, other: int): int {
+    fn less_than(self, other: int): int {
         return self.value < other ? 1 : 0;
     }
 
-    func equal_to(self, other: int): int {
+    fn equal_to(self, other: int): int {
         return self.value == other ? 1 : 0;
     }
 }
 
-func main() {
+fn main() {
     var s1 = Score { value: 75 };
     var s2 = Score { value: 90 };
 
@@ -464,7 +464,7 @@ struct Vec2 {
 }
 
 impl Add for Vec2 {
-    func add(self, other_x: int, other_y: int): int {
+    fn add(self, other_x: int, other_y: int): int {
         // Возвращает суммарный вектор — здесь выводим результат
         println($"Vec2({self.x + other_x}, {self.y + other_y})");
         return 0;
@@ -472,13 +472,13 @@ impl Add for Vec2 {
 }
 
 impl Sub for Vec2 {
-    func sub(self, other_x: int, other_y: int): int {
+    fn sub(self, other_x: int, other_y: int): int {
         println($"Vec2({self.x - other_x}, {self.y - other_y})");
         return 0;
     }
 }
 
-func main() {
+fn main() {
     var a = Vec2 { x: 3, y: 4 };
     var b = Vec2 { x: 1, y: 2 };
 
@@ -491,13 +491,13 @@ func main() {
 
 | Трейт | Метод | Оператор |
 |-------|-------|---------|
-| `Add` | `func add(self, ...)` | `+` |
-| `Sub` | `func sub(self, ...)` | `-` |
-| `Mul` | `func mul(self, ...)` | `*` |
-| `Div` | `func div(self, ...)` | `/` |
-| `Neg` | `func neg(self)` | унарный `-` |
-| `Eq`  | `func eq(self, ...)` | `==` |
-| `Ord` | `func cmp(self, ...)` | `<`, `>`, `<=`, `>=` |
+| `Add` | `fn add(self, ...)` | `+` |
+| `Sub` | `fn sub(self, ...)` | `-` |
+| `Mul` | `fn mul(self, ...)` | `*` |
+| `Div` | `fn div(self, ...)` | `/` |
+| `Neg` | `fn neg(self)` | унарный `-` |
+| `Eq`  | `fn eq(self, ...)` | `==` |
+| `Ord` | `fn cmp(self, ...)` | `<`, `>`, `<=`, `>=` |
 
 ---
 
@@ -568,7 +568,7 @@ class Cat extends Animal {
     }
 }
 
-func main() {
+fn main() {
     var dog = new Dog(1, 3, 42);   // name=1, age=3, breed=42
     var cat = new Cat(2, 5, 1);    // name=2, age=5, indoor=true
 
@@ -628,7 +628,7 @@ class RegularPolygon extends Polygon {
     }
 }
 
-func main() {
+fn main() {
     var hex = new RegularPolygon(3, 6, 10);   // color=3, sides=6, len=10
     println(hex.get_color());    // 3
     println(hex.get_sides());    // 6
@@ -683,7 +683,7 @@ class Stack {
     }
 }
 
-func main() {
+fn main() {
     var s = new Stack();
     s.push(10);
     s.push(20);
@@ -733,7 +733,7 @@ func main() {
 | Создание | `Name { field: val }` | `new Name(args)` | `new Dog(args)` | — |
 | Реализация | — | — | — | `impl Trait for Type` |
 | `self` | Явный параметр | Явный параметр | Явный параметр | Явный параметр |
-| Статические | `static func f()` | `static func f()` | `static func f()` | — |
+| Статические | `static fn f()` | `static fn f()` | `static fn f()` | — |
 
 ---
 
@@ -743,8 +743,8 @@ func main() {
 // examples/05_oop/structs.ot
 
 trait Shape {
-    func area(self): int;
-    func perimeter(self): int;
+    fn area(self): int;
+    fn perimeter(self): int;
 }
 
 struct Circle {
@@ -754,11 +754,11 @@ struct Circle {
 }
 
 impl Shape for Circle {
-    func area(self): int {
+    fn area(self): int {
         return 314 * self.radius * self.radius / 100;
     }
 
-    func perimeter(self): int {
+    fn perimeter(self): int {
         return 628 * self.radius / 100;
     }
 }
@@ -783,12 +783,12 @@ struct Triangle {
 }
 
 impl Shape for Triangle {
-    func area(self): int {
+    fn area(self): int {
         // Формула Герона: s*(s-a)*(s-b)*(s-c), приблизительно через периметр
         return self.a * self.b / 2;   // упрощение для прямоугольного треугольника
     }
 
-    func perimeter(self): int {
+    fn perimeter(self): int {
         return self.a + self.b + self.c;
     }
 }
@@ -810,7 +810,7 @@ impl Triangle {
     }
 }
 
-func main() {
+fn main() {
     var c = Circle { radius: 5, cx: 0, cy: 0 };
     c.describe();
     println(c.area());           // 78

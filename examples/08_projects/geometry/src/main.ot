@@ -14,8 +14,8 @@ fn max2(a: i64, b: i64): i64 => a > b ? a : b;
 
 // Расстояние между точками (квадрат расстояния)
 fn dist_sq(x1: i64, y1: i64, x2: i64, y2: i64): i64 {
-    let dx = x2 - x1;
-    let dy = y2 - y1;
+    var dx = x2 - x1;
+    var dy = y2 - y1;
     return dx*dx + dy*dy;
 }
 
@@ -27,7 +27,7 @@ fn demo_vec2() {
     println!("=== Vec2 (2D-векторы) ===");
 
     mut u = Vec2 { x: 3, y: 4 };
-    let v = Vec2 { x: 1, y: 2 };
+    var v = Vec2 { x: 1, y: 2 };
 
     u.describe();
     v.describe();
@@ -36,7 +36,7 @@ fn demo_vec2() {
     println!("  |u|² = \{u.len_sq()}");
 
     // Скалярное произведение u·v: 3*1 + 4*2 = 11
-    let dp = u.dot(v.x, v.y);
+    var dp = u.dot(v.x, v.y);
     println!("  u·v  = \{dp}");
 
     // Манхэттенское расстояние
@@ -63,7 +63,7 @@ fn demo_vec3() {
     println!("\n=== Vec3 (3D-векторы) ===");
 
     mut a = Vec3 { x: 1, y: 2, z: 3 };
-    let b = Vec3 { x: 4, y: 5, z: 6 };
+    var b = Vec3 { x: 4, y: 5, z: 6 };
 
     a.describe();
     b.describe();
@@ -88,7 +88,7 @@ fn demo_vec3() {
 fn demo_circle() {
     println!("\n=== Circle (окружность) ===");
 
-    let c = Circle { cx: 0, cy: 0, r: 5 };
+    var c = Circle { cx: 0, cy: 0, r: 5 };
     c.describe();
 
     // Площадь ≈ 314*25/100 = 78 (≈78.5 реально)
@@ -103,7 +103,7 @@ fn demo_circle() {
     println!("  (0,0) внутри? \{c.contains(0, 0)}");    // 1 (центр)
 
     // Другой круг
-    let c2 = Circle { cx: 10, cy: 10, r: 3 };
+    var c2 = Circle { cx: 10, cy: 10, r: 3 };
     c2.describe();
     println!("  (11,11) внутри? \{c2.contains(11, 11)}"); // 1+1=2 ≤ 9 → 1
     println!("  (13,10) внутри? \{c2.contains(13, 10)}"); // 9+0=9 ≤ 9 → 1
@@ -131,7 +131,7 @@ fn demo_rect() {
     r.describe();   // 12x8
 
     // Квадрат
-    let sq = Rect { x: 0, y: 0, w: 5, h: 5 };
+    var sq = Rect { x: 0, y: 0, w: 5, h: 5 };
     sq.describe();
     println!("  квадрат? = \{sq.is_square()}");   // 1
 }
@@ -144,7 +144,7 @@ fn demo_triangle() {
     println!("\n=== Triangle (треугольник) ===");
 
     // Египетский треугольник 3-4-5 (прямоугольный)
-    let t1 = Triangle { a: 3, b: 4, c: 5 };
+    var t1 = Triangle { a: 3, b: 4, c: 5 };
     t1.describe();
     println!("  допустим?      = \{t1.is_valid()}");        // 1
     println!("  равносторонний = \{t1.is_equilateral()}");  // 0
@@ -152,24 +152,24 @@ fn demo_triangle() {
     println!("  прямоугольный? = \{t1.is_right()}");        // 1
 
     // Равнобедренный
-    let t2 = Triangle { a: 5, b: 5, c: 6 };
+    var t2 = Triangle { a: 5, b: 5, c: 6 };
     t2.describe();
     println!("  равнобедренный = \{t2.is_isosceles()}");    // 1
     println!("  прямоугольный? = \{t2.is_right()}");        // 0
 
     // Равносторонний
-    let t3 = Triangle { a: 7, b: 7, c: 7 };
+    var t3 = Triangle { a: 7, b: 7, c: 7 };
     t3.describe();
     println!("  равносторонний = \{t3.is_equilateral()}");  // 1
     println!("  равнобедренный = \{t3.is_isosceles()}");    // 1 (частный случай)
 
     // Недопустимый
-    let bad = Triangle { a: 1, b: 2, c: 10 };
+    var bad = Triangle { a: 1, b: 2, c: 10 };
     bad.describe();
     println!("  допустим? = \{bad.is_valid()}");   // 0
 
     // Другой прямоугольный: 5-12-13
-    let t4 = Triangle { a: 5, b: 12, c: 13 };
+    var t4 = Triangle { a: 5, b: 12, c: 13 };
     t4.describe();
     println!("  прямоугольный? = \{t4.is_right()}");   // 1
 }
@@ -192,9 +192,9 @@ fn shape_name(t: i64): i64 {
 fn demo_enum() {
     println!("\n=== ShapeType (перечисление форм) ===");
 
-    let s1 = ShapeType.Circle;
-    let s2 = ShapeType.Rectangle;
-    let s3 = ShapeType.Triangle;
+    var s1 = ShapeType.Circle;
+    var s2 = ShapeType.Rectangle;
+    var s3 = ShapeType.Triangle;
 
     println!("Circle    = \{s1}");
     println!("Rectangle = \{s2}");
@@ -217,19 +217,19 @@ fn bounding_circle_check(c: Circle, r: Rect): i64 {
 fn demo_combined() {
     println!("\n=== Совместное использование фигур ===");
 
-    let c = Circle { cx: 3, cy: 3, r: 2 };
-    let r = Rect { x: 0, y: 0, w: 10, h: 10 };
+    var c = Circle { cx: 3, cy: 3, r: 2 };
+    var r = Rect { x: 0, y: 0, w: 10, h: 10 };
 
     c.describe();
     r.describe();
 
-    let inside = bounding_circle_check(c, r);
+    var inside = bounding_circle_check(c, r);
     println!("  Центр окружности внутри прямоугольника? \{inside}");
 
     // Вектор из центра прямоугольника к центру окружности
-    let rcx = r.x + r.w / 2;
-    let rcy = r.y + r.h / 2;
-    let d2 = dist_sq(rcx, rcy, c.cx, c.cy);
+    var rcx = r.x + r.w / 2;
+    var rcy = r.y + r.h / 2;
+    var d2 = dist_sq(rcx, rcy, c.cx, c.cy);
     println!("  Центр прямоуг.: (\{rcx},\{rcy}), расст.² к окружности = \{d2}");
 
     // Набор фигур через enum

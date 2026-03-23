@@ -78,7 +78,7 @@ class Stack {
 
     public fn peek(self): i64 {
         if (self.top == 0) { return -1; }
-        let t = self.top - 1;
+        var t = self.top - 1;
         if (t == 0) { return self.d0; }
         if (t == 1) { return self.d1; }
         if (t == 2) { return self.d2; }
@@ -150,27 +150,27 @@ fn main() {
     // --- BankAccount ---
     println!("\n-- BankAccount --");
 
-    let acc = new BankAccount(42, 1000);
+    var acc = new BankAccount(42, 1000);
     acc.describe();                                // Счёт #42: 1000 руб.
 
     acc.deposit(500);
     acc.describe();                                // 1500
 
-    let r1 = acc.withdraw(200);
+    var r1 = acc.withdraw(200);
     println!("  withdraw(200) = \{r1}");            // 0 (успех)
     acc.describe();                                // 1300
 
-    let r2 = acc.withdraw(2000);
+    var r2 = acc.withdraw(2000);
     println!("  withdraw(2000) = \{r2}");           // -2 (недостаточно)
     acc.describe();                                // 1300
 
-    let r3 = acc.deposit(-100);
+    var r3 = acc.deposit(-100);
     println!("  deposit(-100) = \{r3}");            // -1 (неверная сумма)
 
     // --- Stack ---
     println!("\n-- Stack --");
 
-    let s = new Stack();
+    var s = new Stack();
     println!("  empty = \{s.is_empty()}");    // 1
 
     s.push(10);
@@ -186,24 +186,24 @@ fn main() {
     println!("  empty = \{s.is_empty()}");    // 1
 
     // Вычисление обратной польской нотации: 3 4 + 5 *
-    let rpn = new Stack();
+    var rpn = new Stack();
     rpn.push(3);
     rpn.push(4);
-    let sum = rpn.pop() + rpn.pop();
+    var sum = rpn.pop() + rpn.pop();
     rpn.push(sum);
     rpn.push(5);
-    let prod = rpn.pop() * rpn.pop();
+    var prod = rpn.pop() * rpn.pop();
     rpn.push(prod);
     println!("  3 4 + 5 * = \{rpn.pop()}");   // 35
 
     // --- Timer ---
     println!("\n-- Timer --");
 
-    let t = new Timer(3, 10);   // событие каждые 3 тика, максимум 10 тиков
+    var t = new Timer(3, 10);   // событие каждые 3 тика, максимум 10 тиков
     mut events = 0;
 
     while (!t.done()) {
-        let fired = t.tick();
+        var fired = t.tick();
         if (fired) {
             events += 1;
             println!("  Событие на тике \{t.elapsed()}");
@@ -217,15 +217,15 @@ fn main() {
     // --- Matrix2x2 ---
     println!("\n-- Matrix2x2 --");
 
-    let m = new Matrix2x2(1, 2, 3, 4);
+    var m = new Matrix2x2(1, 2, 3, 4);
     m.describe();
     println!("  det   = \{m.det()}");     // 1*4 - 2*3 = -2
     println!("  trace = \{m.trace()}");   // 1 + 4 = 5
 
     // Два счёта — независимые объекты
     println!("\n-- Два независимых счёта --");
-    let a1 = new BankAccount(1, 500);
-    let a2 = new BankAccount(2, 800);
+    var a1 = new BankAccount(1, 500);
+    var a2 = new BankAccount(2, 800);
 
     a1.deposit(200);    // a1 = 700
     a2.withdraw(300);   // a2 = 500

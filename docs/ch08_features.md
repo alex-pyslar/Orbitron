@@ -108,11 +108,11 @@ var c = (2 ** 3) * 4;  // = 8 * 4 = 32
 ### Базовое использование
 
 ```orbitron
-func double(n: int): int { return n * 2; }
-func inc(n: int):    int { return n + 1; }
-func negate(n: int): int { return -n; }
+fn double(n: int): int { return n * 2; }
+fn inc(n: int):    int { return n + 1; }
+fn negate(n: int): int { return -n; }
 
-func main() {
+fn main() {
     var r = 5 |> double |> inc |> negate;
     println(r);   // -(5*2+1) = -11
 }
@@ -133,8 +133,8 @@ var r = 5 |> double |> inc |> negate;  // читать слева направо
 ### Конвейер с дополнительными аргументами
 
 ```orbitron
-func add(a: int, b: int): int { return a + b; }
-func mul(a: int, b: int): int { return a * b; }
+fn add(a: int, b: int): int { return a + b; }
+fn mul(a: int, b: int): int { return a * b; }
 
 var r = 5 |> add(3) |> mul(2);   // mul(add(5, 3), 2) = 16
 println(r);
@@ -290,7 +290,7 @@ match c {
 из функции**, независимо от того, через какой `return` происходит выход:
 
 ```orbitron
-func process() {
+fn process() {
     defer println("Завершено — очистка");
     println("Начало работы");
     // ... работа ...
@@ -305,7 +305,7 @@ func process() {
 (как стек):
 
 ```orbitron
-func multi_defer() {
+fn multi_defer() {
     defer println("Третий");
     defer println("Второй");
     defer println("Первый");
@@ -319,7 +319,7 @@ func multi_defer() {
 `defer` выполняется даже при раннем выходе из функции:
 
 ```orbitron
-func guarded(n: int): int {
+fn guarded(n: int): int {
     defer println("очистка выполняется всегда");
 
     if (n < 0) {
@@ -335,7 +335,7 @@ func guarded(n: int): int {
 ### Практическое применение
 
 ```orbitron
-func open_resource() {
+fn open_resource() {
     // Гарантируем, что close всегда выполнится после open
     defer println("ресурс закрыт");
     println("ресурс открыт");
@@ -541,18 +541,18 @@ println(mask);  // 240
 
 ```orbitron
 @test
-func test_sum() {
+fn test_sum() {
     assert_eq(1 + 1, 2);
     println("test_sum: OK");
 }
 
 @deprecated
-func old_function(x: int): int {
+fn old_function(x: int): int {
     return x;
 }
 
 @inline
-func fast_add(a: int, b: int): int {
+fn fast_add(a: int, b: int): int {
     return a + b;
 }
 ```
@@ -594,32 +594,32 @@ class Dog extends Animal {
 
 const MAX_SCORE: int = 100;    // Возможность 1: const
 
-func double(n: int): int { return n * 2; }
-func inc(n: int):    int { return n + 1; }
+fn double(n: int): int { return n * 2; }
+fn inc(n: int):    int { return n + 1; }
 
 enum Grade { Fail, Pass, Good, Excellent }  // Возможность 7: enum
 
-func get_grade(score: int): int {
+fn get_grade(score: int): int {
     return score >= 90 ? Grade.Excellent :  // Возможность 10: тернарный
            score >= 70 ? Grade.Good     :
            score >= 50 ? Grade.Pass     : Grade.Fail;
 }
 
-func compute(base: int): int {
+fn compute(base: int): int {
     defer println("вычисление завершено");   // Возможность 8: defer
     var power = base ** 3;                   // Возможность 2: **
     return power |> double |> inc;           // Возможность 3: |>
 }
 
 @test
-func test_grade() {
+fn test_grade() {
     assert_eq(get_grade(95), Grade.Excellent);
     assert_eq(get_grade(75), Grade.Good);
     assert_eq(get_grade(40), Grade.Fail);
     println("test_grade: OK");
 }
 
-func main() {
+fn main() {
     test_grade();   // Аннотация @test + assert_eq
 
     var scores = [75, 90, 45, 82, 55];      // Возможность 6: массивы

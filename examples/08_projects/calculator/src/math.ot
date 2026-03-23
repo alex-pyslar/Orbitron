@@ -28,7 +28,7 @@ fn calc_gcd(a: i64, b: i64): i64 {
     mut aa = calc_abs(a);
     mut bb = calc_abs(b);
     while (bb != 0) {
-        let tmp = bb;
+        var tmp = bb;
         bb = aa % bb;
         aa = tmp;
     }
@@ -36,7 +36,7 @@ fn calc_gcd(a: i64, b: i64): i64 {
 }
 
 fn calc_lcm(a: i64, b: i64): i64 {
-    let g = calc_gcd(a, b);
+    var g = calc_gcd(a, b);
     unless (g == 0) { return a / g * b; }
     return 0;
 }

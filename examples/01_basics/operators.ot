@@ -11,8 +11,8 @@ fn abs_val(n: i64): i64 => n >= 0 ? n : -n;
 fn main() {
     println!("=== Арифметические операторы ===");
 
-    let a = 17;
-    let b = 5;
+    var a = 17;
+    var b = 5;
 
     println!("\{a} + \{b} = \{a + b}");     // 22
     println!("\{a} - \{b} = \{a - b}");     // 12
@@ -24,8 +24,8 @@ fn main() {
     println!("");
     println!("=== Операторы сравнения ===");
 
-    let x = 10;
-    let y = 20;
+    var x = 10;
+    var y = 20;
 
     println!("\{x} == \{y}: \{x == y}");   // 0
     println!("\{x} != \{y}: \{x != y}");   // 1
@@ -37,8 +37,8 @@ fn main() {
     println!("");
     println!("=== Логические операторы ===");
 
-    let p = 1;   // истина
-    let q = 0;   // ложь
+    var p = 1;   // истина
+    var q = 0;   // ложь
 
     println!("p && q = \{p && q}");    // 0
     println!("p || q = \{p || q}");    // 1
@@ -60,38 +60,38 @@ fn main() {
     println!("");
     println!("=== Тернарный оператор ? : ===");
 
-    let score = 78;
-    let grade = score >= 90 ? 4 :
+    var score = 78;
+    var grade = score >= 90 ? 4 :
                 score >= 80 ? 3 :
                 score >= 70 ? 2 :
                 score >= 60 ? 1 : 0;
 
     println!("score=\{score}, grade=\{grade}");   // 2
 
-    let val = -7;
-    let abs = val >= 0 ? val : -val;
+    var val = -7;
+    var abs = val >= 0 ? val : -val;
     println!("|\{val}| = \{abs}");   // 7
 
-    let m = 5;
-    let k = 8;
-    let max = m > k ? m : k;
-    let min = m < k ? m : k;
+    var m = 5;
+    var k = 8;
+    var max = m > k ? m : k;
+    var min = m < k ? m : k;
     println!("max(\{m},\{k}) = \{max}");   // 8
     println!("min(\{m},\{k}) = \{min}");   // 5
 
     println!("");
     println!("=== Оператор конвейера |> ===");
 
-    let r1 = 3 |> double;
+    var r1 = 3 |> double;
     println!("3 |> double = \{r1}");                    // 6
 
-    let r2 = 3 |> double |> inc;
+    var r2 = 3 |> double |> inc;
     println!("3 |> double |> inc = \{r2}");             // 7
 
-    let r3 = 3 |> double |> inc |> square;
+    var r3 = 3 |> double |> inc |> square;
     println!("3 |> double |> inc |> square = \{r3}");   // 49
 
-    let r4 = -15 |> abs_val |> double;
+    var r4 = -15 |> abs_val |> double;
     println!("-15 |> abs_val |> double = \{r4}");       // 30
 
     println!("");

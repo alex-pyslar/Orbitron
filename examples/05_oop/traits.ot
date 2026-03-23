@@ -120,40 +120,40 @@ impl Vec2 {
 fn main() {
     println!("=== Трейты ===");
 
-    let r = Rect { w: 5, h: 3 };
+    var r = Rect { w: 5, h: 3 };
     println!("Площадь:    \{r.area()}");       // 15
     println!("Периметр:   \{r.perimeter()}");  // 16
     r.print_info();
 
     // Статический конструктор
-    let sq = Rect::square(4);
+    var sq = Rect::square(4);
     println!("Квадрат 4x4: площадь=\{sq.area()}");   // 16
 
     println!("\n=== Наследование классов ===");
 
-    let dog = new Dog(1, 30);
+    var dog = new Dog(1, 30);
     dog.describe();       // "Животное: 4 ног..."
     dog.bark();           // "Гав! (Лабрадор)"
     println!("Порода: \{dog.get_breed()}");
 
-    let husky = new Dog(2, 25);
+    var husky = new Dog(2, 25);
     husky.bark();         // "Ауф! (Хаски)"
 
-    let eagle = new Bird(1, 5);
+    var eagle = new Bird(1, 5);
     eagle.describe();     // "Животное: 2 ног, вес 5 кг"
     eagle.fly();          // "Птица летит!"
 
-    let penguin = new Bird(0, 15);
+    var penguin = new Bird(0, 15);
     penguin.fly();        // "Эта птица не летает."
 
     println!("\n=== Статические методы Vec2 ===");
 
-    let zero = Vec2::zero();
-    let ux   = Vec2::unit_x();
+    var zero = Vec2::zero();
+    var ux   = Vec2::unit_x();
     println!("zero: len_sq = \{zero.len_sq()}");  // 0
     println!("unit_x: len_sq = \{ux.len_sq()}");  // 1
 
-    let v = Vec2 { x: 3, y: 4 };
+    var v = Vec2 { x: 3, y: 4 };
     println!("(3,4): len_sq = \{v.len_sq()}");    // 25
     println!("dot((3,4), unit_x) = \{v.dot(ux)}"); // 3
 }

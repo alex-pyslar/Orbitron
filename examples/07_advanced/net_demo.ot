@@ -16,7 +16,7 @@
 fn demo_socket_create() {
     println!("=== Создание TCP-сокета ===");
 
-    let fd = tcp_socket();
+    var fd = tcp_socket();
 
     if (fd < 0) {
         println!("  Ошибка создания сокета: \{fd}");
@@ -37,7 +37,7 @@ fn demo_socket_create() {
 fn demo_socket_udp() {
     println!("\n=== Создание UDP-сокета ===");
 
-    let fd = udp_socket();
+    var fd = udp_socket();
 
     if (fd < 0) {
         println!("  Ошибка: \{fd}");
@@ -58,17 +58,17 @@ fn demo_socket_udp() {
 fn demo_tcp_connect() {
     println!("\n=== TCP-подключение к localhost:7777 ===");
 
-    let fd = tcp_socket();
+    var fd = tcp_socket();
     if (fd < 0) {
         println!("  Ошибка создания сокета: \{fd}");
         return;
     }
 
-    let ip   = net_ip(127, 0, 0, 1);
+    var ip   = net_ip(127, 0, 0, 1);
     println!("  IP 127.0.0.1 → \{ip}");
 
-    let port = 7777;
-    let ret  = tcp_connect(fd, ip, port);
+    var port = 7777;
+    var ret  = tcp_connect(fd, ip, port);
 
     if (ret < 0) {
         println!("  Подключение не удалось (ret=\{ret}) — сервер не запущен");
@@ -79,13 +79,13 @@ fn demo_tcp_connect() {
 
     println!("  Подключено к 127.0.0.1:\{port}");
 
-    let msg  = cstr("Hello from Orbitron!\n");
-    let sent = net_send(fd, msg, 21);
+    var msg  = cstr("Hello from Orbitron!\n");
+    var sent = net_send(fd, msg, 21);
     println!("  Отправлено \{sent} байт");
 
     mut buf      = 0;
-    let buf_addr = &buf;
-    let received = net_recv(fd, buf_addr, 8);
+    var buf_addr = &buf;
+    var received = net_recv(fd, buf_addr, 8);
     println!("  Получено \{received} байт");
 
     net_close(fd);
@@ -100,10 +100,10 @@ fn demo_tcp_server() {
     println!("\n=== TCP-сервер на порту 8080 (одно подключение) ===");
     println!("  (Пропускаем — используйте в реальном проекте)");
     println!("  Пример кода:");
-    println!("    let srv = tcp_socket();");
+    println!("    var srv = tcp_socket();");
     println!("    net_bind(srv, 0, 8080);");
     println!("    net_listen(srv, 5);");
-    println!("    let client = net_accept(srv);");
+    println!("    var client = net_accept(srv);");
     println!("    // ... net_recv / net_send ...");
     println!("    net_close(client);");
     println!("    net_close(srv);");
@@ -116,10 +116,10 @@ fn demo_tcp_server() {
 fn demo_net_ip() {
     println!("\n=== Конвертация IP-адресов ===");
 
-    let ip1 = net_ip(127, 0, 0, 1);
-    let ip2 = net_ip(192, 168, 1, 100);
-    let ip3 = net_ip(10, 0, 0, 1);
-    let ip4 = net_ip(8, 8, 8, 8);       // Google DNS
+    var ip1 = net_ip(127, 0, 0, 1);
+    var ip2 = net_ip(192, 168, 1, 100);
+    var ip3 = net_ip(10, 0, 0, 1);
+    var ip4 = net_ip(8, 8, 8, 8);       // Google DNS
 
     println!("  127.0.0.1       → \{ip1}");
     println!("  192.168.1.100   → \{ip2}");
@@ -127,10 +127,10 @@ fn demo_net_ip() {
     println!("  8.8.8.8 (DNS)   → \{ip4}");
 
     // Вычисляем октеты обратно
-    let d = ip2 % 256;
-    let c = ip2 / 256 % 256;
-    let b = ip2 / 65536 % 256;
-    let a = ip2 / 16777216 % 256;
+    var d = ip2 % 256;
+    var c = ip2 / 256 % 256;
+    var b = ip2 / 65536 % 256;
+    var a = ip2 / 16777216 % 256;
     println!("\n  Обратно: \{a}.\{b}.\{c}.\{d}");
 }
 
@@ -141,9 +141,9 @@ fn demo_net_ip() {
 fn demo_multiple_sockets() {
     println!("\n=== Несколько сокетов одновременно ===");
 
-    let fd1 = tcp_socket();
-    let fd2 = tcp_socket();
-    let fd3 = udp_socket();
+    var fd1 = tcp_socket();
+    var fd2 = tcp_socket();
+    var fd3 = udp_socket();
 
     if (fd1 < 0 || fd2 < 0 || fd3 < 0) {
         println!("  Ошибка создания сокетов");
@@ -170,13 +170,13 @@ fn demo_multiple_sockets() {
 fn connect_with_retry(ip: i64, port: i64, attempts: i64): i64 {
     mut i = 0;
     while (i < attempts) {
-        let fd = tcp_socket();
+        var fd = tcp_socket();
         if (fd < 0) {
             i += 1;
             continue;
         }
 
-        let ret = tcp_connect(fd, ip, port);
+        var ret = tcp_connect(fd, ip, port);
         if (ret >= 0) {
             return fd;   // успешное подключение
         }
@@ -191,8 +191,8 @@ fn connect_with_retry(ip: i64, port: i64, attempts: i64): i64 {
 fn demo_retry() {
     println!("\n=== Паттерн: подключение с повторными попытками ===");
 
-    let ip = net_ip(127, 0, 0, 1);
-    let fd = connect_with_retry(ip, 9999, 3);
+    var ip = net_ip(127, 0, 0, 1);
+    var fd = connect_with_retry(ip, 9999, 3);
 
     if (fd < 0) {
         println!("  Сервер недоступен после 3 попыток (ожидаемо)");

@@ -42,7 +42,7 @@ fn main() {
     // --- Сопоставление с целыми числами ---
     println!("\n-- Сопоставление с числом --");
 
-    let day = 3;
+    var day = 3;
     match day {
         1 => { println!("Понедельник"); }
         2 => { println!("Вторник"); }
@@ -57,7 +57,7 @@ fn main() {
     // --- Сопоставление с перечислением ---
     println!("\n-- Сопоставление с enum --");
 
-    let dir = Direction.East;
+    var dir = Direction.East;
     describe_dir(dir);
 
     for d in 0..4 {
@@ -67,12 +67,12 @@ fn main() {
     // --- Переменная внутри match ---
     println!("\n-- Переменная внутри ветви --");
 
-    let s = Season.Winter;
-    let t = season_temp(s);
+    var s = Season.Winter;
+    var t = season_temp(s);
     println!("Зима: \{t} °C");
 
     for season in 0..4 {
-        let temp = season_temp(season);
+        var temp = season_temp(season);
         match season {
             Season.Spring => { println!("Весна: \{temp} °C"); }
             Season.Summer => { println!("Лето:  \{temp} °C"); }
@@ -84,7 +84,7 @@ fn main() {
     // --- Джокер _ ---
     println!("\n-- Джокер _ (catch-all) --");
 
-    let st = Status.Banned;
+    var st = Status.Banned;
 
     match st {
         Status.Active   => { println!("Пользователь активен"); }
@@ -96,8 +96,8 @@ fn main() {
     println!("\n-- match как выражение --");
 
     for score in 0..5 {
-        let multiplied = score * 20;
-        let label = match multiplied {
+        var multiplied = score * 20;
+        var label = match multiplied {
             0  => 0,
             20 => 1,
             40 => 2,

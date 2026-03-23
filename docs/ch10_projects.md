@@ -40,14 +40,14 @@ orbitron new calculator
 calculator/
 ├── orbitron.toml       ← манифест проекта
 ├── src/
-│   └── main.ot         ← точка входа (содержит func main())
+│   └── main.ot         ← точка входа (содержит fn main())
 └── bin/                ← сюда попадает скомпилированный бинарник
 ```
 
 Сгенерированный `src/main.ot`:
 
 ```orbitron
-func main() {
+fn main() {
     println("Hello from calculator!");
 }
 ```
@@ -80,7 +80,7 @@ backend = "llvm"              # "llvm" или "jvm"
 
 | Поле | Тип | По умолчанию | Описание |
 |------|-----|-------------|----------|
-| `main` | строка | — | Путь к файлу с `func main()` |
+| `main` | строка | — | Путь к файлу с `fn main()` |
 | `output` | строка | `bin/<name>` | Путь к выходному файлу |
 | `backend` | строка | `"llvm"` | Бэкенд: `"llvm"` или `"jvm"` |
 
@@ -94,7 +94,7 @@ backend = "llvm"              # "llvm" или "jvm"
 myproject/
 ├── orbitron.toml
 ├── src/
-│   ├── main.ot         ← точка входа, func main()
+│   ├── main.ot         ← точка входа, fn main()
 │   ├── math.ot         ← математические утилиты
 │   ├── io.ot           ← ввод/вывод
 │   └── models.ot       ← типы данных
@@ -134,7 +134,7 @@ import "std/algo";
 import "utils";
 import "models";
 
-func main() {
+fn main() {
     // ...
 }
 ```
@@ -172,32 +172,32 @@ output = "bin/calculator"
 ```orbitron
 // Математический модуль — базовые операции
 
-func add(a: int, b: int): int { return a + b; }
-func sub(a: int, b: int): int { return a - b; }
-func mul(a: int, b: int): int { return a * b; }
+fn add(a: int, b: int): int { return a + b; }
+fn sub(a: int, b: int): int { return a - b; }
+fn mul(a: int, b: int): int { return a * b; }
 
-func div(a: int, b: int): int {
+fn div(a: int, b: int): int {
     unless (b == 0) {
         return a / b;
     }
     return 0;   // деление на ноль → 0
 }
 
-func mod(a: int, b: int): int {
+fn mod(a: int, b: int): int {
     unless (b == 0) {
         return a % b;
     }
     return 0;
 }
 
-func pow(base: int, exp: int): int {
+fn pow(base: int, exp: int): int {
     if (exp == 0) { return 1; }
     var result = 1;
     repeat exp { result = result * base; }
     return result;
 }
 
-func abs(n: int): int {
+fn abs(n: int): int {
     return n >= 0 ? n : -n;
 }
 ```
@@ -207,7 +207,7 @@ func abs(n: int): int {
 ```orbitron
 import "math";
 
-func print_result(op: int, a: int, b: int, result: int) {
+fn print_result(op: int, a: int, b: int, result: int) {
     match op {
         1 => { println($"  {a} + {b} = {result}"); }
         2 => { println($"  {a} - {b} = {result}"); }
@@ -219,7 +219,7 @@ func print_result(op: int, a: int, b: int, result: int) {
     }
 }
 
-func main() {
+fn main() {
     println("=== Калькулятор Orbitron ===");
 
     var a = 10;
@@ -357,7 +357,7 @@ impl Rect {
 import "vectors";
 import "shapes";
 
-func main() {
+fn main() {
     println("=== Геометрия ===");
 
     // Векторы
@@ -418,7 +418,7 @@ main.ot
 import "utils";   // utils.ot может использовать функции из main.ot
                   // и наоборот — без проблем
 
-func main() {
+fn main() {
     helper();   // объявлена в utils.ot
 }
 ```

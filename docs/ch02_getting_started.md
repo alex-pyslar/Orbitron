@@ -128,7 +128,7 @@ OPTIONS:
 Создайте файл `hello.ot`:
 
 ```orbitron
-func main() {
+fn main() {
     println("Привет, мир!");
     var версия = 1;
     println($"Добро пожаловать в Orbitron v{версия}!");
@@ -239,11 +239,11 @@ orbitron run           # компиляция + запуск
 Создайте файл `src/math.ot`:
 
 ```orbitron
-func square(n: int): int {
+fn square(n: int): int {
     return n * n;
 }
 
-func cube(n: int): int {
+fn cube(n: int): int {
     return n * n * n;
 }
 ```
@@ -253,7 +253,7 @@ func cube(n: int): int {
 ```orbitron
 import "math";   // загружает src/math.ot
 
-func main() {
+fn main() {
     println(square(5));   // 25
     println(cube(3));     // 27
 }
@@ -339,12 +339,12 @@ backend = "jvm"
 Напишем что-нибудь поинтереснее — программу для вычисления чисел Фибоначчи:
 
 ```orbitron
-func fib(n: int): int {
+fn fib(n: int): int {
     if (n <= 1) { return n; }
     return fib(n - 1) + fib(n - 2);
 }
 
-func main() {
+fn main() {
     println("Последовательность Фибоначчи:");
     for i in 0..=10 {
         println(fib(i));

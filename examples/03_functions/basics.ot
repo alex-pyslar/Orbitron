@@ -104,8 +104,8 @@ fn main() {
 
     // --- Лямбды ---
     println!("\n=== Лямбды ===");
-    let sq   = |x| x * x;
-    let add2 = |a, b| a + b;
+    var sq   = |x| x * x;
+    var add2 = |a, b| a + b;
     println!(power(4));         // демонстрация
 
     println!("\n=== Функции ===");
@@ -113,8 +113,8 @@ fn main() {
     greet();
     greet_n(3);
 
-    let s = square(7);
-    let c = cube(3);
+    var s = square(7);
+    var c = cube(3);
     println!("7^2 = \{s}");       // 49
     println!("3^3 = \{c}");       // 27
     println!("|-42| = \{abs(-42)}");   // 42

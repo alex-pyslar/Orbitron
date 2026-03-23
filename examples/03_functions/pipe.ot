@@ -32,23 +32,23 @@ fn main() {
     // --- Базовые цепочки ---
     println!("\n-- Базовые цепочки --");
 
-    let r1 = 3 |> double;
+    var r1 = 3 |> double;
     println!("3 |> double = \{r1}");                     // 6
 
-    let r2 = 3 |> double |> inc;
+    var r2 = 3 |> double |> inc;
     println!("3 |> double |> inc = \{r2}");              // 7
 
-    let r3 = 3 |> double |> inc |> square;
+    var r3 = 3 |> double |> inc |> square;
     println!("3 |> double |> inc |> square = \{r3}");    // 49
 
-    let r4 = 5 |> triple |> dec |> half;
+    var r4 = 5 |> triple |> dec |> half;
     println!("5 |> triple |> dec |> half = \{r4}");      // (15-1)/2 = 7
 
     // --- Конвейер vs вложенные вызовы ---
     println!("\n-- Конвейер vs вложенные вызовы --");
 
-    let nested = square(inc(double(4)));
-    let piped  = 4 |> double |> inc |> square;
+    var nested = square(inc(double(4)));
+    var piped  = 4 |> double |> inc |> square;
 
     println!("nested: square(inc(double(4))) = \{nested}");   // 81
     println!("piped:  4 |> double |> inc |> square = \{piped}");
@@ -56,45 +56,45 @@ fn main() {
     // --- Обработка отрицательных чисел ---
     println!("\n-- Конвейер с abs_val --");
 
-    let r5 = -42 |> abs_val |> double;
+    var r5 = -42 |> abs_val |> double;
     println!("-42 |> abs_val |> double = \{r5}");     // 84
 
-    let r6 = -7 |> abs_val |> square |> inc;
+    var r6 = -7 |> abs_val |> square |> inc;
     println!("-7 |> abs_val |> square |> inc = \{r6}"); // 50
 
     // --- С дополнительными аргументами ---
     println!("\n-- Конвейер с доп. аргументами --");
 
-    let r7 = 5 |> add(3);
+    var r7 = 5 |> add(3);
     println!("5 |> add(3) = \{r7}");                  // 8
 
-    let r8 = 5 |> add(3) |> mul(2);
+    var r8 = 5 |> add(3) |> mul(2);
     println!("5 |> add(3) |> mul(2) = \{r8}");        // 16
 
-    let r9 = 150 |> clamp(0, 100);
+    var r9 = 150 |> clamp(0, 100);
     println!("150 |> clamp(0, 100) = \{r9}");          // 100
 
-    let r10 = -10 |> clamp(0, 100);
+    var r10 = -10 |> clamp(0, 100);
     println!("-10 |> clamp(0, 100) = \{r10}");         // 0
 
-    let r11 = 5 |> max2(8);
+    var r11 = 5 |> max2(8);
     println!("5 |> max2(8) = \{r11}");                 // 8
 
     // --- Практический пример: обработка оценки ---
     println!("\n-- Пример: обработка оценки --");
 
-    let raw_score   = 85;
-    let final_score = raw_score |> bonus |> clamp(0, 100);
+    var raw_score   = 85;
+    var final_score = raw_score |> bonus |> clamp(0, 100);
     println!("Исходный балл: \{raw_score}");
     println!("С бонусом и ограничением: \{final_score}");    // 95
 
-    let penalized = 85 |> penalty |> penalty |> clamp(0, 100);
+    var penalized = 85 |> penalty |> penalty |> clamp(0, 100);
     println!("С двумя штрафами: \{penalized}");               // 75
 
     // --- Длинная цепочка ---
     println!("\n-- Длинная цепочка преобразований --");
 
-    let result = 1 |> double    // 2
+    var result = 1 |> double    // 2
                    |> double    // 4
                    |> double    // 8
                    |> double    // 16
@@ -110,10 +110,10 @@ fn main() {
     // --- Нормализация ---
     println!("\n-- Нормализация через конвейер --");
 
-    let values = [-50, 0, 75, -3, 100];
+    var values = [-50, 0, 75, -3, 100];
     for i in 0..5 {
-        let v      = values[i];
-        let normed = v |> normalize;
+        var v      = values[i];
+        var normed = v |> normalize;
         println!("normalize(\{v}) = \{normed}");
     }
 }

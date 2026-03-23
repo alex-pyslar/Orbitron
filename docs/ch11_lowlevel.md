@@ -59,7 +59,7 @@ ptr_write_byte(addr, value);
 ```orbitron
 import "std/sys";
 
-func main() {
+fn main() {
     var buf = sys_alloc(8);
     ptr_write_byte(buf,     72);   // 'H'
     ptr_write_byte(buf + 1, 101);  // 'e'
@@ -99,7 +99,7 @@ var ptr = cstr("текст");
 ```orbitron
 import "std/sys";
 
-func main() {
+fn main() {
     var msg = cstr("Привет из Orbitron!\n");
     syscall(SYS_WRITE, STDOUT, msg, 20);
 }
@@ -126,7 +126,7 @@ var val = sign_ext(raw);       // правильный -1
 ```orbitron
 import "std/sys";
 
-func main() {
+fn main() {
     // Выделить 1024 байт
     var buf = sys_alloc(1024);
 
@@ -160,7 +160,7 @@ sys_free(buf, size_in_bytes);
 ```orbitron
 import "std/sys";
 
-func main() {
+fn main() {
     var n    = 10;
     var size = n * 8;   // 10 элементов по 8 байт (i64)
     var arr  = sys_alloc(size);
@@ -197,7 +197,7 @@ syscall(номер, арг0, арг1, арг2, арг3, арг4, арг5);
 ```orbitron
 import "std/sys";
 
-func main() {
+fn main() {
     var msg = cstr("Hello syscall!\n");
     syscall(SYS_WRITE, STDOUT, msg, 15);
 }
@@ -208,7 +208,7 @@ func main() {
 ```orbitron
 import "std/sys";
 
-func main() {
+fn main() {
     println("Выход через syscall");
     syscall(SYS_EXIT, 0);
 }
@@ -219,7 +219,7 @@ func main() {
 ```orbitron
 import "std/sys";
 
-func main() {
+fn main() {
     var pid = syscall(SYS_GETPID);
     println($"Мой PID: {pid}");
 }
@@ -245,20 +245,20 @@ func main() {
 
 ## 11.4 — Внешние C-функции
 
-`extern func` позволяет объявить и вызвать любую функцию из C-библиотек:
+`extern fn` позволяет объявить и вызвать любую функцию из C-библиотек:
 
 ```orbitron
-extern func имя(param1: тип, param2: тип, ...): тип_возврата;
+extern fn имя(param1: тип, param2: тип, ...): тип_возврата;
 ```
 
 После объявления функцию можно вызывать как обычную:
 
 ```orbitron
-extern func malloc(size: int): int;
-extern func free(ptr: int);
-extern func printf(fmt: int, ...): int;
+extern fn malloc(size: int): int;
+extern fn free(ptr: int);
+extern fn printf(fmt: int, ...): int;
 
-func main() {
+fn main() {
     var buf = malloc(64);
     // ... использовать buf ...
     free(buf);
@@ -270,17 +270,17 @@ func main() {
 Добавьте `...` в список параметров для функций с переменным числом аргументов:
 
 ```orbitron
-extern func printf(fmt: int, ...): int;
-extern func sprintf(buf: int, fmt: int, ...): int;
+extern fn printf(fmt: int, ...): int;
+extern fn sprintf(buf: int, fmt: int, ...): int;
 ```
 
 ### Пример: файловый ввод-вывод через libc
 
 ```orbitron
-extern func open(path: int, flags: int, mode: int): int;
-extern func read(fd: int, buf: int, n: int): int;
-extern func write(fd: int, buf: int, n: int): int;
-extern func close(fd: int): int;
+extern fn open(path: int, flags: int, mode: int): int;
+extern fn read(fd: int, buf: int, n: int): int;
+extern fn write(fd: int, buf: int, n: int): int;
+extern fn close(fd: int): int;
 
 import "std/sys";
 
@@ -289,7 +289,7 @@ const O_WRONLY: int = 1;
 const O_CREAT:  int = 64;
 const O_TRUNC:  int = 512;
 
-func main() {
+fn main() {
     // Открыть файл для записи
     var path = cstr("/tmp/test.txt");
     var fd   = open(path, O_WRONLY + O_CREAT + O_TRUNC, 420);
@@ -311,10 +311,10 @@ func main() {
 ### Пример: gettimeofday
 
 ```orbitron
-extern func gettimeofday(tv: int, tz: int): int;
+extern fn gettimeofday(tv: int, tz: int): int;
 import "std/sys";
 
-func main() {
+fn main() {
     var timeval = sys_alloc(16);   // struct timeval: tv_sec (8) + tv_usec (8)
     gettimeofday(timeval, 0);
 
@@ -331,25 +331,25 @@ func main() {
 
 ## 11.5 — Низкоуровневое сетевое программирование
 
-При необходимости можно работать с сокетами напрямую через extern func:
+При необходимости можно работать с сокетами напрямую через extern fn:
 
 ```orbitron
-extern func socket(domain: int, type: int, proto: int): int;
-extern func bind(fd: int, addr: int, addrlen: int): int;
-extern func listen(fd: int, backlog: int): int;
-extern func accept(fd: int, addr: int, addrlen: int): int;
-extern func connect(fd: int, addr: int, addrlen: int): int;
-extern func send(fd: int, buf: int, n: int, flags: int): int;
-extern func recv(fd: int, buf: int, n: int, flags: int): int;
-extern func close(fd: int): int;
-extern func setsockopt(fd: int, level: int, opt: int, val: int, vlen: int): int;
+extern fn socket(domain: int, type: int, proto: int): int;
+extern fn bind(fd: int, addr: int, addrlen: int): int;
+extern fn listen(fd: int, backlog: int): int;
+extern fn accept(fd: int, addr: int, addrlen: int): int;
+extern fn connect(fd: int, addr: int, addrlen: int): int;
+extern fn send(fd: int, buf: int, n: int, flags: int): int;
+extern fn recv(fd: int, buf: int, n: int, flags: int): int;
+extern fn close(fd: int): int;
+extern fn setsockopt(fd: int, level: int, opt: int, val: int, vlen: int): int;
 
 import "std/sys";
 
 const AF_INET:     int = 2;
 const SOCK_STREAM: int = 1;
 
-func make_sockaddr(ip: int, port: int): int {
+fn make_sockaddr(ip: int, port: int): int {
     // struct sockaddr_in: sin_family(2) + sin_port(2) + sin_addr(4) + pad(8)
     var sa = sys_alloc(16);
 
@@ -370,7 +370,7 @@ func make_sockaddr(ip: int, port: int): int {
     return sa;
 }
 
-func main() {
+fn main() {
     var sock = socket(AF_INET, SOCK_STREAM, 0);
     var sa   = make_sockaddr(2130706433, 8080);   // 127.0.0.1:8080
 
@@ -401,7 +401,7 @@ func main() {
 ```orbitron
 import "std/sys";
 
-func main() {
+fn main() {
     var buf = sys_alloc(40);   // 5 элементов по 8 байт
 
     // Запись через арифметику указателей
@@ -444,14 +444,14 @@ func main() {
 
 import "std/sys";
 
-func write_str(buf: int, s_arr: int, n: int) {
+fn write_str(buf: int, s_arr: int, n: int) {
     for i in 0..n {
         var b = ptr_read(s_arr + i * 8);
         ptr_write_byte(buf + i, b);
     }
 }
 
-func main() {
+fn main() {
     println("--- Демо указателей и syscall ---");
 
     // Адрес переменной

@@ -37,7 +37,7 @@ fn main() {
     // --- Многодиапазонный for ---
     println!("\n-- for i in 0..3, j in 0..3 --");
     for i in 1..=3, j in 1..=3 {
-        let product = i * j;
+        var product = i * j;
         println!("  \{i}×\{j}=\{product}");
     }
 
@@ -58,7 +58,7 @@ fn main() {
     } while (x < 3);
 
     // Даже при изначально ложном условии — выполняется хотя бы раз:
-    let y = 100;
+    var y = 100;
     do {
         println!("выполнился один раз");
     } while (y < 10);
@@ -82,7 +82,7 @@ fn main() {
 
     // --- break ---
     println!("\n-- break: первый делитель --");
-    let num = 36;
+    var num = 36;
     mut divisor = 2;
     loop {
         if (divisor * divisor > num) {
@@ -121,7 +121,7 @@ fn main() {
     mut b = 1;
     repeat 10 {
         println!(a);
-        let tmp = a + b;
+        var tmp = a + b;
         a = b;
         b = tmp;
     }

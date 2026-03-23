@@ -12,7 +12,7 @@ fn print_array(arr: i64, n: i64) {
 
 // Поменять местами элементы
 fn swap(arr: i64, a: i64, b: i64) {
-    let tmp = arr[a];
+    var tmp = arr[a];
     arr[a]  = arr[b];
     arr[b]  = tmp;
 }
@@ -50,7 +50,7 @@ fn selection_sort(arr: i64, n: i64) {
 // --- Сортировка вставками ---
 fn insertion_sort(arr: i64, n: i64) {
     for i in 1..n {
-        let key = arr[i];
+        var key = arr[i];
         mut j   = i - 1;
         while (j >= 0 && arr[j] > key) {
             arr[j + 1] = arr[j];
@@ -74,7 +74,7 @@ fn binary_search(arr: i64, n: i64, target: i64): i64 {
     mut hi = n - 1;
 
     while (lo <= hi) {
-        let mid = (lo + hi) / 2;
+        var mid = (lo + hi) / 2;
         if (arr[mid] == target) { return mid; }
         if (arr[mid] < target)  { lo = mid + 1; }
         else                    { hi = mid - 1; }
@@ -105,16 +105,16 @@ fn main() {
 
     // --- Поиск ---
     println!("\n-- Линейный поиск --");
-    let haystack = [10, 30, 50, 70, 90, 110, 130, 150];
-    let n = 8;
+    var haystack = [10, 30, 50, 70, 90, 110, 130, 150];
+    var n = 8;
 
     println!(linear_search(haystack, n, 70));    // 3
     println!(linear_search(haystack, n, 150));   // 7
     println!(linear_search(haystack, n, 999));   // -1
 
     println!("\n-- Двоичный поиск (после сортировки) --");
-    let sorted = [3, 7, 12, 19, 25, 33, 41, 58, 67, 80];
-    let sn = 10;
+    var sorted = [3, 7, 12, 19, 25, 33, 41, 58, 67, 80];
+    var sn = 10;
 
     println!(binary_search(sorted, sn, 19));    // 3
     println!(binary_search(sorted, sn, 80));    // 9
@@ -123,7 +123,7 @@ fn main() {
 
     // --- Подсчёт инверсий (грубый метод) ---
     println!("\n-- Количество инверсий в массиве --");
-    let arr = [3, 1, 4, 1, 5, 9, 2, 6];
+    var arr = [3, 1, 4, 1, 5, 9, 2, 6];
     mut inv = 0;
     for i in 0..8 {
         for j in 0..8 {
@@ -136,7 +136,7 @@ fn main() {
 
     // --- Второй максимум ---
     println!("\n-- Второй максимум --");
-    let vals = [42, 17, 83, 55, 6, 99, 31, 78];
+    var vals = [42, 17, 83, 55, 6, 99, 31, 78];
     mut m1 = vals[0];
     mut m2 = vals[0];
 
@@ -154,8 +154,8 @@ fn main() {
 
     // --- Удаление дублей (подсчёт уникальных) ---
     println!("\n-- Количество уникальных элементов --");
-    let dups = [3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5];
-    let dn   = 11;
+    var dups = [3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5];
+    var dn   = 11;
     mut unique = 0;
 
     for i in 0..dn {

@@ -1,4 +1,4 @@
-func main() {
+fn main() {
     // immutable (default)
     var x = 10;
     println(x);

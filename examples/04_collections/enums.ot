@@ -74,10 +74,10 @@ fn main() {
     // --- Сопоставление с образцом ---
     println!("\n-- match с enum --");
 
-    let c = Color.Green;
+    var c = Color.Green;
     color_name(c);    // Зелёный
 
-    let dir = Direction.West;
+    var dir = Direction.West;
     match dir {
         Direction.North => { println!("Север"); }
         Direction.South => { println!("Юг"); }
@@ -94,7 +94,7 @@ fn main() {
     // --- Температура по сезону ---
     println!("\n-- Температура по сезонам --");
     for s in 0..4 {
-        let t = season_temp(s);
+        var t = season_temp(s);
         match s {
             Season.Spring => { println!("Весна: \{t}°C"); }
             Season.Summer => { println!("Лето: \{t}°C"); }
@@ -106,14 +106,14 @@ fn main() {
     // --- Enum как индекс массива ---
     println!("\n-- enum как индекс массива --");
 
-    let day_hours = [8, 8, 8, 8, 8, 0, 0];
+    var day_hours = [8, 8, 8, 8, 8, 0, 0];
     enum Day { Mon, Tue, Wed, Thu, Fri, Sat, Sun }
 
-    let today = Day.Wed;
-    let hours = day_hours[today];
+    var today = Day.Wed;
+    var hours = day_hours[today];
     println!("Среда — рабочих часов: \{hours}");   // 8
 
-    let weekend = Day.Sat;
+    var weekend = Day.Sat;
     println!("Суббота — рабочих часов: \{day_hours[weekend]}");  // 0
 
     // --- Машина состояний: направление ---
@@ -133,7 +133,7 @@ fn main() {
     // --- Планеты ---
     println!("\n-- Расстояние планет от Земли (млн км) --");
     for p in 0..8 {
-        let d = dist_from_earth(p);
+        var d = dist_from_earth(p);
         match p {
             Planet.Mercury => { println!("Меркурий: \{d} млн км"); }
             Planet.Venus   => { println!("Венера:   \{d} млн км"); }
@@ -149,7 +149,7 @@ fn main() {
     // --- Условия с enum ---
     println!("\n-- Условия с enum --");
 
-    let st = Status.Active;
+    var st = Status.Active;
 
     if (st == Status.Active) {
         println!("Пользователь активен");

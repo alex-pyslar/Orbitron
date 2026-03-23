@@ -156,7 +156,7 @@ println(elem);
 
 ```orbitron
 // Примечание: массивы передаются в функции по ссылке (как указатель)
-func sort(arr: int, n: int) {
+fn sort(arr: int, n: int) {
     for i in 0..n {
         for j in 0..n {
             if (j + 1 < n) {
@@ -170,7 +170,7 @@ func sort(arr: int, n: int) {
     }
 }
 
-func main() {
+fn main() {
     var a = [64, 34, 25, 12, 22, 11, 90];
     sort(a, 7);
     for x in a {
@@ -183,7 +183,7 @@ func main() {
 ### Гистограмма оценок
 
 ```orbitron
-func main() {
+fn main() {
     var grades  = [85, 92, 78, 95, 60, 88, 74, 91, 67, 83];
     var buckets = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];   // 10 корзин: 0-9, 10-19, ...
 
@@ -203,7 +203,7 @@ func main() {
 ### Скользящее среднее
 
 ```orbitron
-func main() {
+fn main() {
     var samples = [12, 15, 11, 18, 14, 16, 13, 17];
     var n = 8;
     var sum = 0;
@@ -253,7 +253,7 @@ println(b);   // 5
 ### Кортежи как результат вычисления
 
 ```orbitron
-func main() {
+fn main() {
     var data = [3, 1, 4, 1, 5, 9, 2, 6];
 
     var mn = data[0];
@@ -323,7 +323,7 @@ println(b);   // 2
 ```orbitron
 enum Direction { North, South, East, West }
 
-func describe(d: int): int {
+fn describe(d: int): int {
     match d {
         Direction.North => { println("Движение на север"); }
         Direction.South => { println("Движение на юг"); }
@@ -333,7 +333,7 @@ func describe(d: int): int {
     return 0;
 }
 
-func main() {
+fn main() {
     var dir = Direction.East;
     describe(dir);   // Движение на восток
 
@@ -398,7 +398,7 @@ println($"Рабочих часов сегодня: {today_hours}");   // 8
 ```orbitron
 enum Light { Red, Yellow, Green }
 
-func next_state(current: int): int {
+fn next_state(current: int): int {
     match current {
         Light.Red    => { return Light.Green;  }
         Light.Green  => { return Light.Yellow; }
@@ -407,7 +407,7 @@ func next_state(current: int): int {
     }
 }
 
-func describe_light(l: int) {
+fn describe_light(l: int) {
     match l {
         Light.Red    => { println("СТОП"); }
         Light.Yellow => { println("ВНИМАНИЕ"); }
@@ -415,7 +415,7 @@ func describe_light(l: int) {
     }
 }
 
-func main() {
+fn main() {
     var light = Light.Red;
     repeat 6 {
         describe_light(light);
@@ -499,7 +499,7 @@ const VERSION:   int = 2;
 ```orbitron
 // examples/04_collections/arrays.ot
 
-func main() {
+fn main() {
     var primes = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29];
 
     // Прямой перебор — сумма
@@ -540,7 +540,7 @@ func main() {
 
 enum Planet { Mercury, Venus, Earth, Mars, Jupiter, Saturn, Uranus, Neptune }
 
-func main() {
+fn main() {
     var p = Planet.Earth;
     println($"Земля — планета №{p}");   // 2 (нумерация с нуля)
 

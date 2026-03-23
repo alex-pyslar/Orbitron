@@ -21,7 +21,7 @@ fn fib_iter(n: i64): i64 {
     mut b = 1;
     mut i = 2;
     while (i <= n) {
-        let tmp = a + b;
+        var tmp = a + b;
         a = b;
         b = tmp;
         i += 1;
@@ -42,7 +42,7 @@ fn lcm(a: i64, b: i64): i64 => a / gcd(a, b) * b;
 fn pow_fast(base: i64, exp: i64): i64 {
     if (exp == 0) { return 1; }
     if (exp % 2 == 0) {
-        let half = pow_fast(base, exp / 2);
+        var half = pow_fast(base, exp / 2);
         return half * half;
     }
     return base * pow_fast(base, exp - 1);

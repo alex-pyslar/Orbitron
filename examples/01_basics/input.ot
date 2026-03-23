@@ -6,41 +6,41 @@ fn main() {
 
     // --- Чтение целого числа ---
     println!("Введите целое число:");
-    let n = readInt();
+    var n = readInt();
     println!("Вы ввели: \{n}");
     println!("Квадрат: \{n * n}");
     println!("Куб:     \{n * n * n}");
 
     // --- Проверка чётности ---
-    let is_even = n % 2 == 0 ? 1 : 0;
+    var is_even = n % 2 == 0 ? 1 : 0;
     println!("Чётное: \{is_even}");
 
     // --- Чтение второго числа ---
     println!("Введите ещё одно целое число:");
-    let m = readInt();
+    var m = readInt();
 
-    let sum  = n + m;
-    let diff = n - m;
-    let prod = n * m;
+    var sum  = n + m;
+    var diff = n - m;
+    var prod = n * m;
 
     println!("Сумма:    \{sum}");
     println!("Разность: \{diff}");
     println!("Произведение: \{prod}");
 
     unless (m == 0) {
-        let q = n / m;
-        let r = n % m;
+        var q = n / m;
+        var r = n % m;
         println!("Частное:  \{q}");
         println!("Остаток:  \{r}");
     }
 
     // --- Чтение числа с плавающей точкой ---
     println!("Введите вещественное число:");
-    let f = readFloat();
+    var f = readFloat();
     println!("Вы ввели: \{f}");
     println!("Удвоенное: \{f * 2.0}");
 
     // --- Итог ---
-    let bigger = n > m ? n : m;
+    var bigger = n > m ? n : m;
     println!("Наибольшее: \{bigger}");
 }

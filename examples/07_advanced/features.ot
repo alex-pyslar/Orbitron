@@ -49,11 +49,11 @@ fn process_scores(scores: i64, n: i64) {
     defer println!("--- Обработка завершена ---");   // выполнится последней
 
     for i in 0..n {
-        let s = scores[i];
+        var s = scores[i];
 
         // Возможность 4: unless
         unless (s > MAX_SCORE) {
-            let g = get_grade(s);
+            var g = get_grade(s);
 
             // Возможность 5: строковая интерполяция
             println!("Балл \{s}:");
@@ -68,7 +68,7 @@ fn powers_demo() {
 
     println!("\n-- Возможность 2: оператор ** --");
     for i in 0..=8 {
-        let p = 2 ** i;
+        var p = 2 ** i;
         println!("  2^\{i} = \{p}");
     }
 }
@@ -86,45 +86,45 @@ fn main() {
 
     // --- Возможность 3: |> ---
     println!("\n-- Оператор конвейера |> --");
-    let r = 3 |> double |> inc |> double;
+    var r = 3 |> double |> inc |> double;
     println!("3 |> double |> inc |> double = \{r}");    // 14
 
-    let pipeline = 10 |> bonus |> double |> halve;
+    var pipeline = 10 |> bonus |> double |> halve;
     println!("10 |> bonus |> double |> halve = \{pipeline}");  // 20
 
     // --- Возможность 4: unless ---
     println!("\n-- unless --");
-    let divisor = 7;
+    var divisor = 7;
     unless (divisor == 0) {
-        let result = 100 / divisor;
+        var result = 100 / divisor;
         println!("100 / \{divisor} = \{result}");
     }
 
-    let error_code = 0;
+    var error_code = 0;
     unless (error_code) {
         println!("Нет ошибок — всё хорошо!");
     }
 
     // --- Возможность 5: "...\{}" ---
     println!("\n-- Строковая интерполяция \"...\\{...}\" --");
-    let name  = 7;
-    let level = 3;
-    let score = 2500;
+    var name  = 7;
+    var level = 3;
+    var score = 2500;
     println!("Игрок #\{name}: уровень \{level}, очки \{score}");
 
     // --- Возможность 6: массивы ---
     println!("\n-- Массивы --");
-    let scores = [55, 78, 90, 42, 85, 63, 97, 71];
-    let n      = 8;
+    var scores = [55, 78, 90, 42, 85, 63, 97, 71];
+    var n      = 8;
 
     mut total = 0;
     for i in 0..n { total += scores[i]; }
-    let avg = total / n;
+    var avg = total / n;
     println!("Среднее из \{n} баллов: \{avg}");
 
     // --- Возможность 7: enum ---
     println!("\n-- enum --");
-    let st = Status.Active;
+    var st = Status.Active;
     match st {
         Status.Active => { println!("Статус: активен"); }
         Status.Done   => { println!("Статус: готово"); }
@@ -145,15 +145,15 @@ fn main() {
 
     // --- Возможность 10: тернарный оператор ---
     println!("\n-- Тернарный оператор ? : --");
-    let x = 42;
-    let abs_x = x >= 0 ? x : -x;
+    var x = 42;
+    var abs_x = x >= 0 ? x : -x;
     println!("|\{x}| = \{abs_x}");
 
-    let is_even = x % 2 == 0 ? 1 : 0;
+    var is_even = x % 2 == 0 ? 1 : 0;
     println!("\{x} чётное: \{is_even}");
 
     // Цепочка тернарных
-    let grade = score >= 2000 ? Grade.Excellent :
+    var grade = score >= 2000 ? Grade.Excellent :
                 score >= 1000 ? Grade.Good      :
                 score >= 500  ? Grade.Pass      : Grade.Fail;
 

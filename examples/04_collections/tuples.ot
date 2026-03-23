@@ -9,7 +9,7 @@ fn min_max(a: i64, b: i64, c: i64): i64 {
     if (c < lo) { lo = c; }
     if (b > hi) { hi = b; }
     if (c > hi) { hi = c; }
-    let result = (lo, hi);
+    var result = (lo, hi);
     return lo;   // пример — настоящие кортежи используйте через LetTuple
 }
 
@@ -19,32 +19,32 @@ fn main() {
     // --- Создание кортежа ---
     println!("\n-- Создание --");
 
-    let point = (3, 4);
+    var point = (3, 4);
     println!("Кортеж point: первый элемент — 3, второй — 4");
 
     // --- Деструктуризация ---
     println!("\n-- Деструктуризация --");
 
-    let (x, y) = (10, 20);
+    var (x, y) = (10, 20);
     println!("x = \{x}");   // 10
     println!("y = \{y}");   // 20
 
-    let (r, g, b) = (255, 128, 64);
+    var (r, g, b) = (255, 128, 64);
     println!("RGB: \{r}, \{g}, \{b}");
 
     // --- Обмен значений ---
     println!("\n-- Обмен значений --");
 
-    let alpha = 100;
-    let beta  = 200;
-    let (alpha2, beta2) = (beta, alpha);   // swap через кортеж
+    var alpha = 100;
+    var beta  = 200;
+    var (alpha2, beta2) = (beta, alpha);   // swap через кортеж
     println!("alpha = \{alpha2}");  // 200
     println!("beta  = \{beta2}");   // 100
 
     // --- Кортеж координат ---
     println!("\n-- Координаты --");
 
-    let coords = [(0, 0), (1, 0), (1, 1), (0, 1)];
+    var coords = [(0, 0), (1, 0), (1, 1), (0, 1)];
     println!("Вершины квадрата:");
     for i in 0..4 {
         println!("  Вершина \{i}");
@@ -53,8 +53,8 @@ fn main() {
     // --- Многозначное присваивание ---
     println!("\n-- Многозначное присваивание --");
 
-    let (a, b_val, c) = (1, 2, 3);
-    let s = a + b_val + c;
+    var (a, b_val, c) = (1, 2, 3);
+    var s = a + b_val + c;
     println!("a + b + c = \{s}");   // 6
 
     // --- Кортеж как аккумулятор ---
@@ -62,7 +62,7 @@ fn main() {
 
     mut evens = 0;
     mut odds  = 0;
-    let nums  = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+    var nums  = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
     for n in nums {
         if (n % 2 == 0) {
             evens += 1;
@@ -70,6 +70,6 @@ fn main() {
             odds += 1;
         }
     }
-    let (ec, oc) = (evens, odds);
+    var (ec, oc) = (evens, odds);
     println!("Чётных: \{ec}, нечётных: \{oc}");  // 5, 5
 }
