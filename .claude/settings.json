@@ -1,0 +1,42 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(llvm-config --version)",
+      "Bash(llvm-config-18 --version)",
+      "Bash(llvm-config-17 --version)",
+      "Bash(llvm-config-16 --version)",
+      "Bash(llvm-config-14 --version)",
+      "Bash(llvm-config-11 --version)",
+      "Bash(wsl -- bash -c \"llvm-config --version 2>/dev/null || llvm-config-18 --version 2>/dev/null || llvm-config-14 --version 2>/dev/null || llvm-config-11 --version 2>/dev/null || apt list --installed 2>/dev/null | grep llvm | head -10\")",
+      "Bash(llvm-config-15 --version)",
+      "Bash(llvm-config-13 --version)",
+      "Bash(llvm-config-12 --version)",
+      "Bash(apt list --installed)",
+      "Bash(dpkg -l)",
+      "Bash(pacman -Q)",
+      "Read(//c//**)",
+      "Read(//c/Users//**)",
+      "Read(//c/Program Files/**)",
+      "Bash(\"/c/Program Files/LLVM/bin/llvm-config\" --version)",
+      "Bash(cmd.exe /c \"dir \"\"C:\\\\Program Files\\\\LLVM\\\\lib\"\" 2>&1 | findstr /i polly\")",
+      "Bash(cmd.exe /c \"\"\"C:\\\\Program Files\\\\LLVM\\\\bin\\\\llvm-config.exe\"\" --version 2>&1\")",
+      "Bash(cmd.exe /c \"dir \"\"C:\\\\Program Files\\\\LLVM\\\\lib\"\" /b 2>&1\")",
+      "Bash(wsl -e bash -c \"cd /mnt/c/source/Orbitron && cargo build 2>&1\")",
+      "Bash(wsl -e bash -c \"cd /mnt/c/source/Orbitron && cargo build --release 2>&1 && ./target/release/orbitron example.ot orbitron_out && ./orbitron_out\")",
+      "Bash(wsl -e bash -c \"cd /mnt/c/source/Orbitron && cargo build --release 2>&1 | tail -5\")",
+      "Bash(wsl -e bash -c \"cd /mnt/c/source/Orbitron && ./target/release/orbitron input_test.ot input_prog && echo ''7:*)",
+      "Bash(wsl -e bash -c \"cd /mnt/c/source/Orbitron && ./target/release/orbitron examples/oop_struct.ot /tmp/struct_out 2>&1 && /tmp/struct_out\")",
+      "Bash(wsl -e bash -c \"cd /mnt/c/source/Orbitron && ./target/release/orbitron examples/input_demo.ot /tmp/input_out 2>&1 && echo ''10 20 3.5'' | /tmp/input_out\")",
+      "Bash(wsl -e bash -c \"cd /mnt/c/source/Orbitron && rm -f hello hello.ll myapp fib fib.ll fib.s\")",
+      "Bash(wsl -e bash -c \"cd /mnt/c/source/Orbitron && cargo build 2>&1\" --timeout 120000)",
+      "Read(//mnt/c/source/Orbitron/src/**)",
+      "Read(//mnt/c/source/**)",
+      "Bash(wsl -e bash -c \"cd /mnt/c/source/Orbitron/examples/calculator && ../../target/debug/orbitron build -v 2>&1 && ./bin/calculator\")",
+      "Bash(wsl -e bash -c \"cd /mnt/c/source/Orbitron && ./target/debug/orbitron examples/hello.ot && ./hello\")",
+      "Bash(wsl -e bash -c \"cd /tmp/testproj && /mnt/c/source/Orbitron/target/debug/orbitron run\")"
+    ],
+    "additionalDirectories": [
+      "C:\\Users\\alex_pyslar\\.claude\\projects\\c--source-Orbitron"
+    ]
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(wsl -e bash -c \"cd /mnt/c/source/Orbitron && git status\")",
+      "Bash(wsl -e bash -c \"cd /mnt/c/source/Orbitron && cargo build 2>&1 | head -80\")",
+      "Bash(wsl -e bash -c \"cd /mnt/c/source/Orbitron && cargo build 2>&1 | head -100\")",
+      "Bash(wsl -e bash -c \"ls /mnt/c/source/Orbitron/src/\")",
+      "Bash(wsl -e bash -c \"ls /mnt/c/source/Orbitron/docs/\")",
+      "Bash(wsl -e bash -c \"find /mnt/c/source/Orbitron/examples -name ''*.ot'' | sort\")",
+      "Bash(wsl -e bash -c \"cd /mnt/c/source/Orbitron && cargo build --release 2>&1\")",
+      "Bash(wsl -e bash -c \"cd /mnt/c/source/Orbitron && ./target/release/orbitron fmt examples/01_basics/hello.ot 2>&1 | head -20\")",
+      "Bash(wsl -e bash -c \"tail -5 /mnt/c/Users/ALEX_P~1/AppData/Local/Temp/claude/C--source-Orbitron/edf78dd8-d674-4a01-8fed-5ff56a1c4f67/tasks/a822d7729b2fc7991.output 2>/dev/null || echo ''still running''\")",
+      "Bash(wsl -e bash -c \"ls -la /tmp/claude/ 2>/dev/null || ls /mnt/c/Users/alex_pyslar/AppData/Local/Temp/claude/ 2>/dev/null | head -5\")",
+      "Bash(wsl -e bash -c \"ls /mnt/c/Users/alex_pyslar/AppData/Local/Temp/claude/C--source-Orbitron/\")",
+      "Bash(wsl -e bash -c \"ls /mnt/c/Users/alex_pyslar/AppData/Local/Temp/claude/C--source-Orbitron/edf78dd8-d674-4a01-8fed-5ff56a1c4f67/tasks/ 2>/dev/null\")",
+      "Bash(wsl -e bash -c \"tail -20 ''/mnt/c/Users/alex_pyslar/AppData/Local/Temp/claude/C--source-Orbitron/edf78dd8-d674-4a01-8fed-5ff56a1c4f67/tasks/a822d7729b2fc7991.output''\")",
+      "Bash(wsl -e bash -c \"wc -l ''/mnt/c/Users/alex_pyslar/AppData/Local/Temp/claude/C--source-Orbitron/edf78dd8-d674-4a01-8fed-5ff56a1c4f67/tasks/a822d7729b2fc7991.output''\")",
+      "Bash(wsl -e bash -c \"cd /mnt/c/source/Orbitron && cargo build 2>&1 | tail -5\")",
+      "Bash(wsl -e bash -c \"cd /mnt/c/source/Orbitron && git diff --stat HEAD 2>&1 | head -30\")",
+      "Bash(wsl -e bash -c \"cd /mnt/c/source/Orbitron && git status --short 2>&1 | head -30\")",
+      "Bash(wsl -e:*)",
+      "Bash(1 \")",
+      "mcp__c6b90ecb-83e9-4d45-b124-7b1960684095__notion-create-pages",
+      "mcp__c6b90ecb-83e9-4d45-b124-7b1960684095__notion-update-page",
+      "Bash(grep \"\\\\.ot$\")",
+      "Bash(find c:/source/Orbitron -maxdepth 2 -name README* -o -name CONTRIBUTING* -o -name CHANGELOG* -o -name *.md -not -path */docs/* -not -path */target/*)"
+    ]
+  }
+}
