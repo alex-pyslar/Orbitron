@@ -1,44 +1,42 @@
-# Contributing to Orbitron
+# Участие в разработке Orbitron
 
-Thank you for your interest in contributing! This document explains how to get
-the project building locally, where each piece of functionality lives, and the
-conventions used throughout the codebase.
+Спасибо за интерес к проекту! Этот документ объясняет, как собрать компилятор локально, где живёт каждая часть функциональности и какие соглашения приняты в кодовой базе.
 
 ---
 
-## Table of Contents
+## Содержание
 
-1. [Prerequisites](#prerequisites)
-2. [Building from Source](#building-from-source)
-3. [Running the Tests](#running-the-tests)
-4. [Project Layout](#project-layout)
-5. [How to Add a Language Feature](#how-to-add-a-language-feature)
-6. [How to Add a Standard Library Module](#how-to-add-a-standard-library-module)
-7. [Coding Conventions](#coding-conventions)
-8. [Submitting a Pull Request](#submitting-a-pull-request)
-9. [Reporting Bugs](#reporting-bugs)
+1. [Требования](#требования)
+2. [Сборка из исходников](#сборка-из-исходников)
+3. [Запуск тестов](#запуск-тестов)
+4. [Структура проекта](#структура-проекта)
+5. [Как добавить возможность языка](#как-добавить-возможность-языка)
+6. [Как добавить модуль стандартной библиотеки](#как-добавить-модуль-стандартной-библиотеки)
+7. [Соглашения кодирования](#соглашения-кодирования)
+8. [Отправка Pull Request](#отправка-pull-request)
+9. [Сообщение об ошибках](#сообщение-об-ошибках)
 
 ---
 
-## Prerequisites
+## Требования
 
-| Tool   | Version | Notes                                              |
-|--------|---------|----------------------------------------------------|
-| Rust   | 1.70+   | Install via [rustup.rs](https://rustup.rs)         |
-| LLVM   | 18.x    | `sudo apt install llvm-18 clang-18` (Ubuntu/Debian)|
-| JDK    | 11+     | Optional — required only for the JVM backend       |
+| Инструмент | Версия | Примечание |
+|---|---|---|
+| Rust + Cargo | 1.70+ | Установка через [rustup.rs](https://rustup.rs) |
+| LLVM | 18.x | `sudo apt install llvm-18 clang-18` (Ubuntu/Debian) |
+| JDK | 11+ | Необязательно — только для JVM-бэкенда |
 
-On Ubuntu 22.04+ you can install LLVM 18 via the official LLVM apt repository:
+На Ubuntu 22.04+ LLVM 18 устанавливается через официальный apt-репозиторий:
 
 ```bash
 wget -O /tmp/llvm.sh https://apt.llvm.org/llvm.sh && sudo bash /tmp/llvm.sh 18
 ```
 
-On Windows, use WSL2 with Ubuntu 22.04+ for the full toolchain.
+На Windows — используйте WSL2 с Ubuntu 22.04+ для полного тулчейна.
 
 ---
 
-## Building from Source
+## Сборка из исходников
 
 ```bash
 git clone https://github.com/alex-pyslar/Orbitron.git
@@ -46,72 +44,69 @@ cd Orbitron
 cargo build --release
 ```
 
-The compiler binary is placed at `target/release/orbitron`.
+Бинарник компилятора: `target/release/orbitron`.
 
-### Verify the build
+### Проверка сборки
 
 ```bash
-./target/release/orbitron examples/hello.ot -o /tmp/hello
+./target/release/orbitron examples/01_basics/hello.ot -o /tmp/hello
 /tmp/hello
 # → Hello, World!
 ```
 
 ---
 
-## Running the Tests
+## Запуск тестов
 
-There is no automated test suite yet — this is a great area to contribute!
+Автоматизированного тестового набора пока нет — это отличная область для вклада!
 
-Until a test harness is added, the recommended workflow is:
-
-1. Build the compiler.
-2. Compile each example with the LLVM backend and verify the output:
+Рекомендуемый рабочий процесс:
 
 ```bash
+# 1. Сборка
 cargo build --release 2>&1
 
-for f in examples/*.ot; do
+# 2. Компиляция всех примеров (LLVM)
+for f in examples/01_basics/*.ot examples/02_control_flow/*.ot examples/03_functions/*.ot; do
     echo "--- $f ---"
     ./target/release/orbitron "$f" -o /tmp/orb_test && /tmp/orb_test
 done
+
+# 3. Проверка JVM-бэкенда
+./target/release/orbitron examples/01_basics/hello.ot --backend jvm -o /tmp/hello
+java -jar /tmp/hello.jar
 ```
 
-3. Compile a few examples with the JVM backend:
-
-```bash
-./target/release/orbitron examples/fibonacci.ot --backend jvm -o /tmp/fib
-java -jar /tmp/fib.jar
-```
-
-If you are adding a new feature, please also add or update an example file that
-exercises it so reviewers can quickly verify the behaviour.
+Если добавляете новую возможность — добавьте или обновите пример в `examples/`, чтобы проверяющие могли быстро убедиться в корректности.
 
 ---
 
-## Project Layout
+## Структура проекта
 
 ```
 src/
-├── main.rs          — CLI dispatcher (new / build / run / <file.ot>)
-├── cli.rs           — BuildOpts, Backend enum, parse_build_opts()
-├── pipeline.rs      — compile_llvm(), compile_jvm(), find_stdlib()
-├── error.rs         — CompileError type
-├── project.rs       — orbitron.toml manifest (serde + toml)
-├── resolver.rs      — recursive import resolver (AST merger)
+├── main.rs          Диспетчер CLI (new / build / run / fmt / <file.ot>)
+├── cli.rs           BuildOpts, enum Backend, parse_build_opts()
+├── pipeline.rs      compile_llvm(), compile_jvm(), find_stdlib()
+├── error.rs         Тип CompileError
+├── project.rs       Манифест orbitron.toml (serde + toml)
+├── resolver.rs      Рекурсивный резолвер импортов (слияние AST)
 ├── lexer/
-│   ├── mod.rs       — struct Lexer, tokenize()
-│   └── token.rs     — enum Token, keyword table
+│   ├── mod.rs       struct Lexer, tokenize()
+│   └── token.rs     enum Token, таблица ключевых слов
 ├── parser/
-│   ├── mod.rs       — recursive-descent parser
-│   └── ast.rs       — Expr, Stmt, BinOp, UnaryOp, ...
+│   ├── mod.rs       Рекурсивный нисходящий парсер
+│   └── ast.rs       Expr, Stmt, BinOp, UnaryOp, Access, ...
 ├── codegen/
-│   ├── mod.rs       — CodeGen struct, generate_program(), save_and_compile()
-│   ├── expr.rs      — gen_expr(), gen_binop()
-│   └── stmt.rs      — gen_stmt() for every Stmt variant
-└── jvm/
-    └── mod.rs       — JvmCodeGen, generate_and_compile()
+│   ├── mod.rs       CodeGen, generate_program(), трёхпроходная кодогенерация
+│   ├── expr.rs      gen_expr(), gen_binop()
+│   └── stmt.rs      gen_stmt() для каждого варианта Stmt
+├── jvm/
+│   └── mod.rs       JvmCodeGen, generate_and_compile()
+└── fmt/
+    └── mod.rs       AST pretty-printer (команда orbitron fmt)
 
-stdlib/              — Standard library written in Orbitron itself
+stdlib/              Стандартная библиотека на самом Orbitron
 ├── math.ot
 ├── bits.ot
 ├── algo.ot
@@ -119,147 +114,170 @@ stdlib/              — Standard library written in Orbitron itself
 ├── net.ot
 └── db.ot
 
-examples/            — Annotated example programs (.ot)
-docs/                — Reference documentation (Markdown)
+examples/            Примеры с аннотациями (.ot)
+docs/                Документация в виде книги (Markdown, по-русски)
 ```
-
-See [docs/architecture.md](docs/architecture.md) for a detailed description of
-every module and the compilation pipeline.
 
 ---
 
-## How to Add a Language Feature
+## Как добавить возможность языка
 
-Adding a new operator or syntax construct requires touching up to five files.
-Follow these steps in order:
+Добавление нового оператора или синтаксической конструкции затрагивает до пяти файлов. Следуйте этим шагам по порядку:
 
-### 1. `src/lexer/token.rs` — add a Token variant
+### 1. `src/lexer/token.rs` — добавить вариант Token
 
 ```rust
 pub enum Token {
-    // ... existing tokens ...
-    MyNewOp,   // add your variant here
+    // ... существующие токены ...
+    MyNewOp,   // добавьте свой вариант здесь
 }
 ```
 
-Recognise it inside `Lexer::next_token()` in `src/lexer/mod.rs`:
+Распознать в `Lexer::next_token()` в `src/lexer/mod.rs`:
 
 ```rust
 '@' => { self.advance(); Token::MyNewOp }
 ```
 
-### 2. `src/parser/ast.rs` — add an AST node
+Ключевые слова добавляются в таблицу `match word { ... }` в том же файле:
 
-For a new expression:
+```rust
+"mynew" => Token::MyNewOp,
+```
+
+### 2. `src/parser/ast.rs` — добавить узел AST
+
+Для нового выражения:
 
 ```rust
 pub enum Expr {
-    // ... existing variants ...
+    // ...
     MyNew(Box<Expr>),
 }
 ```
 
-For a new statement:
+Для новой инструкции:
 
 ```rust
 pub enum Stmt {
-    // ... existing variants ...
+    // ...
     MyNewStmt { expr: Expr },
 }
 ```
 
-### 3. `src/parser/mod.rs` — parse the new construct
+### 3. `src/parser/mod.rs` — разобрать новую конструкцию
 
-Insert a parsing call at the correct precedence level (see the existing
-`parse_pipe` → `parse_ternary` → … → `parse_primary` chain).
+Вставьте вызов разбора на нужном уровне приоритета (смотрите цепочку `parse_pipe` → `parse_ternary` → ... → `parse_primary`).
 
-### 4. `src/codegen/expr.rs` or `src/codegen/stmt.rs` — emit LLVM IR
-
-Extend `gen_expr()` or `gen_stmt()` with a new match arm:
+### 4. `src/codegen/expr.rs` или `src/codegen/stmt.rs` — эмитировать LLVM IR
 
 ```rust
 Expr::MyNew(inner) => {
     let val = self.gen_expr(inner, func, bb)?;
-    // ... emit LLVM IR ...
+    // ... эмит LLVM IR ...
     Ok(val)
 }
 ```
 
-### 5. `src/jvm/mod.rs` — emit Java (optional)
+### 5. `src/jvm/mod.rs` — эмитировать Java (при необходимости)
 
-If the feature should work with `--backend jvm`, add a corresponding arm in the
-JVM code generator. If it is LLVM-only, add a `panic!` with a clear message:
+Если возможность должна работать с `--backend jvm`, добавьте соответствующий arm в JVM кодогенератор. Если только LLVM, добавьте `panic!` с понятным сообщением:
 
 ```rust
-Expr::MyNew(_) => panic!("MyNew is not supported in the JVM backend"),
+Expr::MyNew(_) => panic!("MyNew не поддерживается в JVM-бэкенде"),
 ```
 
 ---
 
-## How to Add a Standard Library Module
+## Как добавить модуль стандартной библиотеки
 
-Standard library modules are plain Orbitron source files — no special compiler
-support is needed.
+Модули стандартной библиотеки — это обычные исходники на Orbitron.
 
-1. Create `stdlib/<name>.ot` with your functions and constants.
-2. Users import it with `import "std/<name>";`.
-3. Document it in [docs/stdlib.md](docs/stdlib.md).
-4. Add a small demo to `examples/` if the module is non-trivial.
+1. Создайте `stdlib/<имя>.ot` с функциями и константами.
+2. Пользователи импортируют через `import "std/<имя>";`.
+3. Задокументируйте в `docs/ch09_stdlib.md`.
+4. Добавьте небольшое демо в `examples/06_stdlib/`, если модуль нетривиален.
 
-**Important constraints:**
+**Важные ограничения:**
 
-- Do not define a function named `pow` — it conflicts with the pre-declared
-  libm `pow(double, double)` used by the `**` operator.
-- All parameters and return values are `i64`. There is no float-typed stdlib
-  parameter support yet.
-- Arrays cannot currently be passed to or returned from stdlib functions.
+- Не определяйте функцию с именем `pow` — она конфликтует с заранее объявленной libm `pow(double, double)`, используемой оператором `**`.
+- Все параметры и возвращаемые значения — `i64`. Поддержки типизированных float-параметров в stdlib пока нет.
+- Массивы пока нельзя передавать в функции или возвращать из них.
 
----
+**Пример модуля stdlib:**
 
-## Coding Conventions
+```orbitron
+// stdlib/mymodule.ot
 
-- **Rust edition**: 2021.
-- **Error messages**: all user-visible strings (panics, errors, verbose output)
-  must be in English.
-- **Naming**: follow standard Rust conventions (`snake_case` for functions and
-  variables, `CamelCase` for types).
-- **Orbitron source files**: use ASCII-only identifiers; Cyrillic identifiers
-  are not supported by the lexer.
-- **Comments in `.ot` files**: English only.
-- **No dead code warnings**: if the compiler emits `dead_code` warnings under
-  rustc 1.93+, add `#![allow(dead_code)]` at the top of `main.rs` (already
-  present).
+const MY_CONST: i64 = 42;
+
+fn my_func(x: i64) -> i64 {
+    return x * MY_CONST;
+}
+```
 
 ---
 
-## Submitting a Pull Request
+## Соглашения кодирования
 
-1. Fork the repository and create a feature branch:
+**Rust:**
+- Редакция: 2021
+- Именование: `snake_case` для функций и переменных, `CamelCase` для типов
+- Видимые пользователю строки (ошибки, verbose-вывод) — на английском
+- При предупреждениях `dead_code` под rustc 1.93+ добавляйте `#![allow(dead_code)]` в `main.rs`
+
+**Файлы Orbitron (`.ot`):**
+- Только ASCII-идентификаторы (кириллица не поддерживается лексером)
+- Комментарии в stdlib и примерах — на английском
+- Отступы — 4 пробела (по правилам `orbitron fmt`)
+- `{` — на той же строке, что и объявление
+
+**Синтаксис `.ot` файлов — текущий стандарт:**
+
+```orbitron
+// ✓ правильно
+var x = 5;
+var mut count = 0;
+const MAX: i64 = 100;
+fn add(a: i64, b: i64) -> i64 { return a + b; }
+public fn method(self) -> i64 { ... }
+private var field: i64,
+
+// ✗ устаревший синтаксис (не использовать)
+// let x = 5;
+// func add(...) { }
+// pub fn method() { }
+```
+
+---
+
+## Отправка Pull Request
+
+1. Сделайте форк репозитория и создайте ветку:
 
    ```bash
    git checkout -b feature/my-feature
    ```
 
-2. Make your changes and verify that all existing examples still compile and
-   produce correct output (see [Running the Tests](#running-the-tests)).
+2. Внесите изменения и убедитесь, что все существующие примеры компилируются и дают правильный результат (см. [Запуск тестов](#запуск-тестов)).
 
-3. Add or update an example or a doc section that covers the new behaviour.
+3. Добавьте или обновите пример либо раздел документации, описывающий новое поведение.
 
-4. Commit with a descriptive message:
+4. Сделайте коммит с описательным сообщением:
 
    ```bash
-   git commit -m "Add: repeat-N loop desugared to Stmt::For"
+   git commit -m "feat: repeat-N loop desugared to Stmt::For"
    ```
 
-5. Open a pull request against `main`. Describe **what** changed and **why**.
+5. Откройте Pull Request в `main`. Опишите **что** изменилось и **почему**.
 
 ---
 
-## Reporting Bugs
+## Сообщение об ошибках
 
-Please open an issue on GitHub and include:
+Откройте issue на GitHub и укажите:
 
-- The `.ot` source file that triggers the bug (or a minimal reproduction).
-- The exact command you ran (`orbitron <file.ot> --backend llvm`, etc.).
-- The full error message or unexpected output.
-- Your OS, Rust version (`rustc --version`), and LLVM version (`llc --version`).
+- Исходный `.ot` файл, воспроизводящий ошибку (или минимальный пример).
+- Точную команду запуска (`orbitron <file.ot> --backend llvm`, и т.д.).
+- Полное сообщение об ошибке или неожиданный вывод.
+- ОС, версию Rust (`rustc --version`) и версию LLVM (`llc --version`).
