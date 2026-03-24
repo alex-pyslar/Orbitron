@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16">
+  <!-- Outer orbit ring -->
+  <ellipse cx="8" cy="8" rx="7" ry="3.5" fill="none" stroke="#4EC9B0" stroke-width="1.2"
+           transform="rotate(-30 8 8)"/>
+  <!-- Core dot -->
+  <circle cx="8" cy="8" r="2" fill="#4EC9B0"/>
+  <!-- Orbiting dot -->
+  <circle cx="13.5" cy="6.2" r="1.2" fill="#9CDCFE"/>
+</svg>

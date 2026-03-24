@@ -21,3 +21,12 @@ target
 .idea/
 .vscode/
 output.*
+
+# Claude Code — local-only settings (API keys, personal preferences)
+.claude/settings.local.json
+
+# Claude Code — isolated git worktrees created during agentic sessions
+.claude/worktrees/
+
+# Claude Code — internal todo / task state (session-specific, not project-wide)
+.claude/todos.json

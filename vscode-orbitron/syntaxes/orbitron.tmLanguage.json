@@ -1,0 +1,285 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Orbitron",
+  "scopeName": "source.orbitron",
+  "fileTypes": ["ot"],
+  "patterns": [
+    { "include": "#block-comment" },
+    { "include": "#line-comment" },
+    { "include": "#interpolated-string" },
+    { "include": "#string" },
+    { "include": "#number" },
+    { "include": "#keyword-control" },
+    { "include": "#keyword-declaration" },
+    { "include": "#keyword-modifier" },
+    { "include": "#keyword-concurrency" },
+    { "include": "#keyword-builtin" },
+    { "include": "#keyword-operator" },
+    { "include": "#keyword-constant" },
+    { "include": "#type-builtin" },
+    { "include": "#function-definition" },
+    { "include": "#function-call" },
+    { "include": "#static-call" },
+    { "include": "#type-annotation" },
+    { "include": "#operator" },
+    { "include": "#punctuation" },
+    { "include": "#identifier" }
+  ],
+  "repository": {
+
+    "block-comment": {
+      "name": "comment.block.orbitron",
+      "begin": "/\\*",
+      "end": "\\*/",
+      "beginCaptures": { "0": { "name": "punctuation.definition.comment.orbitron" } },
+      "endCaptures":   { "0": { "name": "punctuation.definition.comment.orbitron" } }
+    },
+
+    "line-comment": {
+      "name": "comment.line.double-slash.orbitron",
+      "begin": "//",
+      "end": "$",
+      "beginCaptures": { "0": { "name": "punctuation.definition.comment.orbitron" } }
+    },
+
+    "interpolated-string": {
+      "name": "string.quoted.double.interpolated.orbitron",
+      "begin": "\\$\"",
+      "end": "\"",
+      "beginCaptures": {
+        "0": { "name": "punctuation.definition.string.begin.orbitron" }
+      },
+      "endCaptures": {
+        "0": { "name": "punctuation.definition.string.end.orbitron" }
+      },
+      "patterns": [
+        {
+          "name": "meta.interpolation.orbitron",
+          "begin": "\\{",
+          "end": "\\}",
+          "beginCaptures": { "0": { "name": "punctuation.section.interpolation.begin.orbitron" } },
+          "endCaptures":   { "0": { "name": "punctuation.section.interpolation.end.orbitron" } },
+          "patterns": [
+            { "include": "#function-call" },
+            { "include": "#identifier" },
+            { "include": "#number" }
+          ]
+        },
+        {
+          "name": "constant.character.escape.orbitron",
+          "match": "\\\\[nrt\\\\\"{}]"
+        },
+        {
+          "name": "string.quoted.double.interpolated.orbitron",
+          "match": "[^\"\\\\{}]+"
+        }
+      ]
+    },
+
+    "string": {
+      "name": "string.quoted.double.orbitron",
+      "begin": "\"",
+      "end": "\"",
+      "beginCaptures": { "0": { "name": "punctuation.definition.string.begin.orbitron" } },
+      "endCaptures":   { "0": { "name": "punctuation.definition.string.end.orbitron" } },
+      "patterns": [
+        {
+          "name": "constant.character.escape.orbitron",
+          "match": "\\\\[nrt\\\\\"{}]"
+        },
+        {
+          "name": "meta.interpolation.orbitron",
+          "begin": "\\\\\\{",
+          "end": "\\}",
+          "beginCaptures": { "0": { "name": "punctuation.section.interpolation.begin.orbitron" } },
+          "endCaptures":   { "0": { "name": "punctuation.section.interpolation.end.orbitron" } },
+          "patterns": [
+            { "include": "#identifier" },
+            { "include": "#number" }
+          ]
+        }
+      ]
+    },
+
+    "number": {
+      "patterns": [
+        {
+          "name": "constant.numeric.float.orbitron",
+          "match": "\\b[0-9][0-9_]*\\.[0-9][0-9_]*([eE][+-]?[0-9]+)?\\b"
+        },
+        {
+          "name": "constant.numeric.hex.orbitron",
+          "match": "\\b0x[0-9A-Fa-f_]+\\b"
+        },
+        {
+          "name": "constant.numeric.binary.orbitron",
+          "match": "\\b0b[01_]+\\b"
+        },
+        {
+          "name": "constant.numeric.integer.orbitron",
+          "match": "\\b[0-9][0-9_]*\\b"
+        }
+      ]
+    },
+
+    "keyword-control": {
+      "name": "keyword.control.orbitron",
+      "match": "\\b(if|else|unless|match|while|do|for|in|loop|repeat|break|continue|return|defer)\\b"
+    },
+
+    "keyword-declaration": {
+      "name": "keyword.other.declaration.orbitron",
+      "match": "\\b(fn|func|var|let|const|struct|impl|class|trait|enum|type|where|extern|import|init)\\b"
+    },
+
+    "keyword-modifier": {
+      "name": "storage.modifier.orbitron",
+      "match": "\\b(public|private|protected|internal|static|mut|async)\\b"
+    },
+
+    "keyword-concurrency": {
+      "name": "keyword.other.concurrency.orbitron",
+      "match": "\\b(go|await|launch|chan)\\b"
+    },
+
+    "keyword-builtin": {
+      "name": "support.function.builtin.orbitron",
+      "match": "\\b(println|print|syscall|new|self|extends)\\b"
+    },
+
+    "keyword-operator": {
+      "name": "keyword.operator.word.orbitron",
+      "match": "\\b(and|or|not|is|as)\\b"
+    },
+
+    "keyword-constant": {
+      "name": "constant.language.orbitron",
+      "match": "\\b(true|false|null|nil)\\b"
+    },
+
+    "type-builtin": {
+      "name": "support.type.builtin.orbitron",
+      "match": "\\b(i8|i16|i32|i64|i128|u8|u16|u32|u64|u128|f32|f64|bool|str|String|void|usize|isize)\\b"
+    },
+
+    "function-definition": {
+      "match": "\\b(fn|func|async\\s+fn)\\s+([a-zA-Z_][a-zA-Z0-9_]*)\\s*(?=\\()",
+      "captures": {
+        "1": { "name": "keyword.other.declaration.orbitron" },
+        "2": { "name": "entity.name.function.orbitron" }
+      }
+    },
+
+    "function-call": {
+      "match": "\\b([a-zA-Z_][a-zA-Z0-9_]*)\\s*(?=\\()",
+      "captures": {
+        "1": { "name": "entity.name.function.call.orbitron" }
+      }
+    },
+
+    "static-call": {
+      "match": "\\b([A-Z][a-zA-Z0-9_]*)\\s*::\\s*([a-zA-Z_][a-zA-Z0-9_]*)",
+      "captures": {
+        "1": { "name": "entity.name.type.orbitron" },
+        "2": { "name": "entity.name.function.static.orbitron" }
+      }
+    },
+
+    "type-annotation": {
+      "match": ":\\s*([A-Z][a-zA-Z0-9_]*|i8|i16|i32|i64|i128|u8|u16|u32|u64|u128|f32|f64|bool|str|String|void|usize|isize)",
+      "captures": {
+        "1": { "name": "entity.name.type.orbitron" }
+      }
+    },
+
+    "operator": {
+      "patterns": [
+        {
+          "name": "keyword.operator.range.orbitron",
+          "match": "\\.\\.(=)?"
+        },
+        {
+          "name": "keyword.operator.pipe.orbitron",
+          "match": "\\|>"
+        },
+        {
+          "name": "keyword.operator.channel.orbitron",
+          "match": "<-"
+        },
+        {
+          "name": "keyword.operator.static.orbitron",
+          "match": "::"
+        },
+        {
+          "name": "keyword.operator.arrow.orbitron",
+          "match": "->|=>"
+        },
+        {
+          "name": "keyword.operator.power.orbitron",
+          "match": "\\*\\*"
+        },
+        {
+          "name": "keyword.operator.comparison.orbitron",
+          "match": "==|!=|<=|>=|<|>"
+        },
+        {
+          "name": "keyword.operator.logical.orbitron",
+          "match": "&&|\\|\\|"
+        },
+        {
+          "name": "keyword.operator.assignment.compound.orbitron",
+          "match": "\\+=|-=|\\*=|/=|%=|\\^="
+        },
+        {
+          "name": "keyword.operator.assignment.orbitron",
+          "match": "(?<![=!<>])=(?!=)"
+        },
+        {
+          "name": "keyword.operator.arithmetic.orbitron",
+          "match": "[+\\-*/%]"
+        },
+        {
+          "name": "keyword.operator.bitwise.orbitron",
+          "match": "[&|^~]"
+        },
+        {
+          "name": "keyword.operator.optional.orbitron",
+          "match": "\\?\\.|\\?:|\\?"
+        },
+        {
+          "name": "keyword.operator.bang.orbitron",
+          "match": "!"
+        }
+      ]
+    },
+
+    "punctuation": {
+      "patterns": [
+        { "name": "punctuation.terminator.orbitron",   "match": ";" },
+        { "name": "punctuation.separator.comma.orbitron", "match": "," },
+        { "name": "punctuation.accessor.dot.orbitron", "match": "\\." },
+        { "name": "punctuation.separator.colon.orbitron", "match": ":" },
+        { "name": "punctuation.section.block.begin.orbitron", "match": "\\{" },
+        { "name": "punctuation.section.block.end.orbitron",   "match": "\\}" },
+        { "name": "punctuation.section.bracket.begin.orbitron", "match": "\\[" },
+        { "name": "punctuation.section.bracket.end.orbitron",   "match": "\\]" },
+        { "name": "punctuation.section.parens.begin.orbitron",  "match": "\\(" },
+        { "name": "punctuation.section.parens.end.orbitron",    "match": "\\)" }
+      ]
+    },
+
+    "identifier": {
+      "patterns": [
+        {
+          "name": "entity.name.type.orbitron",
+          "match": "\\b[A-Z][a-zA-Z0-9_]*\\b"
+        },
+        {
+          "name": "variable.other.orbitron",
+          "match": "\\b[a-z_][a-zA-Z0-9_]*\\b"
+        }
+      ]
+    }
+
+  }
+}
